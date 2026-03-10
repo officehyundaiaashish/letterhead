@@ -99,8 +99,9 @@ body {
 .mode-btn { 
   flex: 1; height: 35px; border-radius: 7px; border: 1.5px solid var(--border-input); 
   background: var(--bg-hover); font-size: 13px; font-weight: 500; color: var(--text-muted); 
-  cursor: pointer; transition: all .18s; 
+  cursor: pointer; transition: all .18s; outline: none;
 }
+.mode-btn:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--focus-ring); }
 .mode-btn:hover { border-color: var(--text-muted); color: var(--text-main); }
 .mode-btn.active { background: var(--accent-bg); border-color: var(--accent-bg); color: var(--accent-text); }
 
@@ -109,8 +110,8 @@ body {
 .history-wrap.show { display: block; }
 .hist-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .hist-title { font-size: 14px; font-weight: 600; color: var(--text-main); }
-.hist-clr { font-size: 13px; color: var(--text-muted); cursor: pointer; background: none; border: none; transition: color 0.2s; padding: 0; }
-.hist-clr:hover { color: var(--danger-color); }
+.hist-clr { font-size: 13px; color: var(--text-muted); cursor: pointer; background: none; border: none; transition: color 0.2s; padding: 0; outline: none; }
+.hist-clr:hover, .hist-clr:focus { color: var(--danger-color); }
 
 .search-input { 
   width: 100%; height: 42px; border: 1px solid var(--border-input); border-radius: 8px; 
@@ -124,17 +125,17 @@ body {
 .hist-item { 
   display: flex; align-items: center; gap: 12px; padding: 14px 16px; 
   border: 1px solid var(--border-light); border-radius: 8px; cursor: pointer; 
-  background: var(--bg-input); transition: all 0.2s; 
+  background: var(--bg-input); transition: all 0.2s; outline: none;
 }
-.hist-item:hover { border-color: var(--border-input); background: var(--bg-hover); }
+.hist-item:hover, .hist-item:focus { border-color: var(--border-input); background: var(--bg-hover); }
 .hi-info { flex: 1; min-width: 0; }
 .hi-name { font-size: 14px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hi-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 8px; }
 .hi-mode { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
 .hi-mode.tyre { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
 .hi-mode.battery { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-.hi-del { background: none; border: none; color: var(--border-input); cursor: pointer; transition: color 0.2s; display: flex; align-items: center;}
-.hi-del:hover { color: var(--danger-color); }
+.hi-del { background: none; border: none; color: var(--border-input); cursor: pointer; transition: color 0.2s; display: flex; align-items: center; outline: none;}
+.hi-del:hover, .hi-del:focus { color: var(--danger-color); }
 
 /* Forms - CSS Grid Setup */
 .form-section { padding: 24px 32px 0; }
@@ -157,9 +158,10 @@ body {
 .custom-select-trigger { 
   height: 42px; border: 1px solid var(--border-input); border-radius: 8px; 
   padding: 0 14px; background: var(--bg-input); display: flex; align-items: center; 
-  justify-content: space-between; cursor: pointer; transition: all 0.2s ease; width: 100%;
+  justify-content: space-between; cursor: pointer; transition: all 0.2s ease; width: 100%; outline: none;
 }
 .custom-select-trigger:hover { border-color: var(--text-placeholder); }
+.custom-select-trigger:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--focus-ring); }
 .custom-select-trigger.active { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--focus-ring); }
 .cs-val { font-size: 14px; color: var(--text-main); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
 .cs-val.empty { color: var(--text-placeholder); }
@@ -174,17 +176,18 @@ body {
   pointer-events: none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 .custom-select-opts.open { opacity: 1; transform: translateY(0) scaleY(1); pointer-events: all; }
-.cs-opt { padding: 12px 14px; font-size: 13px; color: var(--text-main); cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border-light);}
+.cs-opt { padding: 12px 14px; font-size: 13px; color: var(--text-main); cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border-light); outline: none;}
 .cs-opt:last-child { border-bottom: none; }
-.cs-opt:hover { background: var(--bg-hover); font-weight: 500; }
+.cs-opt:hover, .cs-opt:focus { background: var(--bg-hover); font-weight: 500; }
 
 /* Date picker */
 .date-trigger { 
   height: 42px; display: flex; align-items: center; padding: 0 14px; 
   cursor: pointer; user-select: none; gap: 8px; border: 1px solid var(--border-input); 
-  border-radius: 8px; background: var(--bg-input); transition: all 0.2s ease; position: relative; width: 100%;
+  border-radius: 8px; background: var(--bg-input); transition: all 0.2s ease; position: relative; width: 100%; outline: none;
 }
 .date-trigger:hover { border-color: var(--text-placeholder); }
+.date-trigger:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--focus-ring); }
 .date-trigger.active { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--focus-ring); }
 .date-icon { color: var(--text-placeholder); display: flex; align-items: center; }
 .dval { font-size: 14px; color: var(--text-main); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -200,17 +203,17 @@ body {
 }
 .cal-pop.open { opacity: 1; transform: translateY(0); pointer-events: all; }
 .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.mnth { font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; }
-.mnth:hover { background: var(--bg-hover); }
-.cal-nav button { background: none; border: 1px solid var(--border-input); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.2s; }
-.cal-nav button:hover { background: var(--bg-hover); color: var(--text-main);}
+.mnth { font-size: 14px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background 0.2s; outline: none; }
+.mnth:hover, .mnth:focus { background: var(--bg-hover); }
+.cal-nav button { background: none; border: 1px solid var(--border-input); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.2s; outline: none;}
+.cal-nav button:hover, .cal-nav button:focus { background: var(--bg-hover); color: var(--text-main);}
 
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .cal-grid.years { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .dn { font-size: 10px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); text-align: center; padding-bottom: 8px; }
-.cd { font-size: 13px; text-align: center; padding: 8px 2px; border-radius: 6px; cursor: pointer; color: var(--text-label); transition: all 0.15s; }
+.cd { font-size: 13px; text-align: center; padding: 8px 2px; border-radius: 6px; cursor: pointer; color: var(--text-label); transition: all 0.15s; outline: none;}
 .cal-grid.years .cd { padding: 12px 4px; font-weight: 500; }
-.cd:hover { background: var(--bg-hover); color: var(--text-main); }
+.cd:hover, .cd:focus { background: var(--bg-hover); color: var(--text-main); }
 .cd.sel { background: var(--accent-bg) !important; color: var(--accent-text) !important; font-weight: 500; }
 .cd.today { font-weight: 700; color: var(--text-main); text-decoration: underline;}
 .cd.om { color: var(--border-input); pointer-events: none; }
@@ -221,7 +224,8 @@ body {
 .status.success { background: rgba(34, 197, 94, 0.1); color: #15803d; border: 1px solid rgba(34, 197, 94, 0.2); display: block; }
 
 .actions { display: flex; gap: 12px; padding: 24px 32px 32px; border-top: 1px solid var(--border-light); margin-top: 24px; }
-.btn { flex: 1; height: 48px; border-radius: 8px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif;}
+.btn { flex: 1; height: 48px; border-radius: 8px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; outline: none;}
+.btn:focus { box-shadow: 0 0 0 3px var(--focus-ring); }
 .btn-inject { background: var(--accent-bg); color: var(--accent-text); }
 .btn-inject:hover { opacity: 0.9; }
 .btn-inject:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -229,12 +233,13 @@ body {
 .btn-clear:hover { background: var(--border-input); color: var(--text-main); }
 .no-file-msg { text-align: center; font-size: 14px; color: var(--text-muted); padding: 40px; font-weight: 500; }
 
-/* 📱 MOBILE RESPONSIVENESS (Fixes Squishing) */
+/* 📱 MOBILE RESPONSIVENESS */
 @media (max-width: 640px) {
   body { padding: 16px 10px; }
-  .grid-wrap { grid-template-columns: 1fr; gap: 14px; } /* Forces 1-column layout on mobile */
+  .grid-wrap { grid-template-columns: 1fr; gap: 14px; }
   .card-header, .mode-wrap, .form-section, .actions, .history-wrap { padding-left: 20px; padding-right: 20px; }
-  .actions { flex-direction: column-reverse; } /* Stack buttons on mobile */
+  .actions { flex-direction: column-reverse; }
+  .btn { min-height: 48px; width: 100%; } /* Prevents squishing on thin screens */
 }
 </style>
 </head>
@@ -248,18 +253,27 @@ body {
   <div class="mode-wrap" id="modeWrap">
     <div class="mode-lbl">Select Letter Type</div>
     <div class="mode-btns">
-      <button class="mode-btn active" id="modeTyre"    onclick="setMode('tyre')">Tyre Report</button>
-      <button class="mode-btn"        id="modeBattery" onclick="setMode('battery')">Battery Report</button>
-      <button class="mode-btn"        id="modeHistory" onclick="setMode('history')">Saved Entries</button>
+      <button class="mode-btn active" id="modeTyre"    onclick="setMode('tyre')" tabindex="0">Tyre Report</button>
+      <button class="mode-btn"        id="modeBattery" onclick="setMode('battery')" tabindex="0">Battery Report</button>
+    </div>
+    <div class="mode-lbl" style="margin-top: 18px;">Saved Data</div>
+    <div class="mode-btns">
+      <button class="mode-btn" id="modeHistory" onclick="setMode('history')" tabindex="0">Saved Entries</button>
     </div>
   </div>
 
   <div class="history-wrap" id="histWrap">
     <div class="hist-header">
       <span class="hist-title">Saved Records</span>
-      <button class="hist-clr" onclick="clearAllHistory()">Clear all</button>
+      <button class="hist-clr" onclick="clearAllHistory()" tabindex="0">Clear all</button>
     </div>
-    <input type="text" id="historySearch" class="search-input" placeholder="Search by Reg. No or Name..." autocomplete="off">
+    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <button class="btn btn-clear" style="height: 36px; min-height: 36px; font-size: 13px;" onclick="backupData()" tabindex="0">Backup Data</button>
+      <button class="btn btn-clear" style="height: 36px; min-height: 36px; font-size: 13px;" onclick="document.getElementById('restoreFile').click()" tabindex="0">Restore Data</button>
+      <input type="file" id="restoreFile" style="display:none" accept=".json" onchange="restoreData(event)">
+    </div>
+    
+    <input type="text" id="historySearch" class="search-input" placeholder="Search by Reg. No or Name..." autocomplete="off" tabindex="0">
     <div class="hist-list" id="histList"></div>
   </div>
 
@@ -267,8 +281,8 @@ body {
   <div id="formWrap"></div>
 
   <div class="actions" id="actionsBar" style="display:none">
-    <button class="btn btn-clear" id="btnClear">Clear Form</button>
-    <button class="btn btn-inject" id="btnInject">Generate DOCX</button>
+    <button class="btn btn-clear" id="btnClear" tabindex="0">Clear Form</button>
+    <button class="btn btn-inject" id="btnInject" tabindex="0">Generate DOCX</button>
   </div>
 </div>
 
@@ -285,16 +299,16 @@ const icons = {
 };
 
 // ─────────────────────────────────────────────────────────────────
-// LISTS & OPTIONS
+// LISTS & OPTIONS (New to Old)
 // ─────────────────────────────────────────────────────────────────
 const hyundaiModels = [
-  "Hyundai Santro", "Hyundai Santro Xing", "Hyundai Eon", "Hyundai Getz", 
-  "Hyundai i10", "Hyundai Grand i10", "Hyundai Grand i10 Nios", "Hyundai i20", 
-  "Hyundai Elite i20", "Hyundai i20 Active", "Hyundai Accent", "Hyundai Verna", 
-  "Hyundai Elantra", "Hyundai Sonata", "Hyundai Xcent", "Hyundai Aura", 
-  "Hyundai Terracan", "Hyundai Tucson", "Hyundai Santa Fe", "Hyundai Creta", 
-  "Hyundai Venue", "Hyundai Alcazar", "Hyundai Exter", "Hyundai Kona Electric", 
-  "Hyundai Ioniq 5"
+  "Hyundai Ioniq 5", "Hyundai Exter", "Hyundai Alcazar", "Hyundai Venue", 
+  "Hyundai Creta", "Hyundai Tucson", "Hyundai Verna", "Hyundai Aura", 
+  "Hyundai Grand i10 Nios", "Hyundai i20", "Hyundai Kona Electric", 
+  "Hyundai Elantra", "Hyundai Xcent", "Hyundai Elite i20", "Hyundai i20 Active", 
+  "Hyundai Grand i10", "Hyundai i10", "Hyundai Eon", "Hyundai Sonata", 
+  "Hyundai Santa Fe", "Hyundai Terracan", "Hyundai Accent", "Hyundai Getz", 
+  "Hyundai Santro Xing", "Hyundai Santro"
 ];
 
 const tyreMakes = ["Bridgestone", "Apollo", "Goodyear", "Ceat", "JK Tyre", "MRF", "Kumho"];
@@ -396,6 +410,13 @@ const getGroups= ()=> currentMode==='tyre' ? TYRE_FIELDS : BATTERY_FIELDS;
 const allFields= ()=> getGroups().flatMap(g=>g.fields);
 const dateFields=()=> allFields().filter(f=>f.type==='date');
 
+// Keyboard Interaction Helper
+const handleKeyClick = (el, action) => {
+  el.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); action(e); }
+  });
+};
+
 // ─────────────────────────────────────────────────────────────────
 // INITIALIZE & FETCH DOCUMENT ON LOAD
 // ─────────────────────────────────────────────────────────────────
@@ -437,6 +458,42 @@ function setMode(mode){
 }
 
 // ─────────────────────────────────────────────────────────────────
+// BACKUP & RESTORE LOGIC
+// ─────────────────────────────────────────────────────────────────
+function backupData() {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(HISTORY));
+  const a = document.createElement('a');
+  a.setAttribute("href", dataStr);
+  a.setAttribute("download", "letterhead_backup.json");
+  document.body.appendChild(a); 
+  a.click();
+  a.remove();
+}
+
+function restoreData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if(Array.isArray(imported)) {
+        HISTORY = imported;
+        localStorage.setItem('inj_hist', JSON.stringify(HISTORY));
+        renderHistory(historySearch.value);
+        showStatus('Data restored successfully!', 'success');
+      } else {
+        showStatus('Invalid backup file format.', 'error');
+      }
+    } catch(err) {
+      showStatus('Error reading backup file.', 'error');
+    }
+    event.target.value = ''; // Reset input
+  };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────────────────────────────
 // CLOSE ALL POPUPS SCRIPT
 // ─────────────────────────────────────────────────────────────────
 function closeAllPopups() {
@@ -451,7 +508,7 @@ function closeAllPopups() {
 document.addEventListener('click', closeAllPopups);
 
 // ─────────────────────────────────────────────────────────────────
-// CALENDAR LOGIC (With SVGs)
+// CALENDAR LOGIC 
 // ─────────────────────────────────────────────────────────────────
 function renderCal(id){
   const st=CAL[id], pop=document.getElementById('cp_'+id);
@@ -461,69 +518,68 @@ function renderCal(id){
   if(st.view === 'years') {
     const startYear = y - 7;
     let h=`<div class="cal-nav">
-      <button type="button" class="cpb-y" data-id="${id}" data-dir="-15">${icons.chevronLeft}</button>
-      <span class="mnth ys">Select Year</span>
-      <button type="button" class="cpb-y" data-id="${id}" data-dir="15">${icons.chevronRight}</button>
+      <button type="button" class="cpb-y" data-id="${id}" data-dir="-15" tabindex="0">${icons.chevronLeft}</button>
+      <span class="mnth ys" tabindex="0">Select Year</span>
+      <button type="button" class="cpb-y" data-id="${id}" data-dir="15" tabindex="0">${icons.chevronRight}</button>
     </div>
     <div class="cal-grid years">`;
     for(let i=0; i<15; i++){
-      h+=`<div class="cd ${startYear+i === y ? 'sel' : ''}" data-id="${id}" data-y="${startYear+i}">${startYear+i}</div>`;
+      h+=`<div class="cd ${startYear+i === y ? 'sel' : ''}" data-id="${id}" data-y="${startYear+i}" tabindex="0">${startYear+i}</div>`;
     }
     h+='</div>';
     pop.innerHTML=h;
     
-    pop.querySelectorAll('.cpb-y').forEach(b=>b.addEventListener('click',e=>{
-      e.stopPropagation();
-      CAL[b.dataset.id].year += parseInt(b.dataset.dir);
-      renderCal(b.dataset.id);
-    }));
-    pop.querySelectorAll('.cd').forEach(el=>el.addEventListener('click',e=>{
-      e.stopPropagation();
-      CAL[el.dataset.id].year = parseInt(el.dataset.y);
-      CAL[el.dataset.id].view = 'days';
-      renderCal(el.dataset.id);
-    }));
+    pop.querySelectorAll('.cpb-y').forEach(b=>{
+      const action = e => { e.stopPropagation(); CAL[b.dataset.id].year += parseInt(b.dataset.dir); renderCal(b.dataset.id); };
+      b.addEventListener('click', action);
+      handleKeyClick(b, action);
+    });
+    pop.querySelectorAll('.cd').forEach(el=>{
+      const action = e => { e.stopPropagation(); CAL[el.dataset.id].year = parseInt(el.dataset.y); CAL[el.dataset.id].view = 'days'; renderCal(el.dataset.id); };
+      el.addEventListener('click', action);
+      handleKeyClick(el, action);
+    });
 
   } else {
     const fd=new Date(y,m,1).getDay();
     const dim=new Date(y,m+1,0).getDate(),prev=new Date(y,m,0).getDate();
     
     let h=`<div class="cal-nav">
-      <button type="button" class="cpb" data-id="${id}" data-dir="-1">${icons.chevronLeft}</button>
-      <span class="mnth ts" data-id="${id}" title="Click to change year">${MONTHS[m]} ${y}</span>
-      <button type="button" class="cpb" data-id="${id}" data-dir="1">${icons.chevronRight}</button>
+      <button type="button" class="cpb" data-id="${id}" data-dir="-1" tabindex="0">${icons.chevronLeft}</button>
+      <span class="mnth ts" data-id="${id}" title="Click to change year" tabindex="0">${MONTHS[m]} ${y}</span>
+      <button type="button" class="cpb" data-id="${id}" data-dir="1" tabindex="0">${icons.chevronRight}</button>
     </div>
     <div class="cal-grid">${['S','M','T','W','T','F','S'].map(x=>`<div class="dn">${x}</div>`).join('')}`;
     for(let i=0;i<fd;i++) h+=`<div class="cd om">${prev-fd+1+i}</div>`;
     for(let d=1;d<=dim;d++){
       const iT=d===now.getDate()&&m===now.getMonth()&&y===now.getFullYear();
       const iS=st.date&&d===st.date.getDate()&&m===st.date.getMonth()&&y===st.date.getFullYear();
-      h+=`<div class="cd${iT?' today':''}${iS?' sel':''}" data-id="${id}" data-d="${d}">${d}</div>`;
+      h+=`<div class="cd${iT?' today':''}${iS?' sel':''}" data-id="${id}" data-d="${d}" tabindex="0">${d}</div>`;
     }
     h+='</div>';
     pop.innerHTML=h;
 
-    pop.querySelectorAll('.cpb').forEach(b=>b.addEventListener('click',e=>{
-      e.stopPropagation();
-      const s=CAL[b.dataset.id],dir=parseInt(b.dataset.dir);
-      s.month+=dir; if(s.month<0){s.month=11;s.year--;} if(s.month>11){s.month=0;s.year++;}
-      renderCal(b.dataset.id);
-    }));
-    pop.querySelector('.ts').addEventListener('click',e=>{
-      e.stopPropagation();
-      CAL[e.target.dataset.id].view = 'years';
-      renderCal(e.target.dataset.id);
+    pop.querySelectorAll('.cpb').forEach(b=>{
+      const action = e => { e.stopPropagation(); const s=CAL[b.dataset.id],dir=parseInt(b.dataset.dir); s.month+=dir; if(s.month<0){s.month=11;s.year--;} if(s.month>11){s.month=0;s.year++;} renderCal(b.dataset.id); };
+      b.addEventListener('click', action);
+      handleKeyClick(b, action);
     });
-    pop.querySelectorAll('.cd:not(.om)').forEach(el=>el.addEventListener('click',e=>{
-      e.stopPropagation();
-      const s=CAL[el.dataset.id];
-      s.date=new Date(s.year,s.month,parseInt(el.dataset.d));
-      const f=allFields().find(f=>f.id===el.dataset.id);
-      const dv=document.getElementById('dv_'+el.dataset.id);
-      if(dv){ dv.textContent=f.fmt==='slash'?fmtSlash(s.date):fmtDash(s.date); dv.classList.remove('empty'); }
-      closeAllPopups();
-      renderCal(el.dataset.id);
-    }));
+    
+    const ts = pop.querySelector('.ts');
+    const tsAction = e => { e.stopPropagation(); CAL[e.target.dataset.id].view = 'years'; renderCal(e.target.dataset.id); };
+    ts.addEventListener('click', tsAction);
+    handleKeyClick(ts, tsAction);
+
+    pop.querySelectorAll('.cd:not(.om)').forEach(el=>{
+      const action = e => { 
+        e.stopPropagation(); const s=CAL[el.dataset.id]; s.date=new Date(s.year,s.month,parseInt(el.dataset.d)); 
+        const f=allFields().find(f=>f.id===el.dataset.id); const dv=document.getElementById('dv_'+el.dataset.id);
+        if(dv){ dv.textContent=f.fmt==='slash'?fmtSlash(s.date):fmtDash(s.date); dv.classList.remove('empty'); }
+        closeAllPopups(); renderCal(el.dataset.id);
+      };
+      el.addEventListener('click', action);
+      handleKeyClick(el, action);
+    });
   }
 }
 
@@ -539,7 +595,7 @@ function openCal(id){
 }
 
 // ─────────────────────────────────────────────────────────────────
-// FORM BUILDER (SVGs Injected)
+// FORM BUILDER
 // ─────────────────────────────────────────────────────────────────
 function buildForm(){
   formWrap.innerHTML='';
@@ -552,38 +608,40 @@ function buildForm(){
     
     group.fields.forEach(f=>{
       const col = document.createElement('div'); col.className = 'field-col';
-      if (f.id === 'subject') col.style.gridColumn = '1 / -1'; // Full width on PC, 1 col on mobile
+      if (f.id === 'subject') col.style.gridColumn = '1 / -1'; 
       
       if(f.type==='date'){
         if(!CAL[f.id]) CAL[f.id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};
         col.innerHTML=`
           <label>${f.label}</label>
           <div style="position:relative;">
-            <div class="date-trigger" id="dt_${f.id}">
-              <span class="date-icon">${icons.calendar}</span>
+            <div class="date-trigger" id="dt_${f.id}" tabindex="0">
               <span class="dval empty" id="dv_${f.id}">Pick a date</span>
-              <span class="darr">${icons.chevronDown}</span>
+              <span class="date-icon">${icons.calendar}</span>
             </div>
             <div class="cal-pop" id="cp_${f.id}"></div>
           </div>`;
         grid.appendChild(col);
         requestAnimationFrame(()=>{
-          document.getElementById('dt_'+f.id)?.addEventListener('click',e=>{
+          const dt = document.getElementById('dt_'+f.id);
+          const dtAction = e => {
             e.stopPropagation(); 
             const isOpen = document.getElementById('cp_'+f.id).classList.contains('open');
             if(isOpen) closeAllPopups(); else openCal(f.id);
-          });
+          };
+          dt?.addEventListener('click', dtAction);
+          handleKeyClick(dt, dtAction);
         });
       } else if(f.type === 'select') {
         col.innerHTML=`
           <label>${f.label}</label>
           <div class="custom-select-wrap">
-            <div class="custom-select-trigger" id="cst_${f.id}">
+            <div class="custom-select-trigger" id="cst_${f.id}" tabindex="0">
               <span class="cs-val empty" id="csv_${f.id}">Select ${f.label}...</span>
               <span class="cs-arr">${icons.chevronDown}</span>
             </div>
             <div class="custom-select-opts" id="cso_${f.id}">
-              ${f.options.map(o => `<div class="cs-opt" data-val="${o}">${o}</div>`).join('')}
+              ${f.options.map(o => `<div class="cs-opt" data-val="${o}" tabindex="0">${o}</div>`).join('')}
             </div>
             <input type="hidden" id="${f.id}" value="">
           </div>`;
@@ -595,7 +653,7 @@ function buildForm(){
           const valEl = document.getElementById('csv_'+f.id);
           const hidInp = document.getElementById(f.id);
           
-          trig.addEventListener('click', (e) => {
+          const trigAction = e => {
             e.stopPropagation();
             const isOpen = opts.classList.contains('open');
             closeAllPopups();
@@ -603,22 +661,26 @@ function buildForm(){
               opts.classList.add('open');
               trig.classList.add('active');
             }
-          });
+          };
+          trig.addEventListener('click', trigAction);
+          handleKeyClick(trig, trigAction);
           
           opts.querySelectorAll('.cs-opt').forEach(opt => {
-            opt.addEventListener('click', (e) => {
+            const optAction = e => {
               e.stopPropagation();
               const val = opt.getAttribute('data-val');
               valEl.textContent = val;
               valEl.classList.remove('empty');
               hidInp.value = val;
               closeAllPopups();
-            });
+            };
+            opt.addEventListener('click', optAction);
+            handleKeyClick(opt, optAction);
           });
         });
       } else {
         const label=document.createElement('label'); label.htmlFor=f.id; label.textContent=f.label;
-        const input=document.createElement('input'); input.type='text'; input.id=f.id;
+        const input=document.createElement('input'); input.type='text'; input.id=f.id; input.setAttribute('tabindex', '0');
         if(f.def){ input.value=f.def; input.classList.add('pre'); input.addEventListener('focus',()=>input.classList.remove('pre')); }
         else input.placeholder='Enter value\u2026';
         
@@ -631,6 +693,7 @@ function buildForm(){
 }
 
 btnClear.addEventListener('click',()=>{
+  if(!confirm('Are you sure you want to clear the form?')) return;
   allFields().forEach(f=>{
     if(f.type==='date'){
       if(CAL[f.id]) Object.assign(CAL[f.id],{date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'});
@@ -735,6 +798,7 @@ function deleteHistory(idx){
   renderHistory(historySearch.value);
 }
 function clearAllHistory(){
+  if(!confirm('Are you sure you want to clear all saved entries?')) return;
   HISTORY=[];
   try{localStorage.removeItem('inj_hist');}catch(e){}
   historySearch.value = '';
@@ -760,17 +824,25 @@ function renderHistory(filterText = ''){
         if(!searchString.includes(searchLower)) return;
     }
 
-    const item=document.createElement('div'); item.className='hist-item';
+    const item=document.createElement('div'); item.className='hist-item'; item.setAttribute('tabindex', '0');
     item.innerHTML=`<div class="hi-info">
       <div class="hi-name">${escHtml(primaryName)}</div>
       <div class="hi-meta"><span class="hi-mode ${entry.mode}">${entry.mode}</span>${escHtml(subMeta)}</div>
-    </div><button type="button" class="hi-del" data-idx="${originalIdx}">${icons.close}</button>`;
+    </div><button type="button" class="hi-del" data-idx="${originalIdx}" tabindex="0">${icons.close}</button>`;
     
-    item.querySelector('.hi-del').addEventListener('click',e=>{
+    const delBtn = item.querySelector('.hi-del');
+    const delAction = e => {
         e.stopPropagation();
+        if(!confirm('Are you sure you want to delete this entry?')) return;
         deleteHistory(originalIdx);
-    });
-    item.addEventListener('click',()=>fillFromHistory(entry));
+    };
+    delBtn.addEventListener('click', delAction);
+    handleKeyClick(delBtn, delAction);
+    
+    const itemAction = () => fillFromHistory(entry);
+    item.addEventListener('click', itemAction);
+    handleKeyClick(item, itemAction);
+    
     histList.appendChild(item);
   });
   
