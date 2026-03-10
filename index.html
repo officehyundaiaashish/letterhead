@@ -1081,6 +1081,24 @@
       border-color: #e05252;
       color: #fff;
     }
+    /* ── Backup / Restore Card ── */
+    .backup-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      transition: background var(--tr), border-color var(--tr);
+    }
+    .backup-info h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .backup-info p  { font-size: 12.5px; color: var(--text2); }
+    .backup-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
   </style>
 </head>
 
@@ -1235,6 +1253,24 @@
             <span class="tag tag-soon">Soon</span>
           </div>
         </div>
+
+        <div class="backup-card">
+          <div class="backup-info">
+            <h3>Backup &amp; Restore</h3>
+            <p>Save all form data from every tool to a single file. Restore anytime.</p>
+          </div>
+          <div class="backup-btns">
+            <button class="btn btn-g" onclick="backupAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Backup All
+            </button>
+            <button class="btn btn-g" onclick="document.getElementById('restore-input').click()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Restore All
+            </button>
+            <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreAll(event)">
+          </div>
+        </div>
       </div>
       <!-- ALCAZAR FORM -->
       <!-- ALCAZAR FORM -->
@@ -1322,6 +1358,98 @@
       clearTimeout(tt); 
       tt = setTimeout(() => { el.className = ""; }, 3500); 
     }
+
+    // ── Backup / Restore All ──
+    const IFRAME_IDS = ['alcazar-iframe', 'keycode-iframe', 'letterheads-iframe'];
+    const TOOL_NAMES = { 'alcazar-iframe': 'alcazar', 'keycode-iframe': 'keycode', 'letterheads-iframe': 'letterheads' };
+
+    function backupAll() {
+      const collected = {};
+      let pending = IFRAME_IDS.length;
+
+      const timeout = setTimeout(() => {
+        // If some iframes didn't respond, still save what we have
+        finishBackup(collected);
+      }, 3000);
+
+      const handler = (e) => {
+        if (e.data && e.data.type === 'backup-response') {
+          collected[e.data.tool] = e.data.data;
+          pending--;
+          if (pending <= 0) {
+            clearTimeout(timeout);
+            window.removeEventListener('message', handler);
+            finishBackup(collected);
+          }
+        }
+      };
+      window.addEventListener('message', handler);
+
+      // Request data from each iframe
+      IFRAME_IDS.forEach(id => {
+        const iframe = document.getElementById(id);
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({ type: 'backup-request' }, '*');
+        } else {
+          pending--;
+        }
+      });
+
+      if (pending <= 0) {
+        clearTimeout(timeout);
+        window.removeEventListener('message', handler);
+        finishBackup(collected);
+      }
+    }
+
+    function finishBackup(data) {
+      const payload = {
+        version: 1,
+        timestamp: new Date().toISOString(),
+        data
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const d = new Date();
+      const stamp = d.getFullYear() + ('0'+(d.getMonth()+1)).slice(-2) + ('0'+d.getDate()).slice(-2);
+      a.download = `officedesk_backup_${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Backup downloaded', 'ok');
+    }
+
+    function restoreAll(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const payload = JSON.parse(e.target.result);
+          if (!payload.version || !payload.data) {
+            toast('Invalid backup file', 'err');
+            return;
+          }
+          const { data } = payload;
+          IFRAME_IDS.forEach(id => {
+            const tool = TOOL_NAMES[id];
+            const iframe = document.getElementById(id);
+            if (iframe && iframe.contentWindow && data[tool]) {
+              iframe.contentWindow.postMessage({ type: 'restore-data', tool, data: data[tool] }, '*');
+            }
+          });
+          toast('Data restored to all tools', 'ok');
+        } catch (err) {
+          toast('Error reading backup file', 'err');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+    // ── End Backup / Restore ──
 
     function showLoader(s) { 
       document.getElementById("loader").className = s ? "show" : ""; 
