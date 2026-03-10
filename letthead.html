@@ -964,6 +964,7 @@ function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function showStatus(m,t){statusEl.textContent=m;statusEl.className='status '+t;}
 function clearStatus(){statusEl.textContent='';statusEl.className='status';}
 
+
 // ─────────────────────────────────────────────────────────────────
 // THEME SYNC WITH PARENT WINDOW via postMessage
 // ─────────────────────────────────────────────────────────────────
@@ -971,10 +972,29 @@ window.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'theme') {
     document.documentElement.setAttribute('data-theme', event.data.theme);
   }
+  if (event.data && event.data.type === 'backup-request') {
+    const keys = ['inj_hist'];
+    const payload = {};
+    keys.forEach(k => {
+      try { const v = localStorage.getItem(k); if (v) payload[k] = v; } catch(e) {}
+    });
+    event.source.postMessage({ type: 'backup-response', tool: 'letterheads', data: payload }, '*');
+  }
+  if (event.data && event.data.type === 'restore-data') {
+    if (event.data.tool === 'letterheads' && event.data.data) {
+      Object.entries(event.data.data).forEach(([k, v]) => {
+        try { localStorage.setItem(k, v); } catch(e) {}
+      });
+      // Reload history
+      try { HISTORY = JSON.parse(localStorage.getItem('inj_hist') || '[]'); } catch(e) {}
+      renderHistory();
+    }
+  }
 });
 
 // Request initial theme from parent
 window.parent.postMessage({ type: 'requestTheme' }, '*');
+
 </script>
 </body>
 </html>
