@@ -446,7 +446,7 @@ function mkSec(title){
 function buildEstimateSection(){
   const sec=mkSec('Estimate');
   let pRows='';
-  for(let i=1;i<=11;i++) pRows+=`<tr><td class="num">${i}</td><td><input id="part${i}No" placeholder="Part No…" tabindex="0"></td><td><input id="part${i}Name" placeholder="Item name…" tabindex="0"></td><td><input id="part${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcRow(${i})"></td><td><input id="part${i}Rate" placeholder="0" tabindex="0" oninput="calcRow(${i})"></td><td class="total-cell"><span id="part${i}Total">—</span></td></tr>`;
+  for(let i=1;i<=11;i++) pRows+=`<tr><td class="num">${i}</td><td><input id="part${i}No" placeholder="Part No…" tabindex="0"></td><td><input id="part${i}Name" placeholder="Item name…" tabindex="0"></td><td><input id="part${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcRow(${i})"></td><td><input id="part${i}Rate" placeholder="0" tabindex="0" oninput="calcRow(${i})"></td><td class="total-cell"><span id="part${i}Total">—</span></td><td><input id="part${i}Tag" placeholder="Tag…" style="width:65px" tabindex="0"></td></tr>`;
   let lRows='';
   for(let i=1;i<=6;i++) lRows+=`<tr><td class="num">${i}</td><td><input id="labour${i}OpCode" placeholder="Op Code…" tabindex="0"></td><td><input id="labour${i}Name" placeholder="Labour name…" tabindex="0"></td><td><input id="labour${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcLabourRow(${i})"></td><td><input id="labour${i}Rate" placeholder="0" tabindex="0" oninput="calcLabourRow(${i})"></td><td class="total-cell"><span id="labour${i}Total">—</span></td></tr>`;
 
@@ -454,7 +454,7 @@ function buildEstimateSection(){
   sec.innerHTML+=hint+`
   <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Parts</div>
   <div class="tbl-wrap"><table class="pwa-table">
-    <thead><tr><th style="width:28px">#</th><th style="min-width:100px">Part No.</th><th style="min-width:150px">Item Name</th><th style="min-width:50px">Qty</th><th style="min-width:80px">Rate</th><th style="min-width:75px">Total</th></tr></thead>
+    <thead><tr><th style="width:28px">#</th><th style="min-width:100px">Part No.</th><th style="min-width:150px">Item Name</th><th style="min-width:50px">Qty</th><th style="min-width:80px">Rate</th><th style="min-width:75px">Total</th><th style="min-width:65px">Tag</th></tr></thead>
     <tbody>${pRows}</tbody>
     <tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding-right:10px;font-size:11px;letter-spacing:.04em;">PARTS TOTAL</td><td class="total-cell"><span id="partsTotal">—</span></td><td></td></tr></tfoot>
   </table></div>
@@ -470,7 +470,7 @@ function buildEstimateSection(){
   formWrap.appendChild(sec);
 
   requestAnimationFrame(()=>{
-    const pCols=['No','Name','Qty','Rate'];
+    const pCols=['No','Name','Qty','Rate','Tag'];
     for(let i=1;i<=11;i++) pCols.forEach(f=>{const el=document.getElementById(`part${i}${f}`);if(el)el.addEventListener('paste',e=>handlePaste(e,'part',i,f,11,pCols));});
     const lCols=['OpCode','Name','Qty','Rate'];
     for(let i=1;i<=6;i++) lCols.forEach(f=>{const el=document.getElementById(`labour${i}${f}`);if(el)el.addEventListener('paste',e=>handlePaste(e,'labour',i,f,6,lCols));});
@@ -580,7 +580,7 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
   ['fuelType','ew','mailYN','roadCondition'].forEach(id=>data[id]=get(id));
   ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>data[id]=getDate(id));
   for(let i=1;i<=17;i++)['Date','Kms','JobType','Status'].forEach(f=>data[`sh${i}${f}`]=get(`sh${i}${f}`));
-  for(let i=1;i<=11;i++)['No','Name','Qty','Rate'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
+  for(let i=1;i<=11;i++)['No','Name','Qty','Rate','Tag'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
   for(let i=1;i<=6;i++)['OpCode','Name','Qty','Rate'].forEach(f=>data[`labour${i}${f}`]=get(`labour${i}${f}`));
   // Collect photo dataURLs from PHOTOS store
   const photoKeys=['vinPhoto','meterPhoto','part1Photo','part2Photo','part3Photo','part4Photo','part5Photo','part6Photo','part7Photo','part8Photo','part9Photo'];
