@@ -140,9 +140,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .photo-slot .remove-btn{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:3;font-size:10px;line-height:1;}
 .photo-slot.filled .remove-btn{display:flex;}
 
-.fill-test-btn{height:42px;padding:0 16px;border-radius:7px;border:1.5px solid var(--border-focus);background:transparent;color:var(--accent-bg);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;outline:none;font-family:'Inter',sans-serif;white-space:nowrap;}
-[data-theme=dark] .fill-test-btn{color:var(--accent-bg);border-color:var(--accent-bg);}
-.fill-test-btn:hover,.fill-test-btn:focus{background:var(--accent-bg);color:var(--accent-text);box-shadow:0 0 0 3px var(--focus-ring);}
 
 .status{margin:14px 20px 0;font-size:13px;padding:10px 14px;border-radius:7px;display:none;font-weight:500;}
 .status.error{background:rgba(239,68,68,.1);color:var(--danger-color);border:1px solid rgba(239,68,68,.2);display:block;}
@@ -174,8 +171,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   .card-header,.mode-wrap,.form-section,.actions,.history-wrap{padding-left:14px;padding-right:14px;}
   .actions{flex-wrap:wrap;flex-direction:row;}
   .btn-clear{flex:0 0 auto;width:auto;}
-  .fill-test-btn{flex:1 1 calc(50% - 5px);}
-  .btn-inject{flex:1 1 100%;order:10;}
+  .btn-inject{flex:1;}
   .photo-grid{grid-template-columns:repeat(3,1fr);}
 }
 </style>
@@ -219,9 +215,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   <div id="formWrap"></div>
 
   <div class="actions" id="actionsBar" style="display:none">
-    <button class="btn btn-clear" id="btnClear" tabindex="0">Clear</button>
-    <button class="fill-test-btn" id="btnFillTest" tabindex="0">Fill Test Entry</button>
     <button class="btn btn-inject" id="btnInject" tabindex="0">Generate XLSX</button>
+    <button class="btn btn-clear" id="btnClear" tabindex="0">Clear Form</button>
   </div>
 </div>
 
@@ -451,7 +446,7 @@ function mkSec(title){
 function buildEstimateSection(){
   const sec=mkSec('Estimate');
   let pRows='';
-  for(let i=1;i<=11;i++) pRows+=`<tr><td class="num">${i}</td><td><input id="part${i}No" placeholder="Part No…" tabindex="0"></td><td><input id="part${i}Name" placeholder="Item name…" tabindex="0"></td><td><input id="part${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcRow(${i})"></td><td><input id="part${i}Rate" placeholder="0" tabindex="0" oninput="calcRow(${i})"></td><td class="total-cell"><span id="part${i}Total">—</span></td><td><input id="part${i}Tag" placeholder="Tag…" style="width:65px" tabindex="0"></td></tr>`;
+  for(let i=1;i<=11;i++){const hidden=i>2?'style="display:none"':'';pRows+=`<tr ${hidden}><td class="num">${i}</td><td><input id="part${i}No" placeholder="Part No…" tabindex="0"></td><td><input id="part${i}Name" placeholder="Item name…" tabindex="0"></td><td><input id="part${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcRow(${i})"></td><td><input id="part${i}Rate" placeholder="0" tabindex="0" oninput="calcRow(${i})"></td><td class="total-cell"><span id="part${i}Total">—</span></td></tr>`;}
   let lRows='';
   for(let i=1;i<=6;i++) lRows+=`<tr><td class="num">${i}</td><td><input id="labour${i}OpCode" placeholder="Op Code…" tabindex="0"></td><td><input id="labour${i}Name" placeholder="Labour name…" tabindex="0"></td><td><input id="labour${i}Qty" placeholder="0" style="text-align:center" tabindex="0" oninput="calcLabourRow(${i})"></td><td><input id="labour${i}Rate" placeholder="0" tabindex="0" oninput="calcLabourRow(${i})"></td><td class="total-cell"><span id="labour${i}Total">—</span></td></tr>`;
 
@@ -459,7 +454,7 @@ function buildEstimateSection(){
   sec.innerHTML+=hint+`
   <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Parts</div>
   <div class="tbl-wrap"><table class="pwa-table">
-    <thead><tr><th style="width:28px">#</th><th style="min-width:100px">Part No.</th><th style="min-width:150px">Item Name</th><th style="min-width:50px">Qty</th><th style="min-width:80px">Rate</th><th style="min-width:75px">Total</th><th style="min-width:65px">Tag</th></tr></thead>
+    <thead><tr><th style="width:28px">#</th><th style="min-width:100px">Part No.</th><th style="min-width:150px">Item Name</th><th style="min-width:50px">Qty</th><th style="min-width:80px">Rate</th><th style="min-width:75px">Total</th></tr></thead>
     <tbody>${pRows}</tbody>
     <tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding-right:10px;font-size:11px;letter-spacing:.04em;">PARTS TOTAL</td><td class="total-cell"><span id="partsTotal">—</span></td><td></td></tr></tfoot>
   </table></div>
@@ -475,7 +470,7 @@ function buildEstimateSection(){
   formWrap.appendChild(sec);
 
   requestAnimationFrame(()=>{
-    const pCols=['No','Name','Qty','Rate','Tag'];
+    const pCols=['No','Name','Qty','Rate'];
     for(let i=1;i<=11;i++) pCols.forEach(f=>{const el=document.getElementById(`part${i}${f}`);if(el)el.addEventListener('paste',e=>handlePaste(e,'part',i,f,11,pCols));});
     const lCols=['OpCode','Name','Qty','Rate'];
     for(let i=1;i<=6;i++) lCols.forEach(f=>{const el=document.getElementById(`labour${i}${f}`);if(el)el.addEventListener('paste',e=>handlePaste(e,'labour',i,f,6,lCols));});
@@ -555,27 +550,10 @@ function buildPhotographsSection(){
   sec.appendChild(grid);formWrap.appendChild(sec);
 }
 
-// ─────── FILL TEST ENTRY ───────
-document.getElementById('btnFillTest').addEventListener('click',()=>{
-  const set=(id,val)=>{const el=document.getElementById(id);if(el){el.value=val;el.classList.remove('pre');}};
-  const setDate=(id,val)=>{const p=val.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);if(!CAL[id])CAL[id]={};Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}};
-  const setSel=(id,val)=>{const v=document.getElementById(id);const lbl=document.getElementById('csv_'+id);if(v)v.value=val;if(lbl){lbl.textContent=val;lbl.classList.remove('empty');}};
-  set('dealerCode','N3235');set('dealerName','KHANNA AUTOMART PVT LTD');set('model','Hyundai Verna');setSel('fuelType','Petrol');set('tmType','VERNA 1.5 Turbo GDi DCT SX(O)');set('vin','MALCC51BSMM123456');set('engineNo','G4FJH123456');set('tmNumber','M2GF1234567');set('mileage','12500');setSel('ew','Y');set('numVehicles','1');setSel('mailYN','Y');
-  setDate('productionDate','01-03-2023');setDate('deliveryDate','15-04-2023');setDate('reportDate','01-01-2025');setDate('repairDate','28-12-2024');
-  set('causalPartNo','43500-1S000');set('partName','Front Hub Assembly');set('affectedPart','43500-1S000');set('dtc','NA');set('partSupplier','HMIL');set('partLotNo','LOT2024001');
-  set('causeCode','Part Material Defect');set('occurrence','Right after starting');set('natureCode','TM Heating issue');set('timePeriod','All times');setSel('roadCondition','General Road');set('speedRange','NA');set('problemCondition','Issue occurs while driving at all speed ranges.');
-  set('subject','Front Hub Assembly — Premature Wear & Noise');set('introduction','Customer reported unusual noise from front left wheel during driving.');set('detailedSymptom','Grinding noise from front left hub at speeds above 40 kmph. Vibration felt on steering.');set('investigationResult','Hub bearing found worn out prematurely due to material defect.');set('correctiveAction','Replaced front hub assembly under warranty. Test drive confirmed noise eliminated.');set('comment','Part to be sent to HMIL for root cause analysis.');
-  set('serviceManager','NARENDRA KUMAR');set('warrantyManager','AASHISH GIRI');set('partsManager','MANOJ');set('serviceAdvisor','SHUBHAM');
-  set('repairOrderNo','R202601463');set('regNo','HP98P9211');set('vinNo','MALCC51BSMM123456');
-  [['28-12-2024','12500','Running Repair','CURRENT'],['15-08-2024','8200','Paid Service',''],['10-04-2024','4100','Free Service',''],['15-04-2023','0','PDI','']].forEach(([date,kms,type,status],i)=>{set(`sh${i+1}Date`,date);set(`sh${i+1}Kms`,kms);set(`sh${i+1}JobType`,type);if(status)set(`sh${i+1}Status`,status);});
-  set('part1No','43500-1S000');set('part1Name','Front Hub Assembly LH');set('part1Qty','1');set('part1Rate','3200');calcRow(1);
-  set('labour1OpCode','OP-001');set('labour1Name','Hub Replacement');set('labour1Qty','1');set('labour1Rate','800');calcLabourRow(1);
-  showStatus('Test data filled — click Generate XLSX to download.','success');
-});
 
 // ─────── CLEAR ───────
 document.getElementById('btnClear').addEventListener('click',async()=>{
-  if(!(await customConfirm('Clear all form data?'))) return;
+  if(!(await customConfirm('Clear all form data?','Yes, Clear'))) return;
   formWrap.querySelectorAll('input[type=text],textarea').forEach(el=>{
     const defs={serviceManager:'NARENDRA KUMAR',warrantyManager:'AASHISH GIRI',partsManager:'MANOJ',serviceAdvisor:'SHUBHAM',dtc:'NA',partSupplier:'HMIL',dealerCode:'N3235',sh1Status:'CURRENT'};
     el.value=defs[el.id]||'';
@@ -602,7 +580,7 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
   ['fuelType','ew','mailYN','roadCondition'].forEach(id=>data[id]=get(id));
   ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>data[id]=getDate(id));
   for(let i=1;i<=17;i++)['Date','Kms','JobType','Status'].forEach(f=>data[`sh${i}${f}`]=get(`sh${i}${f}`));
-  for(let i=1;i<=11;i++)['No','Name','Qty','Rate','Tag'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
+  for(let i=1;i<=11;i++)['No','Name','Qty','Rate'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
   for(let i=1;i<=6;i++)['OpCode','Name','Qty','Rate'].forEach(f=>data[`labour${i}${f}`]=get(`labour${i}${f}`));
   // Collect photo dataURLs from PHOTOS store
   const photoKeys=['vinPhoto','meterPhoto','part1Photo','part2Photo','part3Photo','part4Photo','part5Photo','part6Photo','part7Photo','part8Photo','part9Photo'];
