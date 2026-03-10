@@ -12,51 +12,49 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-/* CSS Variables for Auto Light/Dark Mode Adaptation */
+/* CSS Variables matching main website theme system */
 :root {
-  --bg-page: #f4f5f7;
+  --bg-page: #f4f4f2;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
-  --bg-hover: #f9fafb;
-  --bg-active: #f3f4f6;
+  --bg-hover: #f0f0ee;
+  --bg-active: #e3e3df;
   
-  --text-main: #111827;
-  --text-label: #374151;
-  --text-muted: #6b7280;
-  --text-placeholder: #9ca3af;
+  --text-main: #181816;
+  --text-label: #181816;
+  --text-muted: #6a6a67;
+  --text-placeholder: #9a9a97;
   
-  --border-light: #f3f4f6;
-  --border-input: #d1d5db;
-  --border-focus: #1a1a1a;
+  --border-light: #e3e3df;
+  --border-input: #e3e3df;
+  --border-focus: #002C5F;
   
-  --accent-bg: #1a1a1a;
+  --accent-bg: #002C5F;
   --accent-text: #ffffff;
-  --focus-ring: rgba(26, 26, 26, 0.1);
+  --focus-ring: rgba(0, 44, 95, 0.1);
   --danger-color: #ef4444;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-page: #0f172a;
-    --bg-card: #1e293b;
-    --bg-input: #0f172a;
-    --bg-hover: #334155;
-    --bg-active: #475569;
-    
-    --text-main: #f8fafc;
-    --text-label: #cbd5e1;
-    --text-muted: #94a3b8;
-    --text-placeholder: #64748b;
-    
-    --border-light: #334155;
-    --border-input: #475569;
-    --border-focus: #60a5fa;
-    
-    --accent-bg: #e2e8f0;
-    --accent-text: #0f172a;
-    --focus-ring: rgba(96, 165, 250, 0.2);
-    --danger-color: #f87171;
-  }
+[data-theme=dark] {
+  --bg-page: #111110;
+  --bg-card: #1c1c1a;
+  --bg-input: #1c1c1a;
+  --bg-hover: #232321;
+  --bg-active: #2d2d2b;
+  
+  --text-main: #f0f0ee;
+  --text-label: #f0f0ee;
+  --text-muted: #888885;
+  --text-placeholder: #525250;
+  
+  --border-light: #2d2d2b;
+  --border-input: #2d2d2b;
+  --border-focus: #4D8FD6;
+  
+  --accent-bg: #4D8FD6;
+  --accent-text: #111110;
+  --focus-ring: rgba(77, 143, 214, 0.2);
+  --danger-color: #f87171;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -69,8 +67,7 @@ body {
   display: flex; 
   align-items: flex-start; 
   justify-content: center; 
-  padding: 40px 20px 80px; 
-  transition: background 0.3s, color 0.3s;
+  padding: 40px 20px 80px;
 }
 
 .card { 
@@ -81,7 +78,6 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
   overflow: hidden;
   border: 1px solid var(--border-light);
-  transition: background 0.3s, border-color 0.3s;
 }
 
 .card-header { 
@@ -967,6 +963,19 @@ function fillFromHistory(entry){
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function showStatus(m,t){statusEl.textContent=m;statusEl.className='status '+t;}
 function clearStatus(){statusEl.textContent='';statusEl.className='status';}
+
+// ─────────────────────────────────────────────────────────────────
+// THEME SYNC WITH PARENT WINDOW via postMessage
+// ─────────────────────────────────────────────────────────────────
+window.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'theme') {
+    document.documentElement.setAttribute('data-theme', event.data.theme);
+  }
+});
+
+// Request initial theme from parent
+window.parent.postMessage({ type: 'requestTheme' }, '*');
 </script>
 </body>
 </html>
+
