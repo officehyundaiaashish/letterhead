@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alcazar Form</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+</head>
+<body>
+<script src="ppt-template.js"></script>
+<script>
+async function applyForm(){
+
+function v(id){
+  const el=document.getElementById(id);
+  return el?el.value.trim():"";
+}
+
+const zip = await JSZip.loadAsync(
+  Uint8Array.from(atob(TEMPLATE_B64), c => c.charCodeAt(0))
+);
+
+const slideXml = await zip.file("ppt/slides/slide1.xml").async("string");
+
+function rep(xml,key,val){
+ return xml.replace(new RegExp(key,"g"),val||"");
+}
+
+let newXml = slideXml;
+
+newXml = rep(newXml,"{{MODEL}}",v("f-model"));
+newXml = rep(newXml,"{{VIN}}",v("f-vin"));
+newXml = rep(newXml,"{{MILEAGE}}",v("f-mileage"));
+newXml = rep(newXml,"{{PRODDATE}}",v("f-proddate"));
+newXml = rep(newXml,"{{RO}}",v("f-ro"));
+newXml = rep(newXml,"{{DNAME}}",v("f-dname"));
+newXml = rep(newXml,"{{TNAME}}",v("f-tname"));
+newXml = rep(newXml,"{{CPNO}}",v("f-cpno"));
+newXml = rep(newXml,"{{CPNAME}}",v("f-cpname"));
+newXml = rep(newXml,"{{DTC}}",v("f-dtc"));
+newXml = rep(newXml,"{{OBS}}",v("f-obs"));
+
+zip.file("ppt/slides/slide1.xml",newXml);
+
+const blob = await zip.generateAsync({type:"blob"});
+
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="Alcazar_"+v("f-vin")+".pptx";
+a.click();
+
+}
+</script>
+</body>
+</html>
