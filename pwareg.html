@@ -473,7 +473,13 @@ function attachDate(id){
 function buildForm(){
   formWrap.innerHTML='';
 
-  // ── SECTION 1: Dealer & Vehicle Info ──
+  // ── SECTION 1: Estimate ──
+  buildEstimateSection();
+
+  // ── SECTION 2: Service History ──
+  buildServiceHistorySection();
+
+  // ── SECTION 3: Investigation Report — Dealer & Vehicle Info ──
   addSection('Dealer & Vehicle Information', `
     <div class="grid-wrap">
       <div class="field-col"><label>Dealer Code</label><input type="text" id="dealerCode" placeholder="Enter dealer code…"></div>
@@ -496,7 +502,7 @@ function buildForm(){
   ['model','fuelType','ew','mailYN'].forEach(attachSelect);
   ['productionDate','deliveryDate','reportDate','repairDate'].forEach(attachDate);
 
-  // ── SECTION 2: Part Information ──
+  // ── SECTION 4: Part Information ──
   addSection('Part Information', `
     <div class="grid-wrap">
       <div class="field-col"><label>Causal Part No</label><input type="text" id="causalPartNo" placeholder="Enter causal part number…"></div>
@@ -507,7 +513,7 @@ function buildForm(){
       <div class="field-col"><label>Part Lot No</label><input type="text" id="partLotNo" placeholder="Enter lot number…"></div>
     </div>`);
 
-  // ── SECTION 3: Problem Nature ──
+  // ── SECTION 5: Problem Nature ──
   addSection('Problem Nature', `
     <div class="grid-wrap">
       <div class="field-col"><label>Cause Code</label><input type="text" id="causeCode" placeholder="e.g. Part Material Defect…"></div>
@@ -520,7 +526,7 @@ function buildForm(){
     </div>`);
   ['roadCondition'].forEach(attachSelect);
 
-  // ── SECTION 4: Narrative ──
+  // ── SECTION 6: Narrative ──
   addSection('Narrative / Report Text', `
     <div class="grid-wrap">
       <div class="field-col full"><label>Subject</label><input type="text" id="subject" placeholder="Enter subject line…"></div>
@@ -531,7 +537,7 @@ function buildForm(){
       <div class="field-col full"><label>(5) Comment</label><textarea id="comment" placeholder="Any additional comments…"></textarea></div>
     </div>`);
 
-  // ── SECTION 5: Staff Sign-off ──
+  // ── SECTION 7: Staff Sign-off ──
   addSection('Staff Sign-off', `
     <div class="grid-wrap">
       <div class="field-col"><label>Service Manager</label><input type="text" id="serviceManager" class="pre" value="NARENDRA KUMAR"></div>
@@ -543,12 +549,6 @@ function buildForm(){
     const el=document.getElementById(id);
     if(el) el.addEventListener('focus',()=>el.classList.remove('pre'));
   });
-
-  // ── SECTION 6: Service History ──
-  buildServiceHistorySection();
-
-  // ── SECTION 7: Estimate ──
-  buildEstimateSection();
 
   // ── SECTION 8: Photographs ──
   buildPhotographsSection();
