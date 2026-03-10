@@ -44,6 +44,21 @@
       --shadow: 0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);      
       --shadow-lg: 0 4px 28px rgba(0,0,0,.45);      
     }      
+    /* ── History Panel ── */
+    .hist-panel { display:none; }
+    .hist-panel.show { display:block; }
+    .hist-search { width:100%; height:40px; border:1px solid var(--border); border-radius:8px; padding:0 14px; font-size:14px; margin-bottom:14px; outline:none; background:var(--surface2); color:var(--text); font-family:var(--font); }
+    .hist-search:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-s); }
+    .hist-list { display:flex; flex-direction:column; gap:8px; max-height:400px; overflow-y:auto; }
+    .hist-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; cursor:pointer; background:var(--surface); transition:all 0.18s; }
+    .hist-item:hover, .hist-item:focus { border-color:var(--accent); background:var(--surface2); outline:none; }
+    .hi-info { flex:1; min-width:0; }
+    .hi-name { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hi-meta { font-size:12px; color:var(--text2); margin-top:3px; }
+    .hi-del { background:none; border:none; color:var(--border); cursor:pointer; transition:color 0.18s; display:flex; align-items:center; padding:4px; border-radius:4px; outline:none; }
+    .hi-del:hover, .hi-del:focus { color:#d64545; }
+    .hist-empty { text-align:center; font-size:13px; color:var(--text3); padding:24px; }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }      
     html { font-size: 14px; font-family: 'Inter', sans-serif; }      
     body {      
@@ -590,6 +605,16 @@
     <div class="pg" id="pgrid"></div>      
   </div>      
       
+  <!-- History Panel -->
+  <div class="card hist-panel" id="alc-histPanel">
+    <div class="card-title" style="margin-bottom:14px;">
+      <span style="display:flex;align-items:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saved Entries</span>
+      <button class="btn btn-g" style="padding:4px 10px;font-size:12px;" onclick="alcClearAllHistory()">Clear All</button>
+    </div>
+    <input type="text" class="hist-search" id="alc-histSearch" placeholder="Search by VIN or Model..." autocomplete="off">
+    <div class="hist-list" id="alc-histList"></div>
+  </div>
+
   <div style="border-top:1px solid var(--border);margin-top:24px;padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <span style="font-size:11.5px;color:var(--text3);" id="save-status"></span>
   </div>
@@ -597,6 +622,7 @@
     <button class="btn btn-g" style="flex:1;" onclick="resetForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Reset</button>
     <button class="btn btn-g" style="flex:1;" onclick="clearPhotos()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>Clear Photos</button>
     <button class="btn btn-g" style="flex:1;" onclick="clearSavedData()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Saved</button>
+    <button class="btn btn-g" style="flex:1;" id="alc-histBtn" onclick="alcToggleHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saved Entries</button>
     <button class="btn btn-p" id="applyBtn" style="flex:2;" onclick="applyForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Apply &amp; Download PPT</button>
   </div>
       
@@ -609,7 +635,7 @@
       }
       if (e.data && e.data.type === 'backup-request') {
         // Send all localStorage data except photos
-        const keys = ['od_form_v1'];
+        const keys = ['od_form_v1', 'od_alc_hist_v1'];
         const payload = {};
         keys.forEach(k => {
           try { const v = localStorage.getItem(k); if (v) payload[k] = v; } catch(e) {}
@@ -624,6 +650,9 @@
           // Reload form from restored data
           const restored = restoreFormData();
           if (restored) { setSaveStatus('Restored'); updateSteps(); }
+          // Reload history
+          try { ALC_HISTORY = JSON.parse(localStorage.getItem(ALC_HIST_KEY) || '[]'); } catch(e) {}
+          alcRenderHistory();
         }
       }
     });
@@ -674,8 +703,16 @@
         let h = `<div class="cal-nav"><button type="button" data-cid="${id}" data-dir="-15">${_calIcons.left}</button><span class="mnth">Select Year</span><button type="button" data-cid="${id}" data-dir="15">${_calIcons.right}</button></div><div class="cal-grid years">`;
         for (let i = 0; i < 15; i++) h += `<div class="cd${sy+i===y?' sel':''}" data-cid="${id}" data-y="${sy+i}" tabindex="0">${sy+i}</div>`;
         h += '</div>'; pop.innerHTML = h;
-        pop.querySelectorAll('button[data-cid]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); _CAL[b.dataset.cid].year += parseInt(b.dataset.dir); _renderCal(b.dataset.cid); }));
-        pop.querySelectorAll('.cd[data-y]').forEach(el => el.addEventListener('click', e => { e.stopPropagation(); _CAL[el.dataset.cid].year = parseInt(el.dataset.y); _CAL[el.dataset.cid].view = 'days'; _renderCal(el.dataset.cid); }));
+        pop.querySelectorAll('button[data-cid]').forEach(b => {
+          const act = e => { e.stopPropagation(); _CAL[b.dataset.cid].year += parseInt(b.dataset.dir); _renderCal(b.dataset.cid); };
+          b.addEventListener('click', act);
+          b.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e);} });
+        });
+        pop.querySelectorAll('.cd[data-y]').forEach(el => {
+          const act = e => { e.stopPropagation(); _CAL[el.dataset.cid].year = parseInt(el.dataset.y); _CAL[el.dataset.cid].view = 'days'; _renderCal(el.dataset.cid); };
+          el.addEventListener('click', act);
+          el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e);} });
+        });
       } else {
         const fd = new Date(y, m, 1).getDay(), dim = new Date(y, m+1, 0).getDate(), prev = new Date(y, m, 0).getDate();
         let h = `<div class="cal-nav"><button type="button" data-cid="${id}" data-dir="-1">${_calIcons.left}</button><span class="mnth ts" data-cid="${id}" tabindex="0">${_MONTHS[m]} ${y}</span><button type="button" data-cid="${id}" data-dir="1">${_calIcons.right}</button></div><div class="cal-grid">${['S','M','T','W','T','F','S'].map(x=>`<div class="dn">${x}</div>`).join('')}`;
@@ -686,9 +723,19 @@
           h += `<div class="cd${iT?' today':''}${iS?' sel':''}" data-cid="${id}" data-d="${d}" tabindex="0">${d}</div>`;
         }
         h += '</div>'; pop.innerHTML = h;
-        pop.querySelectorAll('button[data-cid]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); const s=_CAL[b.dataset.cid],dir=parseInt(b.dataset.dir); s.month+=dir; if(s.month<0){s.month=11;s.year--;}if(s.month>11){s.month=0;s.year++;} _renderCal(b.dataset.cid); }));
-        const ts = pop.querySelector('.ts'); if(ts) ts.addEventListener('click', e => { e.stopPropagation(); _CAL[ts.dataset.cid].view='years'; _renderCal(ts.dataset.cid); });
-        pop.querySelectorAll('.cd:not(.om)').forEach(el => el.addEventListener('click', e => {
+        pop.querySelectorAll('button[data-cid]').forEach(b => {
+          const act = e => { e.stopPropagation(); const s=_CAL[b.dataset.cid],dir=parseInt(b.dataset.dir); s.month+=dir; if(s.month<0){s.month=11;s.year--;}if(s.month>11){s.month=0;s.year++;} _renderCal(b.dataset.cid); };
+          b.addEventListener('click', act);
+          b.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e);} });
+        });
+        const ts = pop.querySelector('.ts');
+        if(ts) {
+          const tsAct = e => { e.stopPropagation(); _CAL[ts.dataset.cid].view='years'; _renderCal(ts.dataset.cid); };
+          ts.addEventListener('click', tsAct);
+          ts.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();tsAct(e);} });
+        }
+        pop.querySelectorAll('.cd:not(.om)').forEach(el => {
+          const act = e => {
           e.stopPropagation();
           const s = _CAL[el.dataset.cid]; s.date = new Date(s.year, s.month, parseInt(el.dataset.d));
           const dv = document.getElementById('dv_'+el.dataset.cid);
@@ -697,7 +744,10 @@
           if (dv) { dv.textContent = val; dv.classList.remove('empty'); }
           if (hid) { hid.value = val; hid.dispatchEvent(new Event('change')); }
           _closeAllCals(); _renderCal(el.dataset.cid);
-        }));
+          };
+          el.addEventListener('click', act);
+          el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();act(e);} });
+        });
         // Mouse wheel
         let wt; pop.addEventListener('wheel', e => { e.preventDefault(); if(wt) return; wt=setTimeout(()=>{wt=null;},150); const s=_CAL[id]; s.month+=e.deltaY>0?1:-1; if(s.month>11){s.month=0;s.year++;}else if(s.month<0){s.month=11;s.year--;} _renderCal(id); }, {passive:false});
       }
@@ -724,7 +774,11 @@
       const t = new Date();
       _CAL[id] = {date:null,open:false,view:'days',year:t.getFullYear(),month:t.getMonth()};
       const dt = document.getElementById('dt_'+id);
-      if (dt) dt.addEventListener('click', e => { e.stopPropagation(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id); });
+      if (dt) {
+        const dtAct = e => { e.stopPropagation(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id); };
+        dt.addEventListener('click', dtAct);
+        dt.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();dtAct(e);} });
+      }
     }
     function _setCalToday(id) {
       const t = new Date();
@@ -769,8 +823,10 @@
           trig.classList.add('active');
         }
       });
+      trig.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();trig.click();} });
       optsEl.querySelectorAll('.cs-opt').forEach(opt => {
-        opt.addEventListener('click', e => {
+        opt.setAttribute('tabindex', '0');
+        const optAct = e => {
           e.stopPropagation();
           valEl.textContent = opt.textContent;
           hid.value = opt.dataset.val;
@@ -778,7 +834,9 @@
           optsEl.querySelectorAll('.cs-opt').forEach(o => o.classList.remove('selected'));
           opt.classList.add('selected');
           _closeAllDropdowns();
-        });
+        };
+        opt.addEventListener('click', optAct);
+        opt.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();optAct(e);} });
       });
     }
     // ── End Custom Select ──
@@ -922,7 +980,126 @@
       
     const FIELD_IDS = ["f-model", "f-vin", "f-mileage", "f-proddate", "f-ro", "f-dcode", "f-dname", "f-tname", "f-tnum", "f-cpno", "f-cpname", "f-dtc", "f-concern", "f-obs", "f-freq"];      
     const SAVE_KEY = "od_form_v1";      
-    const PHOTO_KEY = "od_photos_v1";      
+    const PHOTO_KEY = "od_photos_v1";
+
+    // ── Saved Entries History ──
+    const ALC_HIST_KEY = "od_alc_hist_v1";
+    let ALC_HISTORY = [];
+    try { ALC_HISTORY = JSON.parse(localStorage.getItem(ALC_HIST_KEY) || '[]'); } catch(e) {}
+
+    function alcSaveHistory() {
+      const entry = {};
+      FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.value && el.value.trim()) entry[id] = el.value.trim();
+      });
+      if (!entry['f-vin'] && !entry['f-model']) return; // need at least VIN or model
+      // Replace existing entry with same VIN
+      if (entry['f-vin']) ALC_HISTORY = ALC_HISTORY.filter(h => h['f-vin'] !== entry['f-vin']);
+      ALC_HISTORY.unshift(entry);
+      if (ALC_HISTORY.length > 50) ALC_HISTORY = ALC_HISTORY.slice(0, 50);
+      try { localStorage.setItem(ALC_HIST_KEY, JSON.stringify(ALC_HISTORY)); } catch(e) {}
+      alcRenderHistory();
+    }
+
+    function alcRenderHistory(filter = '') {
+      const list = document.getElementById('alc-histList');
+      if (!list) return;
+      if (!ALC_HISTORY.length) { list.innerHTML = '<div class="hist-empty">No saved entries yet.</div>'; return; }
+      list.innerHTML = '';
+      const q = filter.toLowerCase().trim();
+      let shown = 0;
+      ALC_HISTORY.forEach((entry, idx) => {
+        const vin = entry['f-vin'] || '';
+        const model = entry['f-model'] || '';
+        const dcode = entry['f-dcode'] || '';
+        if (q && !`${vin} ${model} ${dcode}`.toLowerCase().includes(q)) return;
+        shown++;
+        const item = document.createElement('div');
+        item.className = 'hist-item'; item.tabIndex = 0;
+        item.innerHTML = `<div class="hi-info">
+          <div class="hi-name">${_alcEsc(vin || model || 'Unknown')}</div>
+          <div class="hi-meta">${_alcEsc(model)}${dcode ? ' · ' + _alcEsc(dcode) : ''}</div>
+        </div>
+        <button class="hi-del" data-idx="${idx}" title="Delete" tabindex="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+        const delBtn = item.querySelector('.hi-del');
+        const delAct = async e => {
+          e.stopPropagation();
+          if (!(await alcConfirm('Delete this entry?', 'Delete'))) return;
+          ALC_HISTORY.splice(idx, 1);
+          try { localStorage.setItem(ALC_HIST_KEY, JSON.stringify(ALC_HISTORY)); } catch(e) {}
+          alcRenderHistory(document.getElementById('alc-histSearch')?.value || '');
+        };
+        delBtn.addEventListener('click', delAct);
+        delBtn.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();delAct(e);} });
+        const loadAct = () => alcLoadFromHistory(entry);
+        item.addEventListener('click', e => { if(!e.target.closest('.hi-del')) loadAct(); });
+        item.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();loadAct();} });
+        list.appendChild(item);
+      });
+      if (!shown) list.innerHTML = '<div class="hist-empty">No matching entries found.</div>';
+    }
+
+    function alcLoadFromHistory(entry) {
+      FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (entry[id] !== undefined) {
+          el.value = entry[id];
+          // Handle date calendar sync
+          if (id === 'f-proddate' && entry[id] && entry[id] !== 'NA') {
+            const parts = entry[id].split('-');
+            if (parts.length === 3) {
+              const d = new Date(+parts[2], +parts[1]-1, +parts[0]);
+              if (!isNaN(d)) {
+                if (!_CAL[id]) _CAL[id] = {};
+                Object.assign(_CAL[id], {date:d, year:d.getFullYear(), month:d.getMonth(), view:'days'});
+                const dv = document.getElementById('dv_'+id);
+                if (dv) { dv.textContent = entry[id]; dv.classList.remove('empty'); }
+              }
+            }
+          }
+        }
+      });
+      // Restore custom select (frequency)
+      if (entry['f-freq']) {
+        const hid = document.getElementById('f-freq');
+        const csv = document.getElementById('csv_f-freq');
+        if (hid) hid.value = entry['f-freq'];
+        if (csv) { csv.textContent = entry['f-freq']; }
+      }
+      alcToggleHistory(); // close panel
+      updateSteps();
+      scheduleSave();
+      toast('Entry loaded', 'ok');
+    }
+
+    async function alcClearAllHistory() {
+      if (!(await alcConfirm('Clear all saved entries?', 'Yes, Clear All'))) return;
+      ALC_HISTORY = [];
+      try { localStorage.removeItem(ALC_HIST_KEY); } catch(e) {}
+      alcRenderHistory();
+    }
+
+    function alcToggleHistory() {
+      const panel = document.getElementById('alc-histPanel');
+      const btn = document.getElementById('alc-histBtn');
+      const isOpen = panel.classList.contains('show');
+      panel.classList.toggle('show', !isOpen);
+      btn.style.background = !isOpen ? 'var(--accent)' : '';
+      btn.style.color = !isOpen ? 'var(--accent-s)' : '';
+      if (!isOpen) {
+        alcRenderHistory(document.getElementById('alc-histSearch')?.value || '');
+        document.getElementById('alc-histSearch')?.focus();
+      }
+    }
+    function _alcEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const srch = document.getElementById('alc-histSearch');
+      if (srch) srch.addEventListener('input', () => alcRenderHistory(srch.value));
+    });
+    // ── End Saved Entries History ──      
       
     let saveTimer;      
     function scheduleSave() {      
@@ -1099,7 +1276,8 @@
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
       
-        toast("PPT template generated successfully", "ok");      
+        toast("PPT template generated successfully", "ok");
+        alcSaveHistory();
       } catch (err) {      
         toast("Export error: " + err.message, "err");      
         console.error(err);      
