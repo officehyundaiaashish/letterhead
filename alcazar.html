@@ -320,22 +320,22 @@
     /* ── Action Button Row ── */
     .btn-row {      
       display: flex;      
-      gap: 8px;      
-      flex-wrap: wrap;      
+      gap: 8px;
+      flex-direction: row;
     }      
     .btn {      
       flex:1;
-      height:42px;      
+      height:36px;      
       border: none;      
       border-radius: 7px;      
-      font-size: 14px;      
+      font-size: 13px;      
       font-weight: 600;      
       cursor: pointer;      
       transition: all var(--tr);      
       display: inline-flex;      
       align-items: center;      
       justify-content:center;
-      gap: 7px;      
+      gap: 6px;      
       font-family: var(--font);
       outline:none;
     }
@@ -442,7 +442,6 @@
       .field.s2, .field.s3 { grid-column: span 1; }      
       .pg { grid-template-columns: repeat(2, 1fr); }      
       .stepper { grid-template-columns: repeat(2, 1fr); }      
-      .btn-row { flex-direction: column-reverse; }
       .mode-btns{flex-wrap:wrap;}
       .mode-btn{flex:1 1 calc(50% - 3px);}
     }      
