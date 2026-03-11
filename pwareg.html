@@ -594,7 +594,7 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
 
     const zip=await JSZip.loadAsync(templateBuffer);
 
-    // Escape value for XML text content
+    // Escape value for XML text content (only escapes user input, not existing XML)
     const xmlEsc=s=>String(s)
       .replace(/&/g,'&amp;')
       .replace(/</g,'&lt;')
@@ -602,12 +602,17 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       .replace(/"/g,'&quot;')
       .replace(/'/g,'&apos;');
 
-    // Replace {key} placeholders inside XML, handling split <t> tags in shared strings
+    // Replace {key} placeholders inside XML.
+    // IMPORTANT: only replace inside <t>...</t> text nodes to avoid touching existing XML entities.
     const replacePlaceholders=xml=>{
-      // Replace simple inline {key} occurrences
-      return xml.replace(/\{([^}]+)\}/g,(_,key)=>{
-        const v=data[key];
-        return xmlEsc((v===undefined||v===null)?'':v);
+      // Replace {key} only when it appears inside a <t> tag value
+      // This prevents double-escaping existing &amp; &lt; etc in the XML structure
+      return xml.replace(/<t([^>]*)>([^<]*\{[^<]*)<\/t>/g,(match,attrs,content)=>{
+        const replaced=content.replace(/\{([^}]+)\}/g,(_,key)=>{
+          const v=data[key];
+          return xmlEsc((v===undefined||v===null)?'':v);
+        });
+        return `<t${attrs}>${replaced}</t>`;
       });
     };
 
