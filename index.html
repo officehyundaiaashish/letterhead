@@ -117,8 +117,8 @@
 const CACHE = 'officedesk-v1';
 const FILES = [
   './index.html','./alcazar.html','./keycode.html',
-  './letthead.html','./pwareg.html','./ppt-template.js',
-  './head.docx','./pwareg.xlsx'
+  './letthead.html','./pwareg.html','./etm.html',
+  './ppt-template.js','./head.docx','./pwareg.xlsx','./etm.pptx'
 ];
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -1050,9 +1050,13 @@ self.addEventListener('message', e => {
       top: 0; left: 0;
       width: 40%;
       height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
+      background: linear-gradient(90deg, transparent, rgba(0,44,95,0.10), transparent);
       transform: translateX(-100%) skewX(-15deg);
       pointer-events: none;
+    }
+
+    [data-theme=dark] .tool-card::after {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
     }
 
     .tool-card.live::after {
@@ -1152,7 +1156,7 @@ self.addEventListener('message', e => {
       bottom: 0;
       left: 0;
       right: 0;
-      height: 60px;
+      height: 64px;
       background: var(--surface);
       border-top: 1px solid var(--border);
       z-index: 200;
@@ -1190,6 +1194,234 @@ self.addEventListener('message', e => {
       opacity: .7;
     }
 
+    /* MORE BUTTON */
+    .bnav-more {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--text3);
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 8px 4px;
+      transition: color var(--tr);
+    }
+
+    .bnav-more:active { opacity: .7; }
+    .bnav-more.open { color: var(--accent); }
+
+    .more-arrow {
+      animation: bounceArrow 1.8s ease-in-out infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes bounceArrow {
+      0%, 100% { transform: translateY(0); }
+      30%       { transform: translateY(-4px); }
+      60%       { transform: translateY(2px); }
+    }
+
+    /* DRAWER OVERLAY */
+    .drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 280ms ease;
+    }
+
+    .drawer-overlay.open {
+      display: block;
+    }
+
+    .drawer-overlay.visible {
+      opacity: 1;
+    }
+
+    /* DRAWER PANEL */
+    .drawer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      z-index: 400;
+      transform: translateY(100%);
+      transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+    }
+
+    .drawer.open {
+      transform: translateY(0);
+    }
+
+    .drawer-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 12px auto 4px;
+    }
+
+    .drawer-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      padding: 6px 16px 8px;
+    }
+
+    .drawer-items {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 0 10px 6px;
+      gap: 6px;
+      overflow-y: auto;
+      max-height: 260px;
+    }
+
+    .drawer-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 10px 6px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text2);
+      width: 100%;
+      text-align: center;
+      transition: background var(--tr), color var(--tr), border-color var(--tr);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Gradient shine effect */
+    .drawer-item::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -60%;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+      transform: skewX(-15deg);
+      animation: drawerShine 3.2s ease-in-out infinite;
+    }
+
+    [data-theme=dark] .drawer-item::after {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+    }
+
+    @keyframes drawerShine {
+      0%   { left: -60%; }
+      50%  { left: 120%; }
+      100% { left: 120%; }
+    }
+
+    .drawer-item:active {
+      background: var(--accent-s);
+      border-color: var(--accent);
+    }
+
+    .drawer-item.active {
+      color: var(--accent);
+      background: var(--accent-s);
+      border-color: var(--accent);
+    }
+
+    .drawer-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background var(--tr);
+    }
+
+    .drawer-item.active .drawer-item-icon {
+      background: var(--accent-s);
+      color: var(--accent);
+    }
+
+    .drawer-item-label {
+      font-size: 10.5px;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .drawer-item-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 8.5px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 20px;
+    }
+
+    /* CLOSE ARROW AT BOTTOM OF DRAWER */
+    .drawer-close-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 0 12px;
+    }
+
+    .drawer-close-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text3);
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 6px 18px;
+      border-radius: 20px;
+      transition: color var(--tr), background var(--tr);
+    }
+
+    .drawer-close-btn:active {
+      background: var(--surface2);
+    }
+
+    .close-arrow {
+      animation: bounceDown 1.8s ease-in-out infinite;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @keyframes bounceDown {
+      0%, 100% { transform: translateY(0); }
+      30%       { transform: translateY(4px); }
+      60%       { transform: translateY(-2px); }
+    }
+
     @media(max-width:900px) {
       .fg.c3 {
         grid-template-columns: 1fr 1fr;
@@ -1210,7 +1442,7 @@ self.addEventListener('message', e => {
       }
 
       .main {
-        padding: 16px 14px 80px;
+        padding: 16px 14px 88px;
       }
 
       .fg,
@@ -1414,6 +1646,15 @@ self.addEventListener('message', e => {
           </svg>PWA Regular
           <span class="nav-badge">XLSX</span>
         </button>
+        <button class="nav-item" data-view="etm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>ETM Form
+          <span class="nav-badge">PPT</span>
+        </button>
       </div>
       <div class="sb-ver">OfficeDesk v1.0 &nbsp;·&nbsp; Khanna Automart</div>
     </aside>
@@ -1493,6 +1734,21 @@ self.addEventListener('message', e => {
             </div>
           </div>
 
+          <div class="tool-card live" onclick="switchView('etm')">
+            <div class="tool-icon" style="background:var(--accent-s);color:var(--accent)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div>
+              <div class="tool-name">ETM Form</div>
+              <span class="tag tag-live" style="margin-top:5px">PPT</span>
+            </div>
+          </div>
+
           <div class="tool-card coming">
             <div class="tool-icon" style="background:var(--surface2);color:var(--text3)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1543,6 +1799,10 @@ self.addEventListener('message', e => {
       <div class="view view-letterheads-container" id="view-pwareg">
         <iframe id="pwareg-iframe" src="./pwareg.html" style="width:100%;flex:1;border:none;" loading="eager"></iframe>
       </div>
+      <!-- ETM FORM -->
+      <div class="view view-letterheads-container" id="view-etm">
+        <iframe id="etm-iframe" src="./etm.html" style="width:100%;flex:1;border:none;" loading="eager"></iframe>
+      </div>
     </main>
   </div>
   <div id="loader">
@@ -1562,7 +1822,7 @@ self.addEventListener('message', e => {
       applyTheme(theme);
       
       // Pre-sync theme to all iframes immediately
-      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe'].forEach(id => {
+      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe'].forEach(id => {
         const iframe = document.getElementById(id);
         if (iframe) {
           const sendTheme = () => {
@@ -1579,10 +1839,12 @@ self.addEventListener('message', e => {
     function switchView(v) {
       document.querySelectorAll(".view").forEach(el => el.classList.remove("active"));
       document.querySelectorAll(".nav-item,.bnav-item").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".drawer-item").forEach(el => el.classList.remove("active"));
       const view = document.getElementById("view-" + v);
       if (view) view.classList.add("active");
       document.querySelectorAll(`.nav-item[data-view="${v}"],.bnav-item[data-view="${v}"]`).forEach(el => el.classList.add("active"));
-      const labels = { dashboard: "Dashboard", alcazar: "Alcazar Form", keycode: "Key Code Form", letterheads: "Letter Heads", pwareg: "PWA Regular" }; 
+      document.querySelectorAll(`.drawer-item[data-view="${v}"]`).forEach(el => el.classList.add("active"));
+      const labels = { dashboard: "Dashboard", alcazar: "Alcazar Form", keycode: "Key Code Form", letterheads: "Letter Heads", pwareg: "PWA Regular", etm: "ETM Form" }; 
       document.title = "OfficeDesk — " + (labels[v] || "Utility Suite");
     }
 
@@ -1601,7 +1863,7 @@ self.addEventListener('message', e => {
       const as = document.getElementById('od-apple-status');
       if(tc) tc.content = t === 'dark' ? '#111110' : '#ffffff';
       if(as) as.content = t === 'dark' ? 'black-translucent' : 'default';
-      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe'].forEach(id => {
+      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe'].forEach(id => {
         const iframe = document.getElementById(id);
         if (iframe && iframe.contentWindow) {
           iframe.contentWindow.postMessage({ type: 'theme', theme: t }, '*');
@@ -1624,8 +1886,8 @@ self.addEventListener('message', e => {
     }
 
     // ── Backup / Restore All ──
-    const IFRAME_IDS = ['alcazar-iframe', 'keycode-iframe', 'letterheads-iframe', 'pwareg-iframe'];
-    const TOOL_NAMES = { 'alcazar-iframe': 'alcazar', 'keycode-iframe': 'keycode', 'letterheads-iframe': 'letterheads', 'pwareg-iframe': 'pwareg' };
+    const IFRAME_IDS = ['alcazar-iframe', 'keycode-iframe', 'letterheads-iframe', 'pwareg-iframe', 'etm-iframe'];
+    const TOOL_NAMES = { 'alcazar-iframe': 'alcazar', 'keycode-iframe': 'keycode', 'letterheads-iframe': 'letterheads', 'pwareg-iframe': 'pwareg', 'etm-iframe': 'etm' };
 
     function backupAll() {
       const collected = {};
@@ -1719,7 +1981,100 @@ self.addEventListener('message', e => {
       document.getElementById("loader").className = s ? "show" : ""; 
     }
   </script>
-  <nav class="bnav">
+  <!-- DRAWER OVERLAY -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- DRAWER PANEL -->
+  <div class="drawer" id="navDrawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">All Tools</div>
+    <div class="drawer-items">
+
+      <button class="drawer-item" data-view="dashboard" onclick="drawerNav('dashboard')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">Home</div>
+        <span class="drawer-item-badge">—</span>
+      </button>
+
+      <button class="drawer-item" data-view="alcazar" onclick="drawerNav('alcazar')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">Alcazar</div>
+        <span class="drawer-item-badge">PPT</span>
+      </button>
+
+      <button class="drawer-item" data-view="keycode" onclick="drawerNav('keycode')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">Key Code</div>
+        <span class="drawer-item-badge">XLS</span>
+      </button>
+
+      <button class="drawer-item" data-view="letterheads" onclick="drawerNav('letterheads')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">Letter Heads</div>
+        <span class="drawer-item-badge">DOCX</span>
+      </button>
+
+      <button class="drawer-item" data-view="pwareg" onclick="drawerNav('pwareg')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">PWA Regular</div>
+        <span class="drawer-item-badge">XLSX</span>
+      </button>
+
+      <button class="drawer-item" data-view="etm" onclick="drawerNav('etm')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">ETM Form</div>
+        <span class="drawer-item-badge">PPT</span>
+      </button>
+
+    </div>
+
+    <!-- CLOSE ARROW -->
+    <div class="drawer-close-row">
+      <button class="drawer-close-btn" onclick="closeDrawer()">
+        <div class="close-arrow">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        Close
+      </button>
+    </div>
+  </div>
+
+  <nav class="bnav" id="mainBnav">
     <button class="bnav-item active" data-view="dashboard">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="7" height="7" />
@@ -1752,16 +2107,69 @@ self.addEventListener('message', e => {
       </svg>
       Letter Heads
     </button>
-    <button class="bnav-item" data-view="pwareg">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="8" y1="13" x2="16" y2="13"/>
-        <line x1="8" y1="17" x2="13" y2="17"/>
-      </svg>
-      PWA Regular
+    <button class="bnav-more" id="bnavMore" onclick="toggleDrawer()">
+      <div class="more-arrow" id="moreArrow">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="18 15 12 9 6 15"/>
+        </svg>
+      </div>
+      More
     </button>
   </nav>
+
+  <script>
+    // ── Drawer logic ──
+    function toggleDrawer() {
+      const overlay = document.getElementById('drawerOverlay');
+      const drawer = document.getElementById('navDrawer');
+      const moreBtn = document.getElementById('bnavMore');
+      const arrow = document.getElementById('moreArrow');
+      const isOpen = drawer.classList.contains('open');
+      if (isOpen) {
+        closeDrawer();
+      } else {
+        overlay.classList.add('open');
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+        drawer.classList.add('open');
+        moreBtn.classList.add('open');
+        arrow.style.animation = 'none';
+        arrow.style.transform = 'rotate(180deg)';
+        arrow.style.transition = 'transform 300ms ease';
+      }
+    }
+
+    function closeDrawer() {
+      const overlay = document.getElementById('drawerOverlay');
+      const drawer = document.getElementById('navDrawer');
+      const moreBtn = document.getElementById('bnavMore');
+      const arrow = document.getElementById('moreArrow');
+      overlay.classList.remove('visible');
+      drawer.classList.remove('open');
+      moreBtn.classList.remove('open');
+      arrow.style.transform = 'rotate(0deg)';
+      setTimeout(() => {
+        overlay.classList.remove('open');
+        arrow.style.animation = 'bounceArrow 1.8s ease-in-out infinite';
+        arrow.style.transition = '';
+      }, 320);
+    }
+
+    function drawerNav(v) {
+      closeDrawer();
+      setTimeout(() => switchView(v), 80);
+    }
+
+    // Touch swipe up on bnav to open drawer
+    (function() {
+      let startY = 0;
+      const bnav = document.getElementById('mainBnav');
+      bnav.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+      bnav.addEventListener('touchend', e => {
+        const diff = startY - e.changedTouches[0].clientY;
+        if (diff > 30) toggleDrawer();
+      }, { passive: true });
+    })();
+  </script>
 
 <script src="./ppt-template.js"></script>
 </body>
