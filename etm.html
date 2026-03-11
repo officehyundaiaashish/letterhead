@@ -26,6 +26,24 @@
   --focus-ring:rgba(77,143,214,0.2); --danger-color:#f87171; --table-head:#232321;
 }
 
+/* ── Modern Scrollbar ── */
+*{scrollbar-width:thin;scrollbar-color:var(--bg-active) transparent;}
+*::-webkit-scrollbar{width:5px;height:5px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--bg-active);border-radius:99px;}
+*::-webkit-scrollbar-thumb:hover{background:var(--border-input);}
+
+/* ── Stepper ── */
+.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 20px 0;}
+.step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:8px;transition:all .18s;}
+.step.done{background:rgba(0,44,95,.06);border-color:var(--accent-bg);}
+[data-theme=dark] .step.done{background:rgba(77,143,214,.1);}
+.step.active{border-color:var(--accent-bg);}
+.step-n{width:24px;height:24px;border-radius:50%;background:var(--bg-hover);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.step.done .step-n{background:var(--accent-bg);color:var(--accent-text);}
+.step-t{font-size:12px;font-weight:600;color:var(--text-main);}
+.step-s{font-size:10.5px;color:var(--text-muted);}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-main);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px 80px;}
 
@@ -151,8 +169,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .btn-inject{background:var(--accent-bg);color:var(--accent-text);}
 .btn-inject:hover{opacity:.9;}
 .btn-inject:disabled{opacity:.5;cursor:not-allowed;}
-.btn-clear{background:var(--bg-active);color:var(--text-label);}
-.btn-clear:hover{background:var(--border-input);color:var(--text-main);}
+.btn-clear{background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.2);}
+.btn-clear:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);}
+[data-theme=dark] .btn-clear{background:rgba(248,113,113,.08);color:#f87171;border:1px solid rgba(248,113,113,.2);}
+[data-theme=dark] .btn-clear:hover{background:rgba(248,113,113,.15);}
 
 /* ── Modal ── */
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);backdrop-filter:blur(3px);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s ease;}
@@ -172,6 +192,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   .grid-wrap{grid-template-columns:1fr;gap:8px;}
   .card-header,.mode-wrap,.form-section,.actions,.history-wrap{padding-left:14px;padding-right:14px;}
   .photo-grid{grid-template-columns:1fr;}
+  .stepper{grid-template-columns:1fr 1fr;padding-left:14px;padding-right:14px;}
 }
 </style>
 </head>
@@ -191,6 +212,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   <div class="card-header">
     <h1>ETM Form</h1>
     <p>Engine &amp; TM Replacement — fill form then generate PPTX report.</p>
+  </div>
+
+  <div class="stepper" id="etm-stepper">
+    <div class="step active" id="etm-st1">
+      <div class="step-n" id="etm-sn1">1</div>
+      <div><div class="step-t">Vehicle Info</div><div class="step-s">VIN, model</div></div>
+    </div>
+    <div class="step" id="etm-st2">
+      <div class="step-n" id="etm-sn2">2</div>
+      <div><div class="step-t">Details</div><div class="step-s">Dealer, parts</div></div>
+    </div>
+    <div class="step" id="etm-st3">
+      <div class="step-n" id="etm-sn3">3</div>
+      <div><div class="step-t">Ready</div><div class="step-s">Generate PPTX</div></div>
+    </div>
   </div>
 
   <div class="mode-wrap show" id="modeWrap">
@@ -214,8 +250,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 
   <div class="status" id="status"></div>
   <div class="actions" id="actionsBar" style="display:none">
-    <button class="btn btn-inject" id="btnInject" tabindex="0">Generate PPTX</button>
-    <button class="btn btn-clear" id="btnClear" tabindex="0">Clear Form</button>
+    <button class="btn btn-inject" id="btnInject" tabindex="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Generate PPTX</button>
+    <button class="btn btn-clear" id="btnClear" tabindex="0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Form</button>
   </div>
 </div>
 
@@ -437,13 +473,17 @@ function buildForm(){
   const vGrid=document.createElement('div');vGrid.className='grid-wrap';
   vGrid.appendChild(makeInput('VIN','VIN Number','Enter VIN…','',false,true));
   vGrid.appendChild(makeSelect('MODEL','Vehicle Model',hyundaiModels,true));
-  // Clear validation highlight on input
+  // Clear validation highlight on input + update stepper
   requestAnimationFrame(()=>{
     const vinEl=document.getElementById('VIN');
-    if(vinEl)vinEl.addEventListener('input',()=>{vinEl.style.borderColor='';vinEl.style.boxShadow='';});
+    if(vinEl)vinEl.addEventListener('input',()=>{vinEl.style.borderColor='';vinEl.style.boxShadow='';etmUpdateSteps();});
     // MODEL clears on select (handled in makeSelect trigger)
     const modelOpts=document.getElementById('cso_MODEL');
-    if(modelOpts)modelOpts.querySelectorAll('.cs-opt').forEach(opt=>{opt.addEventListener('click',()=>{const t=document.getElementById('cst_MODEL');if(t){t.style.borderColor='';t.style.boxShadow='';}});});
+    if(modelOpts)modelOpts.querySelectorAll('.cs-opt').forEach(opt=>{opt.addEventListener('click',()=>{const t=document.getElementById('cst_MODEL');if(t){t.style.borderColor='';t.style.boxShadow='';}etmUpdateSteps();});});
+    // Hook all form inputs for stepper
+    document.querySelectorAll('#formWrap input, #formWrap textarea').forEach(el=>{
+      el.addEventListener('input', etmUpdateSteps);
+    });
   });
   vGrid.appendChild(makeInput('KMS','Mileage (Kms)','Enter mileage…'));
   vGrid.appendChild(makeInput('ENG_TM','Engine / TM Type','e.g. 1.5 Turbo GDi…'));
@@ -599,6 +639,19 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
 });
 
 // ─────── COLLECT DATA ───────
+function etmUpdateSteps(){
+  const vin=document.getElementById('VIN')?.value?.trim();
+  const model=document.getElementById('MODEL')?.value?.trim();
+  const dlr=document.getElementById('DLR_CD')?.value?.trim()||document.getElementById('DLR_NM')?.value?.trim();
+  const steps=[{done:!!(vin&&model)},{done:!!dlr},{done:!!(vin&&model&&dlr)}];
+  steps.forEach((s,i)=>{
+    const st=document.getElementById('etm-st'+(i+1)),sn=document.getElementById('etm-sn'+(i+1));
+    if(!st||!sn)return;
+    st.className='step '+(s.done?'done':i===0?'active':'');
+    sn.innerHTML=s.done?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':(i+1);
+  });
+}
+
 function collectData(){
   const data={};
   // MODEL comes from hidden input (custom select)
