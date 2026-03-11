@@ -1,60 +1,35 @@
-// OfficeDesk Service Worker
-// Must be served from same origin as the app
+// OfficeDesk Service Worker v2
+const CACHE = 'officedesk-v2';
 
-const CACHE_NAME = 'officedesk-v1';
-
-// Files to cache for offline use
-const PRECACHE = [
-  './offdesman.html',
-  './manifest.json'
-];
-
-// Install: pre-cache core files
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(PRECACHE).catch(() => {
-        // If precache fails (e.g. offline), still install
-      });
-    })
-  );
+self.addEventListener('install', e => {
   self.skipWaiting();
-});
-
-// Activate: clean old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+  e.waitUntil(
+    caches.open(CACHE).then(c =>
+      c.addAll(['./offdesman.html', './manifest.json', './icon-192.png', './icon-512.png'])
+       .catch(() => {})
     )
   );
-  self.clients.claim();
 });
 
-// Fetch: network-first, fallback to cache
-self.addEventListener('fetch', event => {
-  // Only handle GET requests for same-origin or app files
-  if (event.request.method !== 'GET') return;
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Cache successful responses
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(resp => {
+        if (resp && resp.status === 200 && resp.type !== 'opaque') {
+          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
         }
-        return response;
-      })
-      .catch(() => {
-        // Network failed — serve from cache
-        return caches.match(event.request).then(cached => {
-          if (cached) return cached;
-          // Fallback for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('./offdesman.html');
-          }
-        });
-      })
+        return resp;
+      }).catch(() => cached || new Response('Offline', { status: 503 }));
+      return cached || fetchPromise;
+    })
   );
 });
