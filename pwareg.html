@@ -150,22 +150,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .btn-inject{background:var(--accent-bg);color:var(--accent-text);}
 .btn-inject:hover{opacity:.9;}
 .btn-inject:disabled{opacity:.5;cursor:not-allowed;}
-.btn-clear{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);flex:0 0 auto;padding:0 18px;width:auto;}
+.btn-clear{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.25);}
 .btn-clear:hover{background:rgba(239,68,68,.18);border-color:#ef4444;}
 [data-theme=dark] .btn-clear{background:rgba(248,113,113,.12);color:#f87171;border-color:rgba(248,113,113,.25);}
 [data-theme=dark] .btn-clear:hover{background:rgba(248,113,113,.2);}
-/* Stepper */
-.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 20px 0;display:none;}
-.stepper.show{display:grid;}
-.step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-hover);border:1px solid var(--border-light);border-radius:8px;transition:all .18s;}
-.step.done{background:rgba(0,44,95,.07);border-color:var(--accent-bg);}
-[data-theme=dark] .step.done{background:rgba(77,143,214,.1);border-color:var(--accent-bg);}
-.step.active{border-color:var(--accent-bg);}
-.step-n{width:26px;height:26px;border-radius:50%;background:var(--bg-active);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
-.step.done .step-n{background:var(--accent-bg);color:var(--accent-text);}
-.step-t{font-size:12.5px;font-weight:600;color:var(--text-main);}
-.step-s{font-size:11px;color:var(--text-muted);}
-@media(max-width:600px){.stepper{grid-template-columns:repeat(2,1fr);}}
+
 /* Modern auto-hide scrollbar */
 *{scrollbar-width:thin;scrollbar-color:transparent transparent;}
 *:hover{scrollbar-color:rgba(0,0,0,.2) transparent;}
@@ -193,8 +182,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   .grid-wrap{grid-template-columns:1fr;gap:8px;}
   .card-header,.mode-wrap,.form-section,.actions,.history-wrap{padding-left:14px;padding-right:14px;}
   .actions{flex-wrap:wrap;flex-direction:row;}
-  .btn-clear{flex:0 0 auto;width:auto;}
-  .btn-inject{flex:1;}
+
   .photo-grid{grid-template-columns:repeat(3,1fr);}
 }
 </style>
@@ -215,22 +203,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   <div class="card-header">
     <h1>PWA Regular</h1>
     <p>Prior Work Approval — fill form then generate Excel report.</p>
-  </div>
-
-  <!-- Stepper -->
-  <div class="stepper" id="pwa-stepper">
-    <div class="step active" id="pwa-st1">
-      <div class="step-n" id="pwa-sn1">1</div>
-      <div><div class="step-t">Vehicle Info</div><div class="step-s">VIN, model</div></div>
-    </div>
-    <div class="step" id="pwa-st2">
-      <div class="step-n" id="pwa-sn2">2</div>
-      <div><div class="step-t">Dealer / Parts</div><div class="step-s">Dealer, parts</div></div>
-    </div>
-    <div class="step" id="pwa-st3">
-      <div class="step-n" id="pwa-sn3">3</div>
-      <div><div class="step-t">Ready</div><div class="step-s">Generate Excel</div></div>
-    </div>
   </div>
 
   <div class="mode-wrap" id="modeWrap">
@@ -337,7 +309,7 @@ function setMode(mode){
   document.getElementById('modeHistory').classList.toggle('active',mode==='history');
   document.getElementById('modeSaveEntry')?.classList.remove('active');
   if(mode==='history'){formWrap.style.display='none';actionsBar.style.display='none';histWrap.classList.add('show');renderHistory();}
-  else{histWrap.classList.remove('show');formWrap.style.display='block';if(templateBuffer){actionsBar.style.display='flex';document.getElementById('pwa-stepper').classList.add('show');buildForm();}}
+  else{histWrap.classList.remove('show');formWrap.style.display='block';if(templateBuffer){actionsBar.style.display='flex';buildForm();}}
 }
 
 function pwaSaveEntry(){
@@ -346,19 +318,6 @@ function pwaSaveEntry(){
   }
 }
 
-function pwaUpdateSteps(){
-  const fields=formWrap?formWrap.querySelectorAll('input[required],select[required],input.required'):[];
-  const vin=formWrap?.querySelector('input[placeholder*="VIN"],input[id*="vin" i],input[id*="VIN"]')?.value.trim();
-  const dealer=formWrap?.querySelector('input[id*="dealer" i],input[id*="DEALER"]')?.value.trim();
-  const steps=[!!vin, !!dealer, !!(vin&&dealer)];
-  steps.forEach((done,i)=>{
-    const st=document.getElementById('pwa-st'+(i+1));
-    const sn=document.getElementById('pwa-sn'+(i+1));
-    if(!st||!sn)return;
-    st.className='step '+(done?'done':i===0?'active':'');
-    sn.innerHTML=done?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':(i+1);
-  });
-}
 
 function closeAllPopups(){
   document.querySelectorAll('.cal-pop.open').forEach(el=>el.classList.remove('open'));
