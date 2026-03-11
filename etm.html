@@ -629,7 +629,7 @@ btnInject.addEventListener('click',async()=>{
 
     // ── Replace text placeholders in all slide XMLs ──
     const replaceFn=xml=>{
-      return xml.replace(/\{\{([^}]+)\}/g,(_,key)=>{
+      return xml.replace(/\{\{([^}]+)\}\}/g,(_,key)=>{
         const v=data[key];
         return xmlEsc((v===undefined||v===null||v==='')?'':v);
       });
