@@ -626,14 +626,41 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
 
     // Also process each worksheet XML for inline strings
     const sheetPaths=Object.keys(zip.files).filter(p=>p.match(/xl\/worksheets\/sheet\d+\.xml$/i));
+
+    // Get replaced sharedString values for height calculation
+    const ssPathForHt=Object.keys(zip.files).find(p=>p.match(/sharedStrings\.xml$/i));
+    const ssXmlForHt=ssPathForHt?await zip.files[ssPathForHt].async('string'):'';
+    const ssValuesForHt=[];
+    ssXmlForHt.replace(/<t[^>]*>([^<]*)<\/t>/g,(_,v)=>{ssValuesForHt.push(v);});
+
     for(const sp of sheetPaths){
       let shXml=await zip.files[sp].async('string');
       if(shXml.includes('{')){
         shXml=replacePlaceholders(shXml);
       }
-      // Remove customHeight on text sheets (not sheet4=photos) so Excel auto-fits row height
+      // Auto-fit row heights on text sheets (skip photo sheet4)
       if(!sp.match(/sheet4\.xml$/i)){
-        shXml=shXml.replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,'');
+        // For every row, find longest shared-string value referenced in that row
+        // then set ht = lines * lineHeight, removing customHeight lock
+        shXml=shXml.replace(/<row\s([^>]*?)>/g,(rowTag,attrs)=>{
+          const rNum=(attrs.match(/r="(\d+)"/)||[])[1];
+          if(!rNum) return rowTag;
+          // Find all shared string indices used by cells in this row
+          const cellRe=new RegExp(`<c r="[A-Z]+${rNum}"[^>]*t="s"><v>(\\d+)<\\/v><\\/c>`,'g');
+          let maxLen=0,m;
+          while((m=cellRe.exec(shXml))!==null){
+            const idx=+m[1];
+            if(idx<ssValuesForHt.length) maxLen=Math.max(maxLen,ssValuesForHt[idx].length);
+          }
+          // Strip old ht and customHeight
+          let a=attrs.replace(/\s+ht="[^"]*"/g,'').replace(/\s+customHeight="[^"]*"/g,'');
+          if(maxLen>60){
+            // ~55 chars per line at typical col width, 15pt per line
+            const lines=Math.ceil(maxLen/55);
+            a+=` ht="${lines*15}" customHeight="1"`;
+          }
+          return `<row ${a}>`;
+        });
       }
       zip.file(sp,shXml);
     }
