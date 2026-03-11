@@ -67,6 +67,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .field-col{display:flex;flex-direction:column;gap:4px;min-width:0;}
 .field-col.full{grid-column:1/-1;}
 .field-col label{font-size:11.5px;font-weight:500;color:var(--text-label);}
+.field-col label .req{color:var(--danger-color);margin-left:2px;font-weight:700;}
+
 .field-col input,.field-col textarea{border:1px solid var(--border-input);border-radius:7px;padding:0 11px;font-size:13px;color:var(--text-main);background:var(--bg-input);transition:all .2s;width:100%;outline:none;font-family:'Inter',sans-serif;}
 .field-col input{height:36px;}
 .field-col textarea{padding:8px 11px;min-height:72px;resize:vertical;line-height:1.5;}
@@ -208,9 +210,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
     <div class="hist-list" id="histList"></div>
   </div>
 
-  <div class="status" id="status"></div>
   <div id="formWrap"></div>
 
+  <div class="status" id="status"></div>
   <div class="actions" id="actionsBar" style="display:none">
     <button class="btn btn-inject" id="btnInject" tabindex="0">Generate PPTX</button>
     <button class="btn btn-clear" id="btnClear" tabindex="0">Clear Form</button>
@@ -391,9 +393,9 @@ function makeDateField(id,label){
   return wrap;
 }
 
-function makeSelect(id,label,options){
+function makeSelect(id,label,options,required=false){
   const wrap=document.createElement('div');wrap.className='field-col';
-  wrap.innerHTML=`<label>${label}</label><div class="custom-select-wrap"><div class="custom-select-trigger" id="cst_${id}" tabindex="0"><span class="cs-val empty" id="csv_${id}">Select…</span><span class="cs-arr">${icons.chevronDown}</span></div><div class="custom-select-opts" id="cso_${id}">${options.map(o=>`<div class="cs-opt" data-val="${o}" tabindex="0">${o}</div>`).join('')}</div><input type="hidden" id="${id}" value=""></div>`;
+  wrap.innerHTML=`<label>${label}${required?'<span class="req">*</span>':''}</label><div class="custom-select-wrap"><div class="custom-select-trigger" id="cst_${id}" tabindex="0"><span class="cs-val empty" id="csv_${id}">Select…</span><span class="cs-arr">${icons.chevronDown}</span></div><div class="custom-select-opts" id="cso_${id}">${options.map(o=>`<div class="cs-opt" data-val="${o}" tabindex="0">${o}</div>`).join('')}</div><input type="hidden" id="${id}" value=""></div>`;
   requestAnimationFrame(()=>{
     const trig=document.getElementById('cst_'+id),opts=document.getElementById('cso_'+id),valEl=document.getElementById('csv_'+id),hidInp=document.getElementById(id);
     if(!trig)return;
@@ -404,9 +406,10 @@ function makeSelect(id,label,options){
   return wrap;
 }
 
-function makeInput(id,label,placeholder,defVal='',full=false){
+function makeInput(id,label,placeholder,defVal='',full=false,required=false){
   const wrap=document.createElement('div');wrap.className='field-col'+(full?' full':'');
-  const lbl=document.createElement('label');lbl.textContent=label;
+  const lbl=document.createElement('label');
+  lbl.innerHTML=label+(required?'<span class="req">*</span>':'');
   const inp=document.createElement('input');inp.type='text';inp.id=id;inp.setAttribute('tabindex','0');
   if(defVal){inp.value=defVal;inp.classList.add('pre');inp.addEventListener('focus',()=>inp.classList.remove('pre'));}
   else inp.placeholder=placeholder||'Enter value…';
@@ -432,11 +435,19 @@ function buildForm(){
   // ── Vehicle Info ──
   let sec=mkSec('Vehicle Information');
   const vGrid=document.createElement('div');vGrid.className='grid-wrap';
-  vGrid.appendChild(makeInput('VIN','VIN Number','Enter VIN…'));
-  vGrid.appendChild(makeSelect('MODEL','Vehicle Model',hyundaiModels));
+  vGrid.appendChild(makeInput('VIN','VIN Number','Enter VIN…','',false,true));
+  vGrid.appendChild(makeSelect('MODEL','Vehicle Model',hyundaiModels,true));
+  // Clear validation highlight on input
+  requestAnimationFrame(()=>{
+    const vinEl=document.getElementById('VIN');
+    if(vinEl)vinEl.addEventListener('input',()=>{vinEl.style.borderColor='';vinEl.style.boxShadow='';});
+    // MODEL clears on select (handled in makeSelect trigger)
+    const modelOpts=document.getElementById('cso_MODEL');
+    if(modelOpts)modelOpts.querySelectorAll('.cs-opt').forEach(opt=>{opt.addEventListener('click',()=>{const t=document.getElementById('cst_MODEL');if(t){t.style.borderColor='';t.style.boxShadow='';}});});
+  });
   vGrid.appendChild(makeInput('KMS','Mileage (Kms)','Enter mileage…'));
   vGrid.appendChild(makeInput('ENG_TM','Engine / TM Type','e.g. 1.5 Turbo GDi…'));
-  vGrid.appendChild(makeInput('ROM_ID','ROM ID (ECU / TCU)','Enter ROM ID…'));
+  vGrid.appendChild(makeInput('ROM_ID','ROM ID (ECU / TCU)','Enter ROM ID…',''));
   vGrid.appendChild(makeInput('DTC','DTC','','NA'));
   vGrid.appendChild(makeInput('DLR_CD','Dealer Code','','N3235'));
   vGrid.appendChild(makeInput('DLR_NM','Dealer Name','','KHANNA AUTOMART PVT LTD'));
@@ -473,15 +484,15 @@ function buildServiceHistorySection(){
   for(let i=1;i<=12;i++){
     rows+=`<tr>
       <td class="num">${i}</td>
-      <td><input id="sh${i}N"   placeholder="S.No…"   tabindex="0"></td>
-      <td><input id="sh${i}VIN" placeholder="VIN…"    tabindex="0"></td>
-      <td><input id="sh${i}RO"  placeholder="RO No…"  tabindex="0"></td>
-      <td><input id="sh${i}DT"  placeholder="Date…"   tabindex="0"></td>
-      <td><input id="sh${i}KM"  placeholder="KMs…"    tabindex="0"></td>
-      <td><input id="sh${i}DC"  placeholder="Code…"   tabindex="0"></td>
-      <td><input id="sh${i}ACT" placeholder="Action…" tabindex="0"></td>
-      <td><input id="sh${i}RS"  placeholder="RS…"     tabindex="0"></td>
-      <td><input id="sh${i}STS" placeholder="Status…" tabindex="0"></td>
+      <td><input id="sh${i}N"   placeholder="S.No…"        tabindex="0"></td>
+      <td><input id="sh${i}DC"  placeholder="Dealer Code…"  tabindex="0"></td>
+      <td><input id="sh${i}RO"  placeholder="RO No…"        tabindex="0"></td>
+      <td><input id="sh${i}VIN" placeholder="VIN…"          tabindex="0"></td>
+      <td><input id="sh${i}KM"  placeholder="KMs…"          tabindex="0"></td>
+      <td><input id="sh${i}RS"  placeholder="Reason…"       tabindex="0"></td>
+      <td><input id="sh${i}DT"  placeholder="Date…"         tabindex="0"></td>
+      <td><input id="sh${i}ACT" placeholder="Action…"       tabindex="0"></td>
+      <td><input id="sh${i}STS" placeholder="Status…"       tabindex="0"></td>
     </tr>`;
   }
 
@@ -490,14 +501,14 @@ function buildServiceHistorySection(){
     <thead><tr>
       <th style="width:28px">#</th>
       <th style="min-width:45px">S.No</th>
+      <th style="min-width:60px">Dealer Code</th>
+      <th style="min-width:90px">R/O No.</th>
       <th style="min-width:130px">VIN</th>
-      <th style="min-width:90px">RO No.</th>
-      <th style="min-width:90px">Date</th>
-      <th style="min-width:70px">KMs</th>
-      <th style="min-width:60px">DC</th>
-      <th style="min-width:110px">Action</th>
-      <th style="min-width:70px">RS</th>
-      <th style="min-width:80px">Status</th>
+      <th style="min-width:70px">Odo (Kms)</th>
+      <th style="min-width:110px">Reason for Service</th>
+      <th style="min-width:90px">Service Date</th>
+      <th style="min-width:110px">Dealer Action Taken</th>
+      <th style="min-width:80px">Current Status</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
@@ -623,7 +634,31 @@ btnInject.addEventListener('click',async()=>{
   btnInject.disabled=true;btnInject.textContent='Generating…';clearStatus();
   try{
     const data=collectData();
-    if(!data.VIN){showStatus('VIN is required.','error');btnInject.disabled=false;btnInject.textContent='Generate PPTX';return;}
+
+    // Validate mandatory fields
+    const errors=[];
+    if(!data.VIN){
+      errors.push('VIN Number');
+      const el=document.getElementById('VIN');
+      if(el){el.style.borderColor='var(--danger-color)';el.style.boxShadow='0 0 0 3px rgba(239,68,68,0.15)';}
+    } else {
+      const el=document.getElementById('VIN');
+      if(el){el.style.borderColor='';el.style.boxShadow='';}
+    }
+    if(!data.MODEL){
+      errors.push('Vehicle Model');
+      const trig=document.getElementById('cst_MODEL');
+      if(trig){trig.style.borderColor='var(--danger-color)';trig.style.boxShadow='0 0 0 3px rgba(239,68,68,0.15)';}
+    } else {
+      const trig=document.getElementById('cst_MODEL');
+      if(trig){trig.style.borderColor='';trig.style.boxShadow='';}
+    }
+    if(errors.length>0){
+      showStatus('⚠ Please fill in required fields: '+errors.join(', '),'error');
+      // Scroll to show error near button
+      document.getElementById('status').scrollIntoView({behavior:'smooth',block:'nearest'});
+      btnInject.disabled=false;btnInject.textContent='Generate PPTX';return;
+    }
 
     const zip=await JSZip.loadAsync(templateBuffer);
 
