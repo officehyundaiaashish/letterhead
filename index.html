@@ -1129,6 +1129,20 @@
 </head>
 
 <body>
+  <!-- PWA: Manifest + Service Worker + A2HS + Notifications -->
+  <iframe src="./offdesman.html" id="pwa-loader" style="display:none;width:0;height:0;border:none;" loading="eager"></iframe>
+  <!-- SW Fallback: handles blob SW registration from offdesman if needed -->
+  <script>
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'od-sw-fallback' && 'serviceWorker' in navigator) {
+        const blob = new Blob([e.data.swCode], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(url, { scope: './' })
+          .then(r => console.log('[index] SW fallback registered:', r.scope))
+          .catch(err => console.warn('[index] SW fallback also failed:', err));
+      }
+    });
+  </script>
   <header class="hdr">
     <a class="logo" href="#">
       <div class="logo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff"
