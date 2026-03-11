@@ -202,13 +202,40 @@
       background: var(--border);
       margin: 20px 0;
     }
+    /* ── Modern Scrollbar ── */
+    *{scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+    *::-webkit-scrollbar{width:5px;height:5px;}
+    *::-webkit-scrollbar-track{background:transparent;}
+    *::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+    *::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
+    /* ── Mode Buttons ── */
+    .mode-wrap{margin:0 0 16px;display:block;}
+    .mode-lbl{font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);margin-bottom:6px;}
+    .mode-btns{display:flex;gap:6px;}
+    .mode-btn{flex:1;height:36px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .18s;outline:none;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font);}
+    .mode-btn:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-s);}
+    .mode-btn:hover{border-color:var(--text2);color:var(--text);}
+    .mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+    /* ── Stepper ── */
+    .stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+    .step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);transition:all var(--tr);}
+    .step.done{background:var(--accent-s);border-color:var(--accent);}
+    .step.active{border-color:var(--accent);}
+    .step-n{width:26px;height:26px;border-radius:50%;background:var(--surface2);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+    .step.done .step-n{background:var(--accent);color:white;}
+    .step-t{font-size:12.5px;font-weight:600;color:var(--text);}
+    .step-s{font-size:11px;color:var(--text2);}
+
     .btn-row {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
     .btn {
-      padding: 10px 16px;
+      flex:1;
+      height: 42px;
       border: none;
       border-radius: 8px;
       font-size: 14px;
@@ -217,9 +244,12 @@
       transition: all var(--tr);
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 7px;
       font-family: var(--font);
+      outline:none;
     }
+    .btn:focus{box-shadow:0 0 0 3px var(--accent-s);}
     .btn-p {
       background: var(--accent);
       color: white;
@@ -235,6 +265,10 @@
     .btn-g:hover {
       background: var(--border);
     }
+    .btn-danger{background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.2);}
+    .btn-danger:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);}
+    [data-theme=dark] .btn-danger{background:rgba(248,113,113,.08);color:#f87171;border:1px solid rgba(248,113,113,.2);}
+    [data-theme=dark] .btn-danger:hover{background:rgba(248,113,113,.15);}
     .btn:disabled {
       opacity: .5;
       cursor: not-allowed;
@@ -317,7 +351,9 @@
       .fg.c3 { grid-template-columns: 1fr; }
       .field.s2, .field.s3 { grid-column: span 1; }
       .btn-row { flex-direction: column-reverse; }
-      .btn-row .btn { width: 100%; justify-content: center; }
+      .stepper{grid-template-columns:1fr 1fr;}
+      .mode-btns{flex-wrap:wrap;}
+      .mode-btn{flex:1 1 calc(50% - 3px);}
     }
 
   /* ── Custom Calendar Picker ── */
@@ -394,6 +430,34 @@
     <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>XLS Export</span>
   </div>
 
+  <div class="stepper">
+    <div class="step active" id="kc-st1">
+      <div class="step-n" id="kc-sn1">1</div>
+      <div><div class="step-t">Shared Info</div><div class="step-s">Date, dealer, requester</div></div>
+    </div>
+    <div class="step" id="kc-st2">
+      <div class="step-n" id="kc-sn2">2</div>
+      <div><div class="step-t">Vehicles</div><div class="step-s">VIN rows added</div></div>
+    </div>
+    <div class="step" id="kc-st3">
+      <div class="step-n" id="kc-sn3">3</div>
+      <div><div class="step-t">Ready</div><div class="step-s">Export to Excel</div></div>
+    </div>
+  </div>
+
+  <div class="mode-wrap">
+    <div class="mode-btns">
+      <button class="mode-btn active" id="kc-modeForm" onclick="kcSetMode('form')" tabindex="0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+        Fill Form
+      </button>
+      <button class="mode-btn" id="kc-modeHistory" onclick="kcSetMode('history')" tabindex="0">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Saved Entries
+      </button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">
       <span style="display:flex;align-items:center;gap:7px;">
@@ -438,7 +502,7 @@
   <div class="card hist-panel" id="kc-histPanel">
     <div class="card-title" style="margin-bottom:14px;">
       <span style="display:flex;align-items:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saved Entries</span>
-      <button class="btn btn-g" style="padding:4px 10px;font-size:12px;" onclick="kcClearAllHistory()">Clear All</button>
+      <button class="btn btn-danger" style="padding:5px 12px;font-size:12px;height:auto;border-radius:6px;" onclick="kcClearAllHistory()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>Clear All</button>
     </div>
     <input type="text" class="hist-search" id="kc-histSearch" placeholder="Search by VIN or Dealer Code..." autocomplete="off">
     <div class="hist-list" id="kc-histList"></div>
@@ -447,9 +511,13 @@
   <div style="border-top:1px solid var(--border);margin-top:24px;padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <span style="font-size:11.5px;color:var(--text3);" id="kc-save-status"></span>
   </div>
+  <!-- Validation message -->
+  <div id="kc-valMsg" style="display:none;background:rgba(214,69,69,0.08);border:1px solid rgba(214,69,69,0.25);color:#d64545;border-radius:7px;padding:10px 14px;font-size:13px;font-weight:500;margin-bottom:10px;align-items:center;gap:8px;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="kc-valText"></span>
+  </div>
   <div class="btn-row" style="padding-bottom:32px;">
-    <button class="btn btn-g" style="flex:1;" onclick="clearKcSaved()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Saved</button>
-    <button class="btn btn-g" style="flex:1;" id="kc-histBtn" onclick="kcToggleHistory()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saved Entries</button>
+    <button class="btn btn-danger" style="flex:1;" onclick="clearKcSaved()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Form</button>
     <button class="btn btn-p" id="kc-exportBtn" style="flex:2;" onclick="exportKeyCode()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export to Excel</button>
   </div>
 
@@ -608,17 +676,37 @@
       kcRenderHistory();
     }
 
-    function kcToggleHistory() {
+    function kcSetMode(mode) {
       const panel = document.getElementById('kc-histPanel');
-      const btn = document.getElementById('kc-histBtn');
-      const isOpen = panel.classList.contains('show');
-      panel.classList.toggle('show', !isOpen);
-      btn.style.background = !isOpen ? 'var(--accent)' : '';
-      btn.style.color = !isOpen ? 'var(--accent-s)' : '';
-      if (!isOpen) {
+      const isHistory = mode === 'history';
+      panel.classList.toggle('show', isHistory);
+      document.getElementById('kc-modeForm')?.classList.toggle('active', mode === 'form');
+      document.getElementById('kc-modeHistory')?.classList.toggle('active', isHistory);
+      if (isHistory) {
         kcRenderHistory(document.getElementById('kc-histSearch')?.value || '');
         document.getElementById('kc-histSearch')?.focus();
       }
+    }
+    function kcSaveEntry() {
+      kcSaveHistory();
+      const btn = document.getElementById('kc-modeSave');
+      if(btn){ btn.classList.add('active'); setTimeout(()=>btn.classList.remove('active'),900); }
+      toast('Entry saved', 'ok');
+    }
+    function kcToggleHistory() { kcSetMode(document.getElementById('kc-histPanel').classList.contains('show') ? 'form' : 'history'); }
+    function kcUpdateSteps() {
+      const rname = document.getElementById('kc-rname')?.value?.trim();
+      const date = document.getElementById('kc-date')?.value?.trim();
+      const hasShared = !!(rname && date);
+      const hasVins = kcRows && kcRows.some(r => r.vin?.trim());
+      const ready = hasShared && hasVins;
+      const steps = [{done:hasShared},{done:hasVins},{done:ready}];
+      steps.forEach((s,i)=>{
+        const st=document.getElementById('kc-st'+(i+1)), sn=document.getElementById('kc-sn'+(i+1));
+        if(!st||!sn) return;
+        st.className='step '+(s.done?'done':i===0?'active':'');
+        sn.innerHTML=s.done?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':(i+1);
+      });
     }
     function _kcEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -684,7 +772,8 @@
     let kcSaveTimer;
     function kcScheduleSave() {
       clearTimeout(kcSaveTimer);
-      kcSaveTimer = setTimeout(kcSaveData, 600);
+      kcSaveTimer = setTimeout(()=>{ kcSaveData(); kcUpdateSteps(); }, 600);
+      kcUpdateSteps();
     }
 
     function kcSaveData() {
@@ -882,15 +971,28 @@
     async function exportKeyCode() {
       kcReadRows();
       const validRows = kcRows.filter(r => r.vin.trim());
+      const rnameEl = document.getElementById('kc-rname');
+      const rname = rnameEl?.value.trim();
+      let hasErr = false;
       if (!validRows.length) {
         toast('At least one VIN is required', 'err');
-        return;
+        hasErr = true;
       }
-      const rname = document.getElementById('kc-rname')?.value.trim();
       if (!rname) {
+        if(rnameEl){ rnameEl.style.borderColor='#ef4444'; rnameEl.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)'; }
         toast('Requester Name is required', 'err');
+        hasErr = true;
+      } else {
+        if(rnameEl){ rnameEl.style.borderColor=''; rnameEl.style.boxShadow=''; }
+      }
+      if (hasErr) {
+        const vMsg = document.getElementById('kc-valMsg');
+        const vTxt = document.getElementById('kc-valText');
+        if (vTxt) vTxt.textContent = !validRows.length && !rname ? 'Please fill: VIN and Requester Name' : !validRows.length ? 'Please fill: At least one VIN' : 'Please fill: Requester Name';
+        if (vMsg) { vMsg.style.display='flex'; vMsg.scrollIntoView({behavior:'smooth',block:'nearest'}); }
         return;
       }
+      document.getElementById('kc-valMsg')?.style && (document.getElementById('kc-valMsg').style.display='none');
 
       const btn = document.getElementById('kc-exportBtn');
       btn.disabled = true;
