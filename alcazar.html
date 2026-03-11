@@ -58,6 +58,10 @@
     .hi-del { background:none; border:none; color:var(--border); cursor:pointer; transition:color 0.18s; display:flex; align-items:center; padding:4px; border-radius:4px; outline:none; }
     .hi-del:hover, .hi-del:focus { color:#d64545; }
     .hist-empty { text-align:center; font-size:13px; color:var(--text3); padding:24px; }
+    /* Clear all button in history (ETM style) */
+    .hist-clr { font-size:12px; color:var(--text2); cursor:pointer; background:none; border:none; transition:color 0.2s; padding:0; outline:none; font-family:var(--font); font-weight:500; }
+    .hist-clr:hover, .hist-clr:focus { color:#dc2626; }
+    [data-theme=dark] .hist-clr:hover, [data-theme=dark] .hist-clr:focus { color:#f87171; }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }      
     html { font-size: 14px; font-family: 'Inter', sans-serif; }      
@@ -323,7 +327,7 @@
       flex:1;
       height:42px;      
       border: none;      
-      border-radius: 8px;      
+      border-radius: 7px;      
       font-size: 14px;      
       font-weight: 600;      
       cursor: pointer;      
@@ -656,7 +660,7 @@
   <div class="alc-history-wrap" id="alc-histPanel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <span style="font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Saved Entries</span>
-      <button class="btn btn-danger" style="height:32px;padding:0 12px;font-size:12px;" onclick="alcClearAllHistory()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear All</button>
+      <button class="hist-clr" onclick="alcClearAllHistory()" tabindex="0">Clear all</button>
     </div>
     <input type="text" class="hist-search" id="alc-histSearch" placeholder="Search by VIN or Model..." autocomplete="off">
     <div class="hist-list" id="alc-histList"></div>
@@ -671,8 +675,8 @@
     <span id="alc-valText"></span>
   </div>
   <div class="btn-row" style="padding-bottom:32px;">
-    <button class="btn btn-danger" style="flex:1;" onclick="clearSavedData()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Form</button>
-    <button class="btn btn-p" id="applyBtn" style="flex:2;" onclick="applyForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Apply &amp; Download PPT</button>
+    <button class="btn btn-p" id="applyBtn" onclick="applyForm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Generate PPT</button>
+    <button class="btn btn-danger" onclick="clearSavedData()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>Clear Form</button>
   </div>
       
   <script>      
