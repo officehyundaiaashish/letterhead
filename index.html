@@ -178,11 +178,12 @@ self.addEventListener('message', e => {
         .catch(err => console.warn('[OfficeDesk SW] Error:', err));
     }
 
-    // ── 4. NOTIFICATION PERMISSION ──────────────────────────────────────
+    // ── 4. NOTIFICATION PERMISSION (ask once only) ──────────────────────
     window.addEventListener('load', () => {
       if (!('Notification' in window)) return;
-      if (Notification.permission === 'default') {
+      if (Notification.permission === 'default' && !localStorage.getItem('od-notif-asked')) {
         setTimeout(() => {
+          localStorage.setItem('od-notif-asked', '1');
           Notification.requestPermission().then(perm => {
             if (perm === 'granted') {
               navigator.serviceWorker.ready.then(reg => {
@@ -194,24 +195,32 @@ self.addEventListener('message', e => {
       }
     });
 
-    // ── 5. A2HS — Auto install prompt ───────────────────────────────────
+    // ── 5. A2HS — Auto install prompt (show ONCE only, never repeat) ────
     let deferredPrompt = null;
+    const A2HS_KEY = 'od-a2hs-asked';
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       deferredPrompt = e;
+
+      // If already asked before (any outcome), never show again
+      if (localStorage.getItem(A2HS_KEY)) return;
+
       setTimeout(() => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then(c => {
-            console.log('[OfficeDesk A2HS]', c.outcome);
-            deferredPrompt = null;
-          });
-        }
+        if (!deferredPrompt) return;
+        // Mark as asked immediately so even if user dismisses fast it won't repeat
+        localStorage.setItem(A2HS_KEY, '1');
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(c => {
+          console.log('[OfficeDesk A2HS]', c.outcome);
+          deferredPrompt = null;
+        });
       }, 3000);
     });
 
     window.addEventListener('appinstalled', () => {
       console.log('[OfficeDesk] App installed ✓');
+      localStorage.setItem(A2HS_KEY, '1');
       deferredPrompt = null;
     });
 
