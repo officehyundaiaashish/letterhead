@@ -119,7 +119,7 @@
     const swCode = `
 const CACHE = 'officedesk-assets-v1';
 const STATIC_ASSETS = [
-  './ppt-template.js','./head.docx','./pwareg.xlsx','./etm.pptx'
+  './ppt-template.js','./head.docx','./pwareg.xlsx','./etm.pptx','./agm.html','./agm.xlsx'
 ];
 
 self.addEventListener('install', e => {
@@ -1710,6 +1710,16 @@ self.addEventListener('notificationclick', e => {
           </svg>ETM Form
           <span class="nav-badge">PPT</span>
         </button>
+        <button class="nav-item" data-view="agm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="8" y1="10" x2="16" y2="10"/>
+          </svg>AGM Form
+          <span class="nav-badge">XLSX</span>
+        </button>
       </div>
       <div class="sb-ver">OfficeDesk v1.0 &nbsp;·&nbsp; Khanna Automart</div>
     </aside>
@@ -1804,6 +1814,22 @@ self.addEventListener('notificationclick', e => {
             </div>
           </div>
 
+          <div class="tool-card live" onclick="switchView('agm')">
+            <div class="tool-icon" style="background:var(--accent-s);color:var(--accent)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="8" y1="10" x2="16" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <div class="tool-name">AGM Form</div>
+              <span class="tag tag-live" style="margin-top:5px">XLSX</span>
+            </div>
+          </div>
+
           <div class="tool-card coming">
             <div class="tool-icon" style="background:var(--surface2);color:var(--text3)">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1858,6 +1884,10 @@ self.addEventListener('notificationclick', e => {
       <div class="view view-letterheads-container" id="view-etm">
         <iframe id="etm-iframe" style="width:100%;flex:1;border:none;" loading="eager"></iframe>
       </div>
+      <!-- AGM FORM -->
+      <div class="view view-letterheads-container" id="view-agm">
+        <iframe id="agm-iframe" style="width:100%;flex:1;border:none;" loading="eager"></iframe>
+      </div>
 
       <script>
         // ── NO-CACHE IFRAME LOADER ──────────────────────────────────────────
@@ -1870,7 +1900,8 @@ self.addEventListener('notificationclick', e => {
             { id: 'keycode-iframe',     src: './keycode.html'  },
             { id: 'letterheads-iframe', src: './letthead.html' },
             { id: 'pwareg-iframe',      src: './pwareg.html'   },
-            { id: 'etm-iframe',         src: './etm.html'      }
+            { id: 'etm-iframe',         src: './etm.html'      },
+            { id: 'agm-iframe',         src: './agm.html'      }
           ];
           iframes.forEach(function (item) {
             const el = document.getElementById(item.id);
@@ -1898,7 +1929,7 @@ self.addEventListener('notificationclick', e => {
       applyTheme(theme);
       
       // Pre-sync theme to all iframes immediately
-      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe'].forEach(id => {
+      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe', 'agm-iframe'].forEach(id => {
         const iframe = document.getElementById(id);
         if (iframe) {
           const sendTheme = () => {
@@ -1920,7 +1951,7 @@ self.addEventListener('notificationclick', e => {
       if (view) view.classList.add("active");
       document.querySelectorAll(`.nav-item[data-view="${v}"],.bnav-item[data-view="${v}"]`).forEach(el => el.classList.add("active"));
       document.querySelectorAll(`.drawer-item[data-view="${v}"]`).forEach(el => el.classList.add("active"));
-      const labels = { dashboard: "Dashboard", alcazar: "Alcazar Form", keycode: "Key Code Form", letterheads: "Letter Heads", pwareg: "PWA Regular", etm: "ETM Form" }; 
+      const labels = { dashboard: "Dashboard", alcazar: "Alcazar Form", keycode: "Key Code Form", letterheads: "Letter Heads", pwareg: "PWA Regular", etm: "ETM Form", agm: "AGM Form" }; 
       document.title = "OfficeDesk — " + (labels[v] || "Utility Suite");
     }
 
@@ -1939,7 +1970,7 @@ self.addEventListener('notificationclick', e => {
       const as = document.getElementById('od-apple-status');
       if(tc) tc.content = t === 'dark' ? '#111110' : '#ffffff';
       if(as) as.content = t === 'dark' ? 'black-translucent' : 'default';
-      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe'].forEach(id => {
+      ['letterheads-iframe', 'alcazar-iframe', 'keycode-iframe', 'pwareg-iframe', 'etm-iframe', 'agm-iframe'].forEach(id => {
         const iframe = document.getElementById(id);
         if (iframe && iframe.contentWindow) {
           iframe.contentWindow.postMessage({ type: 'theme', theme: t }, '*');
@@ -1962,8 +1993,8 @@ self.addEventListener('notificationclick', e => {
     }
 
     // ── Backup / Restore All ──
-    const IFRAME_IDS = ['alcazar-iframe', 'keycode-iframe', 'letterheads-iframe', 'pwareg-iframe', 'etm-iframe'];
-    const TOOL_NAMES = { 'alcazar-iframe': 'alcazar', 'keycode-iframe': 'keycode', 'letterheads-iframe': 'letterheads', 'pwareg-iframe': 'pwareg', 'etm-iframe': 'etm' };
+    const IFRAME_IDS = ['alcazar-iframe', 'keycode-iframe', 'letterheads-iframe', 'pwareg-iframe', 'etm-iframe', 'agm-iframe'];
+    const TOOL_NAMES = { 'alcazar-iframe': 'alcazar', 'keycode-iframe': 'keycode', 'letterheads-iframe': 'letterheads', 'pwareg-iframe': 'pwareg', 'etm-iframe': 'etm', 'agm-iframe': 'agm' };
 
     function backupAll() {
       const collected = {};
@@ -2133,6 +2164,19 @@ self.addEventListener('notificationclick', e => {
         </div>
         <div class="drawer-item-label">ETM Form</div>
         <span class="drawer-item-badge">PPT</span>
+      </button>
+
+      <button class="drawer-item" data-view="agm" onclick="drawerNav('agm')">
+        <div class="drawer-item-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            <line x1="8" y1="10" x2="16" y2="10"/>
+          </svg>
+        </div>
+        <div class="drawer-item-label">AGM Form</div>
+        <span class="drawer-item-badge">XLSX</span>
       </button>
 
     </div>
