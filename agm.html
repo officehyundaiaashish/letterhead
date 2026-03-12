@@ -144,7 +144,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text
 .btn-clear:hover{background:rgba(239,68,68,.18);border-color:#ef4444;}
 [data-theme=dark] .btn-clear{background:rgba(248,113,113,.12);color:#f87171;border-color:rgba(248,113,113,.25);}
 [data-theme=dark] .btn-clear:hover{background:rgba(248,113,113,.2);}
-*{scrollbar-width:thin;scrollbar-color:transparent transparent;}
+/* ─── PAGE JUMPERS ─── */
+.page-jumper{position:fixed;right:16px;z-index:9000;display:flex;flex-direction:column;gap:8px;transition:opacity .3s ease,transform .3s ease;}
+.page-jumper{bottom:80px;}
+.pj-btn{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:all .25s cubic-bezier(.4,0,.2,1);outline:none;background:var(--accent-bg);color:var(--accent-text);}
+.pj-btn:hover{transform:scale(1.12);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pj-btn:active{transform:scale(.95);}
+.pj-btn:focus{box-shadow:0 0 0 3px var(--focus-ring),0 4px 14px rgba(0,0,0,.2);}
+.pj-btn.hidden{opacity:0;pointer-events:none;transform:translateY(12px);}
+@media(max-width:640px){.pj-btn{width:38px;height:38px;}.page-jumper{right:10px;bottom:70px;}}
+
 *:hover{scrollbar-color:rgba(0,0,0,.2) transparent;}
 [data-theme=dark] *:hover{scrollbar-color:rgba(255,255,255,.15) transparent;}
 ::-webkit-scrollbar{width:5px;height:5px;}
@@ -254,6 +263,22 @@ const MONTHS=['January','February','March','April','May','June','July','August',
 const batterySpecOpts=['50 AH','60 AH','65 AH'];
 const supplierOpts=['Delkor','Solite','Clarios'];
 const dealerActionOpts=['Recharge','Replaced'];
+const batteryAvailabilityOpts=['Exide','Amaron','Other'];
+const hyundaiModels=[
+  'IONIQ 9','IONIQ 6','IONIQ 5','IONIQ 5 N',
+  'Alcazar 2024','Creta 2024','Verna 2023',
+  'Tucson','Exter','Grand i10 NIOS',
+  'i20','i20 N Line','Venue','Venue N Line',
+  'Aura','Creta Electric',
+  'Alcazar 2022','Creta 2022',
+  'Verna 2020','i10','Grand i10',
+  'Elite i20','Active i20',
+  'Xcent','Creta 2019','Creta 2018',
+  'Creta 2016','Creta 2015',
+  'Eon','Santro','Accent',
+  'Sonata','Elantra','Santa Fe',
+  'Tucson (Old)','Terracan'
+];
 
 let templateBuffer=null,currentMode='form';
 const CAL={},PHOTOS={};
@@ -328,7 +353,7 @@ function renderCal(id){
     h+='</div>';pop.innerHTML=h;
     pop.querySelectorAll('.cpb').forEach(b=>{const a=e=>{e.stopPropagation();const s=CAL[b.dataset.id],dir=parseInt(b.dataset.dir);s.month+=dir;if(s.month<0){s.month=11;s.year--;}if(s.month>11){s.month=0;s.year++;}renderCal(b.dataset.id);};b.addEventListener('click',a);handleKeyClick(b,a);});
     const ts=pop.querySelector('.ts');const tsA=e=>{e.stopPropagation();CAL[e.target.dataset.id].view='years';renderCal(e.target.dataset.id);};ts.addEventListener('click',tsA);handleKeyClick(ts,tsA);
-    pop.querySelectorAll('.cd:not(.om)').forEach(el=>{const a=e=>{e.stopPropagation();const s=CAL[el.dataset.id];s.date=new Date(s.year,s.month,parseInt(el.dataset.d));const dv=document.getElementById('dv_'+el.dataset.id);if(dv){dv.textContent=fmtDash(s.date);dv.classList.remove('empty');}closeAllPopups();renderCal(el.dataset.id);};el.addEventListener('click',a);handleKeyClick(el,a);});
+    pop.querySelectorAll('.cd:not(.om)').forEach(el=>{const a=e=>{e.stopPropagation();const s=CAL[el.dataset.id];s.date=new Date(s.year,s.month,parseInt(el.dataset.d));const dv=document.getElementById('dv_'+el.dataset.id);if(dv){dv.textContent=fmtDash(s.date);dv.classList.remove('empty');}const di=document.getElementById('di_'+el.dataset.id);if(di)di.value=fmtDash(s.date);closeAllPopups();renderCal(el.dataset.id);};el.addEventListener('click',a);handleKeyClick(el,a);});
   }
 }
 function openCal(id){
@@ -340,10 +365,30 @@ function openCal(id){
 function makeDateField(id,label,full=false){
   if(!CAL[id])CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};
   const wrap=document.createElement('div');wrap.className='field-col'+(full?' full':'');
-  wrap.innerHTML=`<label>${label}</label><div style="position:relative;"><div class="date-trigger" id="dt_${id}" tabindex="0"><span class="dval empty" id="dv_${id}">Pick date</span><span class="date-icon">${icons.calendar}</span></div><div class="cal-pop" id="cp_${id}"></div></div>`;
-  const pop=wrap.querySelector('.cal-pop');
-  let wt;pop.addEventListener('wheel',e=>{e.preventDefault();if(wt)return;wt=setTimeout(()=>{wt=null;},150);const st=CAL[id];if(st.view==='years'){st.year+=e.deltaY>0?15:-15;}else{st.month+=e.deltaY>0?1:-1;if(st.month>11){st.month=0;st.year++;}else if(st.month<0){st.month=11;st.year--;}}renderCal(id);},{passive:false});
-  requestAnimationFrame(()=>{const dt=document.getElementById('dt_'+id);const a=e=>{e.stopPropagation();const isOpen=document.getElementById('cp_'+id)?.classList.contains('open');if(isOpen)closeAllPopups();else openCal(id);};dt?.addEventListener('click',a);handleKeyClick(dt,a);});
+  wrap.innerHTML=`<label>${label}</label><div style="position:relative;">
+    <div style="display:flex;gap:4px;align-items:center;">
+      <div class="date-trigger" id="dt_${id}" tabindex="0" style="flex:1"><span class="dval empty" id="dv_${id}">Pick date</span><span class="date-icon">${icons.calendar}</span></div>
+      <input type="text" id="di_${id}" placeholder="DD-MM-YYYY" style="flex:1;height:36px;border:1px solid var(--border-input);border-radius:7px;padding:0 10px;font-size:12.5px;color:var(--text-main);background:var(--bg-input);outline:none;font-family:'DM Sans',sans-serif;transition:all .2s;" tabindex="0">
+    </div>
+    <div class="cal-pop" id="cp_${id}"></div></div>`;
+  // manual input sync
+  requestAnimationFrame(()=>{
+    const manInp=document.getElementById('di_'+id);
+    if(manInp){
+      manInp.addEventListener('focus',()=>{manInp.style.borderColor='var(--border-focus)';manInp.style.boxShadow='0 0 0 3px var(--focus-ring)';});
+      manInp.addEventListener('blur',()=>{manInp.style.borderColor='var(--border-input)';manInp.style.boxShadow='none';
+        const v=manInp.value.trim();
+        if(/^\d{2}-\d{2}-\d{4}$/.test(v)){
+          const p=v.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);
+          if(!isNaN(d)){if(!CAL[id])CAL[id]={};Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});
+            const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=v;dv.classList.remove('empty');}}
+        }
+      });
+    }
+    const pop=wrap.querySelector('.cal-pop');
+    let wt;pop.addEventListener('wheel',e=>{e.preventDefault();if(wt)return;wt=setTimeout(()=>{wt=null;},150);const st=CAL[id];if(st.view==='years'){st.year+=e.deltaY>0?15:-15;}else{st.month+=e.deltaY>0?1:-1;if(st.month>11){st.month=0;st.year++;}else if(st.month<0){st.month=11;st.year--;}}renderCal(id);},{passive:false});
+    const dt=document.getElementById('dt_'+id);const a=e=>{e.stopPropagation();const isOpen=document.getElementById('cp_'+id)?.classList.contains('open');if(isOpen)closeAllPopups();else openCal(id);};dt?.addEventListener('click',a);handleKeyClick(dt,a);
+  });
   return wrap;
 }
 function makeSelect(id,label,options,full=false){
@@ -404,7 +449,7 @@ function buildForm(){
 function buildBatteryDataSection(){
   const sec=mkSec('Failure Battery Data Details');
   const g=document.createElement('div');g.className='grid-wrap';
-  g.appendChild(makeInput('model','Model','e.g. Hyundai Creta…'));
+  g.appendChild(makeSelect('model','Model',hyundaiModels));
   g.appendChild(makeInput('vin_number','VIN Number','Enter VIN…'));
   g.appendChild(makeDateField('sale_date','Sale Date'));
   g.appendChild(makeDateField('repair_date','Repair Date'));
@@ -429,7 +474,7 @@ function buildBatteryDataSection(){
 
   const daDiv=document.createElement('div');daDiv.className='sub-lbl';daDiv.textContent='Dealer Action';g.appendChild(daDiv);
   g.appendChild(makeSelect('dealer_action','Recharge / Replaced',dealerActionOpts));
-  g.appendChild(makeInput('battery_availability','Battery Availability @ Dealer End','Enter availability…'));
+  g.appendChild(makeSelect('battery_availability','Battery Availability @ Dealer End',batteryAvailabilityOpts));
 
   sec.appendChild(g);formWrap.appendChild(sec);
 }
@@ -512,16 +557,68 @@ function buildNDMSSection(){
   g.appendChild(makeInput('part_total_cost_with_tax','Part — Total Cost (with Tax)','e.g. 5000…'));
   g.appendChild(makeInput('labour_total_cost_with_tax','Labour — Total Cost (with Tax)','e.g. 500…'));
 
-  const ps=document.createElement('div');ps.className='sub-lbl';ps.textContent='Part Sharing %';g.appendChild(ps);
-  g.appendChild(makeInput('hmil_share_pct_part','HMIL Share % (Part)','e.g. 0.80…'));
-  g.appendChild(makeInput('dealer_share_pct_part','Dealer Share % (Part)','e.g. 0.10…'));
-  g.appendChild(makeInput('customer_share_pct_part','Customer Share % (Part)','e.g. 0.10…'));
+  const ps=document.createElement('div');ps.className='sub-lbl';ps.textContent='Part Sharing % (Total must = 100%)';g.appendChild(ps);
+  g.appendChild(makeInput('hmil_share_pct_part','HMIL Share % (Part)','e.g. 80'));
+  g.appendChild(makeInput('dealer_share_pct_part','Dealer Share % (Part)','e.g. 10'));
+  g.appendChild(makeInput('customer_share_pct_part','Customer Share % (Part)','e.g. 10'));
 
-  const ls=document.createElement('div');ls.className='sub-lbl';ls.textContent='Labour Sharing %';g.appendChild(ls);
-  g.appendChild(makeInput('hmil_share_pct_labour','HMIL Share % (Labour)','e.g. 0.80…'));
-  g.appendChild(makeInput('dealer_share_pct_labour','Dealer Share % (Labour)','e.g. 0.10…'));
-  g.appendChild(makeInput('customer_share_pct_labour','Customer Share % (Labour)','e.g. 0.10…'));
+  const ls=document.createElement('div');ls.className='sub-lbl';ls.textContent='Labour Sharing % (Total must = 100%)';g.appendChild(ls);
+  g.appendChild(makeInput('hmil_share_pct_labour','HMIL Share % (Labour)','e.g. 80'));
+  g.appendChild(makeInput('dealer_share_pct_labour','Dealer Share % (Labour)','e.g. 10'));
+  g.appendChild(makeInput('customer_share_pct_labour','Customer Share % (Labour)','e.g. 10'));
   sec.appendChild(g);
+
+  // Live sharing calculation table
+  const tblLbl=document.createElement('div');tblLbl.style.cssText='font-size:10.5px;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em;margin:14px 0 6px;border-top:1px solid var(--border-light);padding-top:12px;';tblLbl.textContent='Live Cost Sharing Breakdown';sec.appendChild(tblLbl);
+
+  const tblWrap=document.createElement('div');tblWrap.className='tbl-wrap';
+  tblWrap.innerHTML=`<table class="pwa-table" id="ndmsSharingTable">
+    <thead><tr>
+      <th style="min-width:100px">Category</th>
+      <th style="min-width:100px">Total Amount</th>
+      <th style="min-width:80px">HMIL %</th>
+      <th style="min-width:90px">HMIL Amt</th>
+      <th style="min-width:80px">Dealer %</th>
+      <th style="min-width:90px">Dealer Amt</th>
+      <th style="min-width:80px">Customer %</th>
+      <th style="min-width:100px">Customer Amt</th>
+      <th style="min-width:80px">Check</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td style="padding:0 8px;font-weight:600;font-size:12px;">Parts</td>
+        <td class="total-cell"><span id="ns_part_total">—</span></td>
+        <td class="total-cell"><span id="ns_hmil_pct_part" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell" style="background:rgba(0,44,95,.05)"><span id="ns_hmil_amt_part">—</span></td>
+        <td class="total-cell"><span id="ns_dealer_pct_part" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell"><span id="ns_dealer_amt_part">—</span></td>
+        <td class="total-cell"><span id="ns_cust_pct_part" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell"><span id="ns_cust_amt_part">—</span></td>
+        <td class="total-cell"><span id="ns_check_part">—</span></td>
+      </tr>
+      <tr>
+        <td style="padding:0 8px;font-weight:600;font-size:12px;">Labour</td>
+        <td class="total-cell"><span id="ns_labour_total">—</span></td>
+        <td class="total-cell"><span id="ns_hmil_pct_labour" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell" style="background:rgba(0,44,95,.05)"><span id="ns_hmil_amt_labour">—</span></td>
+        <td class="total-cell"><span id="ns_dealer_pct_labour" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell"><span id="ns_dealer_amt_labour">—</span></td>
+        <td class="total-cell"><span id="ns_cust_pct_labour" style="color:var(--text-muted)">—</span></td>
+        <td class="total-cell"><span id="ns_cust_amt_labour">—</span></td>
+        <td class="total-cell"><span id="ns_check_labour">—</span></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr class="gtotal-row">
+        <td style="padding:8px;font-weight:700;">GRAND TOTAL</td>
+        <td style="padding:0 8px;font-weight:700;"><span id="ns_grand_total">—</span></td>
+        <td colspan="2" style="padding:0 8px;font-weight:700;text-align:center;">HMIL: <span id="ns_hmil_grand">—</span></td>
+        <td colspan="2" style="padding:0 8px;font-weight:700;text-align:center;">Dealer: <span id="ns_dealer_grand">—</span></td>
+        <td colspan="3" style="padding:0 8px;font-weight:700;text-align:center;">Customer: <span id="ns_cust_grand">—</span></td>
+      </tr>
+    </tfoot>
+  </table>`;
+  sec.appendChild(tblWrap);
 
   const pl=document.createElement('div');pl.className='photo-sub-lbl';pl.textContent='NDMS Invoice Document';sec.appendChild(pl);
   const pr=document.createElement('div');pr.className='photo-grid g1';
@@ -529,6 +626,80 @@ function buildNDMSSection(){
   sec.appendChild(pr);
 
   formWrap.appendChild(sec);
+
+  // Attach live calc listeners after DOM ready
+  requestAnimationFrame(()=>{
+    ['part_total_cost_with_tax','labour_total_cost_with_tax',
+     'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
+     'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'
+    ].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.addEventListener('input',calcNDMS);
+    });
+  });
+}
+
+function calcNDMS(){
+  const gv=id=>{const el=document.getElementById(id);return parseFloat(el?.value)||0;};
+  const fmt=v=>v>0?v.toLocaleString('en-IN',{maximumFractionDigits:2}):'—';
+  const fmtPct=v=>v>0?v.toFixed(1)+'%':'—';
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+
+  const partTotal=gv('part_total_cost_with_tax');
+  const labTotal=gv('labour_total_cost_with_tax');
+
+  // Part sharing — 100% means the percentage IS the amount ratio
+  const hPctP=gv('hmil_share_pct_part');
+  const dPctP=gv('dealer_share_pct_part');
+  const cPctP=gv('customer_share_pct_part');
+  const hAmtP=partTotal*(hPctP/100);
+  const dAmtP=partTotal*(dPctP/100);
+  const cAmtP=partTotal*(cPctP/100);
+  const checkP=hPctP+dPctP+cPctP;
+
+  // Labour sharing
+  const hPctL=gv('hmil_share_pct_labour');
+  const dPctL=gv('dealer_share_pct_labour');
+  const cPctL=gv('customer_share_pct_labour');
+  const hAmtL=labTotal*(hPctL/100);
+  const dAmtL=labTotal*(dPctL/100);
+  const cAmtL=labTotal*(cPctL/100);
+  const checkL=hPctL+dPctL+cPctL;
+
+  // Update table
+  setEl('ns_part_total',fmt(partTotal));
+  setEl('ns_hmil_pct_part',fmtPct(hPctP));
+  setEl('ns_hmil_amt_part',fmt(hAmtP));
+  setEl('ns_dealer_pct_part',fmtPct(dPctP));
+  setEl('ns_dealer_amt_part',fmt(dAmtP));
+  setEl('ns_cust_pct_part',fmtPct(cPctP));
+  setEl('ns_cust_amt_part',fmt(cAmtP));
+
+  setEl('ns_labour_total',fmt(labTotal));
+  setEl('ns_hmil_pct_labour',fmtPct(hPctL));
+  setEl('ns_hmil_amt_labour',fmt(hAmtL));
+  setEl('ns_dealer_pct_labour',fmtPct(dPctL));
+  setEl('ns_dealer_amt_labour',fmt(dAmtL));
+  setEl('ns_cust_pct_labour',fmtPct(cPctL));
+  setEl('ns_cust_amt_labour',fmt(cAmtL));
+
+  // Check column - green tick if 100%, red warning if not
+  const checkEl_p=document.getElementById('ns_check_part');
+  const checkEl_l=document.getElementById('ns_check_labour');
+  if(checkEl_p){
+    if(partTotal>0&&checkP>0){checkEl_p.textContent=Math.abs(checkP-100)<0.01?'✓ 100%':'⚠ '+checkP.toFixed(1)+'%';checkEl_p.style.color=Math.abs(checkP-100)<0.01?'#22c55e':'#ef4444';checkEl_p.style.fontWeight='700';}
+    else checkEl_p.textContent='—';
+  }
+  if(checkEl_l){
+    if(labTotal>0&&checkL>0){checkEl_l.textContent=Math.abs(checkL-100)<0.01?'✓ 100%':'⚠ '+checkL.toFixed(1)+'%';checkEl_l.style.color=Math.abs(checkL-100)<0.01?'#22c55e':'#ef4444';checkEl_l.style.fontWeight='700';}
+    else checkEl_l.textContent='—';
+  }
+
+  // Grand totals
+  setEl('ns_grand_total',fmt(partTotal+labTotal));
+  setEl('ns_hmil_grand',fmt(hAmtP+hAmtL));
+  setEl('ns_dealer_grand',fmt(dAmtP+dAmtL));
+  setEl('ns_cust_grand',fmt(cAmtP+cAmtL));
 }
 
 // SECTION 6: Vehicle History
@@ -651,7 +822,7 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
     else{el.value='';el.classList.remove('pre');}
   });
   formWrap.querySelectorAll('input[type=hidden]').forEach(el=>el.value='');
-  ['battery_spec_ah','agm_supplier_name','dealer_action'].forEach(id=>{
+  ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
     const v=document.getElementById(id);if(v)v.value='';
     const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}
   });
@@ -659,6 +830,7 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
   calIds.forEach(id=>{
     CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};
     const dv=document.getElementById('dv_'+id);if(dv){dv.textContent='Pick date';dv.classList.add('empty');}
+    const di=document.getElementById('di_'+id);if(di)di.value='';
   });
   Object.keys(PHOTOS).forEach(k=>delete PHOTOS[k]);
   document.querySelectorAll('.photo-slot').forEach(sl=>{
@@ -712,7 +884,7 @@ function fillFromHistory(entry){
   setMode('form');
   setTimeout(()=>{
     Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];el.classList.remove('pre');}});
-    ['battery_spec_ah','agm_supplier_name','dealer_action'].forEach(id=>{
+    ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
       if(!entry[id])return;
       const h=document.getElementById(id);if(h)h.value=entry[id];
       const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}
@@ -723,8 +895,10 @@ function fillFromHistory(entry){
       if(!CAL[id])CAL[id]={};
       Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});
       const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}
+      const di=document.getElementById('di_'+id);if(di)di.value=val;
     });
     for(let i=1;i<=2;i++){calcPartRow(i);calcLabourRow(i);}
+    calcNDMS();
     closeAllPopups();clearStatus();
   },100);
 }
@@ -743,7 +917,7 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
   btnInject.disabled=true;btnInject.textContent='Processing…';clearStatus();
   try{
     const get=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
-    const getDate=id=>{const st=CAL[id];return(st&&st.date)?fmtDash(st.date):'';};
+    const getDate=id=>{const st=CAL[id];if(st&&st.date)return fmtDash(st.date);const di=document.getElementById("di_"+id);if(di&&di.value.trim())return di.value.trim();return "";};
 
     const data={};
     // Battery Data
@@ -798,10 +972,39 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
 
     const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 
-    const replacePlaceholders=xml=>xml.replace(/<t([^>]*)>([^<]*\{[^<]*)<\/t>/g,(match,attrs,content)=>{
-      const replaced=content.replace(/\{([^}]+)\}/g,(_,key)=>xmlEsc((data[key]===undefined||data[key]===null)?'':data[key]));
-      return `<t${attrs}>${replaced}</t>`;
-    });
+    // Numeric fields - these should inject as numbers, not text
+    const numericFields=new Set([
+      'mileage_km','pdi_cca','pdi_soc','analyser_cca','analyser_soc',
+      'part_list_price_1','part_list_price_2','part_qty_1','part_qty_2',
+      'part_amount_1','part_amount_2',
+      'labour_list_price_1','labour_list_price_2','labour_qty_1','labour_qty_2',
+      'labour_amount_1','labour_amount_2',
+      'part_total_cost_with_tax','labour_total_cost_with_tax',
+      'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
+      'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'
+    ]);
+
+    // Replace in shared strings (text cells)
+    const replacePlaceholders=xml=>{
+      // Replace in <t> tags (shared strings / text cells)
+      xml=xml.replace(/<t([^>]*)>([^<]*\{[^<]*)<\/t>/g,(match,attrs,content)=>{
+        const replaced=content.replace(/\{([^}]+)\}/g,(_,key)=>xmlEsc((data[key]===undefined||data[key]===null)?'':data[key]));
+        return `<t${attrs}>${replaced}</t>`;
+      });
+      // Replace in <v> tags for numeric cells — remove t="s" attr and set raw number
+      xml=xml.replace(/<c([^>]*)\sr="([^"]+)"([^>]*)>\s*<v>\{([^}]+)\}<\/v>/g,(match,pre,ref,post,key)=>{
+        const val=data[key];
+        if(val===undefined||val===null||val==='')return `<c${pre} r="${ref}"${post}><v></v>`;
+        const numVal=parseFloat(String(val).replace(/,/g,''));
+        if(!isNaN(numVal)&&numericFields.has(key)){
+          // Remove t="s" to make it a numeric cell
+          const attrs=(pre+post).replace(/\s*t="s"/g,'');
+          return `<c${attrs} r="${ref}"><v>${numVal}</v>`;
+        }
+        return match;
+      });
+      return xml;
+    };
 
     // Process sharedStrings
     const ssPath=Object.keys(zip.files).find(p=>p.match(/sharedStrings\.xml$/i));
@@ -921,6 +1124,41 @@ function replaceVehHistoryXml(shXml,data){
     return open+rep+close;
   });
 }
+
+// ─── PAGE JUMPERS ───
+(function(){
+  const jumperHTML=`<div class="page-jumper" id="pageJumper">
+    <button class="pj-btn hidden" id="pjTop" title="Go to top" tabindex="0" aria-label="Scroll to top">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+    <button class="pj-btn hidden" id="pjBottom" title="Go to bottom" tabindex="0" aria-label="Scroll to bottom">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',jumperHTML);
+
+  const topBtn=document.getElementById('pjTop');
+  const botBtn=document.getElementById('pjBottom');
+
+  function updateJumpers(){
+    const scrollTop=window.scrollY||document.documentElement.scrollTop;
+    const scrollHeight=document.documentElement.scrollHeight;
+    const clientHeight=window.innerHeight;
+    const isScrollable=scrollHeight>clientHeight+50;
+    const nearTop=scrollTop<120;
+    const nearBottom=scrollTop+clientHeight>scrollHeight-120;
+    topBtn.classList.toggle('hidden',nearTop||!isScrollable);
+    botBtn.classList.toggle('hidden',nearBottom||!isScrollable);
+  }
+
+  window.addEventListener('scroll',updateJumpers,{passive:true});
+  window.addEventListener('resize',updateJumpers,{passive:true});
+  setTimeout(updateJumpers,500);
+
+  topBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  botBtn.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+  [topBtn,botBtn].forEach(b=>b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}}));
+})();
 
 // ─── THEME + BACKUP ───
 window.addEventListener('message',event=>{
