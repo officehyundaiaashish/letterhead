@@ -189,14 +189,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .modal-btn-ok{background:var(--danger-color);color:#fff;}
 .modal-btn-ok:hover,.modal-btn-ok:focus{opacity:.9;box-shadow:0 0 0 3px rgba(239,68,68,.2);}
 
+/* ── Page Jumpers ── */
+.page-jumper{position:fixed;right:16px;bottom:80px;z-index:9000;display:flex;flex-direction:column;gap:8px;}
+.pj{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:all .25s cubic-bezier(.4,0,.2,1);outline:none;background:var(--accent-bg);color:var(--accent-text);opacity:0;pointer-events:none;transform:translateY(12px);}
+.pj:hover{transform:scale(1.12);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pj:active{transform:scale(.95);}
+.pj:focus{box-shadow:0 0 0 3px var(--focus-ring),0 4px 14px rgba(0,0,0,.2);}
+.pj.vis{opacity:1;pointer-events:all;transform:translateY(0);}
+#pjBot{opacity:1!important;pointer-events:all!important;transform:translateY(0)!important;}
+
+/* ── Manual date input ── */
+.date-manual{height:36px;border:1px solid var(--border-input);border-radius:7px;padding:0 10px;font-size:13px;color:var(--text-main);background:var(--bg-input);outline:none;font-family:'Inter',sans-serif;transition:all .2s;width:100%;}
+.date-manual:focus{border-color:var(--border-focus);box-shadow:0 0 0 3px var(--focus-ring);}
+.date-manual::placeholder{color:var(--text-placeholder);}
+.date-field-wrap{display:flex;gap:5px;}
+.date-field-wrap .date-trigger{flex:0 0 36px;padding:0;justify-content:center;}
+
 @media(max-width:640px){
   body{padding:10px 8px 70px;}
   .grid-wrap{grid-template-columns:1fr;gap:8px;}
   .card-header,.mode-wrap,.form-section,.actions,.history-wrap{padding-left:14px;padding-right:14px;}
   .actions{flex-wrap:wrap;flex-direction:row;}
-
   .photo-grid{grid-template-columns:repeat(3,1fr);}
   .stepper{grid-template-columns:repeat(2,1fr);}
+  .page-jumper{right:10px;bottom:70px;}
 }
 </style>
 </head>
@@ -210,6 +226,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
       <button class="modal-btn modal-btn-ok" id="modalOk">Confirm</button>
     </div>
   </div>
+</div>
+
+<div class="page-jumper" id="pageJumper">
+  <button id="pjTop" class="pj" title="Back to top" aria-label="Scroll to top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+  <button id="pjBot" class="pj" title="Go to bottom" aria-label="Scroll to bottom"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
 </div>
 
 <div class="card">
@@ -385,7 +406,7 @@ function renderCal(id){
     h+='</div>';pop.innerHTML=h;
     pop.querySelectorAll('.cpb').forEach(b=>{const a=e=>{e.stopPropagation();const s=CAL[b.dataset.id],dir=parseInt(b.dataset.dir);s.month+=dir;if(s.month<0){s.month=11;s.year--;}if(s.month>11){s.month=0;s.year++;}renderCal(b.dataset.id);};b.addEventListener('click',a);handleKeyClick(b,a);});
     const ts=pop.querySelector('.ts');const tsA=e=>{e.stopPropagation();CAL[e.target.dataset.id].view='years';renderCal(e.target.dataset.id);};ts.addEventListener('click',tsA);handleKeyClick(ts,tsA);
-    pop.querySelectorAll('.cd:not(.om)').forEach(el=>{const a=e=>{e.stopPropagation();const s=CAL[el.dataset.id];s.date=new Date(s.year,s.month,parseInt(el.dataset.d));const dv=document.getElementById('dv_'+el.dataset.id);if(dv){dv.textContent=fmtDash(s.date);dv.classList.remove('empty');}closeAllPopups();renderCal(el.dataset.id);};el.addEventListener('click',a);handleKeyClick(el,a);});
+    pop.querySelectorAll('.cd:not(.om)').forEach(el=>{const a=e=>{e.stopPropagation();const s=CAL[el.dataset.id];s.date=new Date(s.year,s.month,parseInt(el.dataset.d));const fmt=fmtDash(s.date);const dv=document.getElementById('dv_'+el.dataset.id);if(dv){dv.textContent=fmt;dv.classList.remove('empty');}const manEl=document.getElementById('dm_'+el.dataset.id);if(manEl)manEl.value=fmt;closeAllPopups();renderCal(el.dataset.id);};el.addEventListener('click',a);handleKeyClick(el,a);});
   }
 }
 
@@ -399,10 +420,39 @@ function openCal(id){
 function makeDateField(id,label){
   if(!CAL[id]) CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};
   const wrap=document.createElement('div');wrap.className='field-col';
-  wrap.innerHTML=`<label>${label}</label><div style="position:relative;"><div class="date-trigger" id="dt_${id}" tabindex="0"><span class="dval empty" id="dv_${id}">Pick date</span><span class="date-icon">${icons.calendar}</span></div><div class="cal-pop" id="cp_${id}"></div></div>`;
+  wrap.innerHTML=`<label>${label}</label>
+  <div style="position:relative;">
+    <div class="date-field-wrap">
+      <input type="text" id="dm_${id}" class="date-manual" placeholder="DD-MM-YYYY" maxlength="10" tabindex="0">
+      <div class="date-trigger" id="dt_${id}" tabindex="0" title="Open calendar"><span class="date-icon">${icons.calendar}</span></div>
+    </div>
+    <div class="cal-pop" id="cp_${id}"></div>
+  </div>`;
   const pop=wrap.querySelector('.cal-pop');
   let wt;pop.addEventListener('wheel',e=>{e.preventDefault();if(wt)return;wt=setTimeout(()=>{wt=null;},150);const st=CAL[id];if(st.view==='years'){st.year+=e.deltaY>0?15:-15;}else{st.month+=e.deltaY>0?1:-1;if(st.month>11){st.month=0;st.year++;}else if(st.month<0){st.month=11;st.year--;}}renderCal(id);},{passive:false});
-  requestAnimationFrame(()=>{const dt=document.getElementById('dt_'+id);const a=e=>{e.stopPropagation();const isOpen=document.getElementById('cp_'+id)?.classList.contains('open');if(isOpen)closeAllPopups();else openCal(id);};dt?.addEventListener('click',a);handleKeyClick(dt,a);});
+  requestAnimationFrame(()=>{
+    const dt=document.getElementById('dt_'+id);
+    const manEl=document.getElementById('dm_'+id);
+    const a=e=>{e.stopPropagation();const isOpen=document.getElementById('cp_'+id)?.classList.contains('open');if(isOpen)closeAllPopups();else openCal(id);};
+    dt?.addEventListener('click',a);handleKeyClick(dt,a);
+    // Auto-format DD-MM-YYYY as user types
+    manEl?.addEventListener('input',()=>{
+      let v=manEl.value.replace(/[^0-9]/g,'');
+      if(v.length>2)v=v.slice(0,2)+'-'+v.slice(2);
+      if(v.length>5)v=v.slice(0,5)+'-'+v.slice(5);
+      if(v.length>10)v=v.slice(0,10);
+      manEl.value=v;
+      if(v.length===10){
+        const [dd,mm,yyyy]=v.split('-').map(Number);
+        const d=new Date(yyyy,mm-1,dd);
+        if(!isNaN(d)&&d.getFullYear()===yyyy){
+          if(!CAL[id])CAL[id]={};
+          Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});
+          const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=v;dv.classList.remove('empty');}
+        }
+      }
+    });
+  });
   return wrap;
 }
 
@@ -675,7 +725,7 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
   });
   formWrap.querySelectorAll('input[type=hidden]').forEach(el=>el.value='');
   ['fuelType','ew','mailYN','roadCondition'].forEach(id=>{const v=document.getElementById(id);if(v)v.value='';const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}});
-  Object.keys(CAL).forEach(id=>{CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};const dv=document.getElementById('dv_'+id);if(dv){dv.textContent='Pick date';dv.classList.add('empty');}});
+  Object.keys(CAL).forEach(id=>{CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};const dv=document.getElementById('dv_'+id);if(dv){dv.textContent='Pick date';dv.classList.add('empty');}const manEl=document.getElementById('dm_'+id);if(manEl)manEl.value='';});
   Object.keys(PHOTOS).forEach(k=>delete PHOTOS[k]);
   document.querySelectorAll('.photo-slot').forEach(sl=>{sl.classList.remove('filled');const img=sl.querySelector('img');if(img)img.src='';const inp=sl.querySelector('input[type=file]');if(inp)inp.value='';});
   for(let i=1;i<=11;i++){const el=document.getElementById(`part${i}Total`);if(el)el.textContent='—';}
@@ -688,8 +738,9 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
 document.getElementById('btnInject').addEventListener('click',async()=>{
   if(!templateBuffer){showStatus('Template not loaded.','error');return;}
   const get=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
-  const getDate=id=>{const st=CAL[id];return(st&&st.date)?fmtDash(st.date):'';};
-  const data={};
+  const getDate=id=>{const st=CAL[id];if(st&&st.date)return fmtDash(st.date);const manEl=document.getElementById('dm_'+id);return manEl?manEl.value.trim():'';};
+  // Also capture dm_ values for history
+  const dmIds=['productionDate','deliveryDate','reportDate','repairDate'];  const data={};
   ['dealerCode','dealerName','model','tmType','vin','engineNo','tmNumber','mileage','numVehicles','causalPartNo','partName','affectedPart','dtc','partSupplier','partLotNo','causeCode','occurrence','natureCode','timePeriod','speedRange','problemCondition','subject','introduction','detailedSymptom','investigationResult','correctiveAction','comment','serviceManager','warrantyManager','partsManager','serviceAdvisor','repairOrderNo','regNo','vinNo'].forEach(id=>data[id]=get(id));
   ['fuelType','ew','mailYN','roadCondition'].forEach(id=>data[id]=get(id));
   ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>data[id]=getDate(id));
@@ -914,6 +965,7 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
     const vinClean=(data.vin||'NOVIN').replace(/[^a-zA-Z0-9]/g,'');
     const dcClean=(data.dealerCode||'N3235').replace(/[^a-zA-Z0-9]/g,'');
     const fname=`${vinClean}_${dcClean}_OfficialFormat.xlsx`;
+  dmIds.forEach(id=>{const manEl=document.getElementById('dm_'+id);if(manEl&&manEl.value.trim())data['dm_'+id]=manEl.value.trim();});
     saveAs(blob,fname);
     showStatus('✓ Downloaded: '+fname,'success');
     saveHistory(data);
@@ -958,7 +1010,7 @@ function fillFromHistory(entry){
   setTimeout(()=>{
     Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];el.classList.remove('pre');}});
     ['fuelType','ew','mailYN','roadCondition'].forEach(id=>{if(!entry[id])return;const hidEl=document.getElementById(id);if(hidEl)hidEl.value=entry[id];const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}});
-    ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>{const val=entry[id];if(!val)return;const p=val.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);if(isNaN(d))return;if(!CAL[id])CAL[id]={};Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}});
+    ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>{const val=entry[id];if(!val)return;const p=val.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);if(isNaN(d))return;if(!CAL[id])CAL[id]={};Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}const manEl=document.getElementById('dm_'+id);if(manEl)manEl.value=entry['dm_'+id]||val;});
     for(let i=1;i<=11;i++)calcRow(i);for(let i=1;i<=6;i++)calcLabourRow(i);
     closeAllPopups();clearStatus();
   },100);
@@ -975,6 +1027,30 @@ window.addEventListener('scroll',()=>{
   clearTimeout(stepperScrollTimeout);
   stepperScrollTimeout=setTimeout(updateStepper,50);
 },{passive:true});
+
+// ─────── PAGE JUMPERS ───────
+(()=>{
+  const pjTop=document.getElementById('pjTop');
+  const pjBot=document.getElementById('pjBot');
+  let hideTimer=null;
+  function showJumpers(){
+    const sh=document.documentElement.scrollHeight,wh=window.innerHeight;
+    const scrollable=sh>wh+20;
+    if(!scrollable){pjTop.classList.remove('vis');return;}
+    const st=window.scrollY;
+    pjTop.classList.toggle('vis',st>=60);
+  }
+  function scheduleHide(){
+    if(hideTimer)clearTimeout(hideTimer);
+    hideTimer=setTimeout(()=>pjTop.classList.remove('vis'),2000);
+  }
+  window.addEventListener('scroll',()=>{showJumpers();scheduleHide();},{passive:true});
+  window.addEventListener('load',showJumpers);
+  pjTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  pjBot.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+  handleKeyClick(pjTop,()=>window.scrollTo({top:0,behavior:'smooth'}));
+  handleKeyClick(pjBot,()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+})();
 
 // ─────── THEME + BACKUP ───────
 window.addEventListener('message',event=>{
