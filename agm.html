@@ -265,37 +265,31 @@ const supplierOpts=['Delkor','Solite','Clarios'];
 const dealerActionOpts=['Recharge','Replaced'];
 const batteryAvailabilityOpts=['Exide','Amaron','Other'];
 const hyundaiModels=[
-  'Hyundai Creta Electric (2024)',
-  'Hyundai Alcazar (2024)',
-  'Hyundai Creta (2024)',
-  'Hyundai Exter (2023)',
-  'Hyundai Verna (2023)',
-  'Hyundai Ioniq 5 (2023)',
-  'Hyundai Tucson (2022)',
-  'Hyundai Alcazar (2021)',
-  'Hyundai i20 N Line (2021)',
-  'Hyundai i20 (2020)',
-  'Hyundai Verna (2020)',
-  'Hyundai Aura (2020)',
-  'Hyundai Grand i10 NIOS (2019)',
-  'Hyundai Venue (2019)',
-  'Hyundai Creta (2018)',
-  'Hyundai Elite i20 (2018)',
-  'Hyundai Xcent (2017)',
-  'Hyundai Tucson (2016)',
-  'Hyundai Creta (2015)',
-  'Hyundai Elite i20 (2015)',
-  'Hyundai Grand i10 (2013)',
-  'Hyundai Xcent (2014)',
-  'Hyundai i10 (2010)',
-  'Hyundai i20 Active (2015)',
-  'Hyundai Santro (2018)',
-  'Hyundai Santro Xing (2003)',
-  'Hyundai Eon (2011)',
-  'Hyundai Accent (2003)',
-  'Hyundai Elantra (2012)',
-  'Hyundai Sonata (2012)',
-  'Hyundai Santa Fe (2014)',
+  'Hyundai Creta Electric',
+  'Hyundai Alcazar',
+  'Hyundai Creta',
+  'Hyundai Exter',
+  'Hyundai Verna',
+  'Hyundai Ioniq 5',
+  'Hyundai Tucson',
+  'Hyundai i20 N Line',
+  'Hyundai i20',
+  'Hyundai Venue N Line',
+  'Hyundai Venue',
+  'Hyundai Aura',
+  'Hyundai Grand i10 NIOS',
+  'Hyundai Grand i10',
+  'Hyundai i10',
+  'Hyundai Xcent',
+  'Hyundai Elite i20',
+  'Hyundai Active i20',
+  'Hyundai Santro',
+  'Hyundai Santro Xing',
+  'Hyundai Eon',
+  'Hyundai Accent',
+  'Hyundai Elantra',
+  'Hyundai Sonata',
+  'Hyundai Santa Fe',
 ];
 
 let templateBuffer=null,currentMode='form';
@@ -1113,36 +1107,70 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
   finally{btnInject.disabled=false;btnInject.textContent='Generate XLSX';}
 });
 
-// ─── VEH HISTORY — row-by-row replacement ───
-// Template sheet5 has same placeholder names {dealer_no},{ro_no} etc. repeated 20 times
-// We iterate rows sequentially and assign per-row data
-function replaceVehHistoryXml(shXml,data){
-  let dataRowIdx=0;
-  return shXml.replace(/(<row\b[^>]*>)([\s\S]*?)(<\/row>)/g,(match,open,content,close)=>{
-    if(!content.includes('{'))return match;
-    // Skip rows that are pure header (no {sl_no placeholder)
-    if(!content.includes('{sl_no')){
-      // Replace any other placeholders if present
-      const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-      const rep=content.replace(/\{([^}]+)\}/g,(_,key)=>xmlEsc((data[key]===undefined||data[key]===null)?'':data[key]));
-      return open+rep+close;
-    }
-    dataRowIdx++;
-    const ri=dataRowIdx;
-    const rowData={
-      sl_no:String(ri),
-      dealer_no:data[`sh${ri}_dealer_no`]||'N3235',
-      ro_no:data[`sh${ri}_ro_no`]||'',
-      ro_date:data[`sh${ri}_ro_date`]||'',
-      vin:data[`sh${ri}_vin`]||'',
-      mileage:data[`sh${ri}_mileage`]||'',
-      work_type:data[`sh${ri}_work_type`]||'',
-      reg_no:data[`sh${ri}_reg_no`]||'',
-      remarks:data[`sh${ri}_remarks`]||'',
+// ─── VEH HISTORY — CORRECT FIX ───
+// ROOT CAUSE: All 20 data rows point to SAME shared string indices (121,122,123...)
+// for dealer_no/ro_no/vin etc. Replacing sharedStrings only changes row 1 data everywhere.
+// FIX: Rebuild each data row's cells as inlineStr (t="inlineStr") with actual values,
+// bypassing the shared string index completely.
+function replaceVehHistoryXml(shXml, data){
+  const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+  // Shared string indices from Excel analysis:
+  // sl_no indices per row: row1=120, row2=129, row3=130, row4=131, row5=132,
+  //   row6=133, row7=134, row8=136, row9=139, row10=140, row11=141, row12=142,
+  //   row13=143, row14=144, row15=145, row16=146, row17=147, row18=148, row19=149, row20=150
+  // dealer_no=121, ro_no=122, ro_date=123, vin=124, mileage=125,
+  // work_type=126, reg_no=127, remarks=128
+  const slNoIndices={1:120,2:129,3:130,4:131,5:132,6:133,7:134,8:136,9:139,10:140,11:141,12:142,13:143,14:144,15:145,16:146,17:147,18:148,19:149,20:150};
+  const sharedCols={121:'dealer_no',122:'ro_no',123:'ro_date',124:'vin',125:'mileage',126:'work_type',127:'reg_no',128:'remarks'};
+
+  // Map sl_no sharedString index → row number
+  const slIdxToRow={};
+  for(const[r,idx] of Object.entries(slNoIndices)) slIdxToRow[idx]=parseInt(r);
+
+  let dataRowSeen={}; // track which excel rows have been assigned
+
+  return shXml.replace(/(<row\b[^>]*r="(\d+)"[^>]*>)([\s\S]*?)(<\/row>)/g,(match,openTag,rowNum,content,closeTag)=>{
+    // Only process rows 4-23 (data rows in Veh History sheet)
+    const rn=parseInt(rowNum);
+    if(rn<4||rn>23)return match;
+
+    // Determine which data row index this is (row 4 = data row 1, row 5 = data row 2, etc.)
+    const dataIdx=rn-3; // row4→1, row5→2, ... row23→20
+    if(dataIdx<1||dataIdx>20)return match;
+
+    const rowVals={
+      sl_no: String(dataIdx),
+      dealer_no: data[`sh${dataIdx}_dealer_no`]||'N3235',
+      ro_no:     data[`sh${dataIdx}_ro_no`]||'',
+      ro_date:   data[`sh${dataIdx}_ro_date`]||'',
+      vin:       data[`sh${dataIdx}_vin`]||'',
+      mileage:   data[`sh${dataIdx}_mileage`]||'',
+      work_type: data[`sh${dataIdx}_work_type`]||'',
+      reg_no:    data[`sh${dataIdx}_reg_no`]||'',
+      remarks:   data[`sh${dataIdx}_remarks`]||'',
     };
-    const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-    const rep=content.replace(/\{([^}]+)\}/g,(_,key)=>xmlEsc(rowData[key]??''));
-    return open+rep+close;
+
+    // Rebuild each cell: replace <c r="X" ... t="s"><v>idx</v></c>
+    // with <c r="X" ... t="inlineStr"><is><t>value</t></is></c>
+    const newContent=content.replace(/<c\s+r="([^"]+)"([^>]*)t="s"([^>]*)>\s*<v>(\d+)<\/v>\s*<\/c>/g,(cm,ref,pre,post,idx)=>{
+      const numIdx=parseInt(idx);
+      // sl_no column (B)
+      if(slIdxToRow[numIdx]!==undefined){
+        // This is a sl_no cell
+        const val=xmlEsc(String(dataIdx));
+        return `<c r="${ref}"${pre}${post} t="inlineStr"><is><t>${val}</t></is></c>`;
+      }
+      // Other data columns
+      const colKey=sharedCols[numIdx];
+      if(colKey){
+        const val=xmlEsc(rowVals[colKey]||'');
+        return `<c r="${ref}"${pre}${post} t="inlineStr"><is><t>${val}</t></is></c>`;
+      }
+      return cm; // unknown cell, leave as-is
+    });
+
+    return openTag+newContent+closeTag;
   });
 }
 
