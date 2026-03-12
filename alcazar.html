@@ -1529,16 +1529,88 @@
 
         zip.file('ppt/slides/slide1.xml', slide1);
 
-        // Photos — slide2 has the image placeholder
-        const mediaFiles = Object.keys(zip.files)
-          .filter(f => /^ppt\/media\/image\d+\.(jpg|jpeg|png|gif|bmp)$/i.test(f))
-          .sort((a, b) => parseInt(a.match(/\d+/)?.[0]||0) - parseInt(b.match(/\d+/)?.[0]||0));
+        // ── Photos: inject up to 6 into slide2 as 3x2 grid ──
+        // Grid layout (EMU units, slide = 9144000 x 6858000)
+        // 3 cols x 2 rows, each cell ~2.9in wide x 2.6in tall, with 0.1in gap
+        // Start x=0.1in, y=0.6in (below title area)
+        const EMU = 914400; // 1 inch in EMU
+        const cols = 3, rows = 2;
+        const cellW = Math.round(2.9 * EMU);
+        const cellH = Math.round(2.6 * EMU);
+        const gapX = Math.round(0.1 * EMU);
+        const gapY = Math.round(0.15 * EMU);
+        const startX = Math.round(0.1 * EMU);
+        const startY = Math.round(0.6 * EMU);
 
-        for (let i = 0; i < 6; i++) {
-          if (photoData[i] && mediaFiles[i]) {
-            zip.file(mediaFiles[i], photoData[i].b64.split(',')[1], { base64: true });
-          }
+        // Detect image mime from base64
+        function getImgExt(b64) {
+          if (b64.includes('data:image/png')) return 'png';
+          if (b64.includes('data:image/gif')) return 'gif';
+          return 'jpeg';
         }
+
+        let slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
+        let slide2Rels = await zip.file('ppt/slides/_rels/slide2.xml.rels').async('string');
+
+        // Remove existing picture element(s) from slide2
+        slide2 = slide2.replace(/<p:pic>[\s\S]*?<\/p:pic>/g, '');
+
+        // Build new pic elements + rels for each uploaded photo
+        let newPics = '';
+        let newRels = '';
+        let picIdCounter = 10; // start from id=10 to avoid conflicts
+
+        const uploadedPhotos = photoData.map((p, i) => ({data: p, slot: i})).filter(p => p.data);
+
+        uploadedPhotos.forEach(({data, slot}, idx) => {
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          const x = startX + col * (cellW + gapX);
+          const y = startY + row * (cellH + gapY);
+          const rId = `rId${20 + idx}`;
+          const imgName = `photoSlot${slot + 1}`;
+          const ext = getImgExt(data.b64);
+          const mediaPath = `ppt/media/photo_slot${slot + 1}.${ext}`;
+          const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+
+          // Add image file to zip
+          zip.file(mediaPath, data.b64.split(',')[1], { base64: true });
+
+          // Build pic XML
+          newPics += `<p:pic>
+  <p:nvPicPr>
+    <p:cNvPr id="${picIdCounter++}" name="${imgName}" descr="${imgName}"/>
+    <p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr>
+    <p:nvPr/>
+  </p:nvPicPr>
+  <p:blipFill>
+    <a:blip r:embed="${rId}"/>
+    <a:stretch><a:fillRect/></a:stretch>
+  </p:blipFill>
+  <p:spPr>
+    <a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${cellW}" cy="${cellH}"/></a:xfrm>
+    <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+  </p:spPr>
+</p:pic>`;
+
+          // Build rel entry
+          newRels += `<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/photo_slot${slot + 1}.${ext}"/>`;
+        });
+
+        // Insert new pics before </p:spTree>
+        slide2 = slide2.replace('</p:spTree>', newPics + '</p:spTree>');
+
+        // Insert new rels before </Relationships>
+        slide2Rels = slide2Rels.replace('</Relationships>', newRels + '</Relationships>');
+
+        zip.file('ppt/slides/slide2.xml', slide2);
+        zip.file('ppt/slides/_rels/slide2.xml.rels', slide2Rels);
+        // Also update [Content_Types].xml for any new image types
+        let contentTypes = await zip.file('[Content_Types].xml').async('string');
+        if (!contentTypes.includes('image/png') && uploadedPhotos.some(p => getImgExt(p.data.b64) === 'png')) {
+          contentTypes = contentTypes.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>');
+        }
+        zip.file('[Content_Types].xml', contentTypes);
 
         const blob = await zip.generateAsync({
           type: "blob",
