@@ -12,11 +12,11 @@
 [data-theme=dark]{--bg-page:#111110;--bg-card:#1c1c1a;--bg-input:#1c1c1a;--bg-hover:#232321;--bg-active:#2d2d2b;--text-main:#f0f0ee;--text-label:#f0f0ee;--text-muted:#888885;--text-placeholder:#525250;--border-light:#2d2d2b;--border-input:#2d2d2b;--border-focus:#4D8FD6;--accent-bg:#4D8FD6;--accent-text:#111110;--focus-ring:rgba(77,143,214,0.2);--danger-color:#f87171;--table-head:#232321;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg-page);color:var(--text-main);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px 80px;}
-.card{background:var(--bg-card);border-radius:12px;width:100%;max-width:820px;box-shadow:0 4px 6px -1px rgba(0,0,0,.05);overflow:hidden;border:1px solid var(--border-light);}
+.card{background:var(--bg-card);border-radius:12px;width:100%;max-width:820px;box-shadow:0 4px 6px -1px rgba(0,0,0,.05);border:1px solid var(--border-light);}
 .card-header{padding:16px 20px 14px;border-bottom:1px solid var(--border-light);}
 .card-header h1{font-size:17px;font-weight:600;color:var(--text-main);}
 .card-header p{font-size:12px;color:var(--text-muted);margin-top:3px;}
-.stepper-container{padding:14px 20px;border-bottom:1px solid var(--border-light);background:var(--bg-card);}
+.stepper-container{padding:14px 20px;border-bottom:1px solid var(--border-light);background:var(--bg-card);position:sticky;top:0;z-index:900;}
 .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .step{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:8px;transition:all .18s;}
 .step.done{background:rgba(0,44,95,.06);border-color:var(--accent-bg);}
@@ -438,12 +438,12 @@ function makePhotoSlot(id,label){
     document.getElementById('pf_'+id)?.addEventListener('change',e=>{
       const file=e.target.files[0];if(!file)return;
       const reader=new FileReader();
-      reader.onload=ev=>{PHOTOS[id]={dataUrl:ev.target.result,filename:file.name};document.getElementById('pi_'+id).src=ev.target.result;document.getElementById('ps_'+id).classList.add('filled');};
+      reader.onload=ev=>{PHOTOS[id]={dataUrl:ev.target.result,filename:file.name};document.getElementById('pi_'+id).src=ev.target.result;document.getElementById('ps_'+id).classList.add('filled');updateStepper();};
       reader.readAsDataURL(file);
     });
     document.getElementById('prm_'+id)?.addEventListener('click',e=>{
       e.stopPropagation();delete PHOTOS[id];
-      document.getElementById('pi_'+id).src='';document.getElementById('pf_'+id).value='';document.getElementById('ps_'+id).classList.remove('filled');
+      document.getElementById('pi_'+id).src='';document.getElementById('pf_'+id).value='';document.getElementById('ps_'+id).classList.remove('filled');updateStepper();
     });
   });
   return div;
@@ -476,22 +476,29 @@ function buildBatteryDataSection(){
 
   const pdiDiv=document.createElement('div');pdiDiv.className='sub-lbl';pdiDiv.textContent='Dealer PDI Inspection Result';g.appendChild(pdiDiv);
   g.appendChild(makeDateField('pdi_inspection_result','Inspection Date'));
-  g.appendChild(makeInput('pdi_voltage','Voltage (Received Time)','e.g. 12.6V…'));
-  g.appendChild(makeInput('pdi_cca','CCA','Enter CCA…'));
-  g.appendChild(makeInput('pdi_soc','SOC','Enter SOC…'));
+  g.appendChild(makeInput('pdi_voltage','Voltage (Received Time)','e.g. 12.6V…','NA'));
+  g.appendChild(makeInput('pdi_cca','CCA','Enter CCA…','NA'));
+  g.appendChild(makeInput('pdi_soc','SOC','Enter SOC…','NA'));
 
   const analDiv=document.createElement('div');analDiv.className='sub-lbl';analDiv.textContent='Battery Analyser Result';g.appendChild(analDiv);
-  g.appendChild(makeInput('analyser_voltage','Voltage','e.g. 12.4V…'));
-  g.appendChild(makeInput('analyser_cca','CCA','Enter CCA…'));
-  g.appendChild(makeInput('analyser_soc','SOC','Enter SOC…'));
-  g.appendChild(makeInput('analyser_result','Result','e.g. REPLACE…'));
-  g.appendChild(makeInput('result_slip','Result Slip','Enter result slip no…'));
+  g.appendChild(makeInput('analyser_voltage','Voltage','e.g. 12.4V…','NA'));
+  g.appendChild(makeInput('analyser_cca','CCA','Enter CCA…','NA'));
+  g.appendChild(makeInput('analyser_soc','SOC','Enter SOC…','NA'));
+  g.appendChild(makeSelect('analyser_result','Result',['Replace','Recharge','Found Ok','No Problem','Battery Dead']));
+  g.appendChild(makeInput('result_slip','Result Slip','Enter result slip no…','NA'));
 
   const daDiv=document.createElement('div');daDiv.className='sub-lbl';daDiv.textContent='Dealer Action';g.appendChild(daDiv);
   g.appendChild(makeSelect('dealer_action','Recharge / Replaced',dealerActionOpts));
   g.appendChild(makeSelect('battery_availability','Battery Availability @ Dealer End',batteryAvailabilityOpts));
 
   sec.appendChild(g);formWrap.appendChild(sec);
+  // Hook all inputs in this section to update stepper
+  requestAnimationFrame(()=>{
+    formWrap.addEventListener('input',updateStepper);
+    // analyser_result dropdown triggers stepper
+    const arOpts=document.getElementById('cso_analyser_result');
+    if(arOpts)arOpts.querySelectorAll('.cs-opt').forEach(opt=>opt.addEventListener('click',()=>setTimeout(updateStepper,50)));
+  });
 }
 
 // SECTION 2: Battery Defective Concern — Photographs (PHOTOS sheet)
@@ -811,8 +818,36 @@ function updateStepper(){
   if(!sc||currentMode!=='form')return;
   const sections=Array.from(document.querySelectorAll('.form-section'));
   if(sections.length<4)return;
+
+  // ── Smart completion checks ──
+  // Step 1 done: all battery data section fields filled
+  const s1fields=['vin_number','model','pdi_voltage','pdi_cca','pdi_soc','analyser_voltage','analyser_cca','analyser_soc','analyser_result','result_slip'];
+  const s1done=s1fields.every(id=>{
+    const el=document.getElementById(id);
+    return el&&el.value.trim()!=='';
+  });
+
+  // Step 2 done: at least 2 photos uploaded
+  const photoCount=Object.keys(PHOTOS).length;
+  const s2done=photoCount>=2;
+
+  // Step 3 done: at least 1 invoice table row filled (parts or labour)
+  let tableHasRow=false;
+  outer: for(let i=1;i<=2;i++){
+    for(const fld of['si_no','part_number','part_description','si_no_labour','labour_code','labour_description']){
+      const el=document.getElementById(`${fld}_${i}`);
+      if(el&&el.value.trim()){tableHasRow=true;break outer;}
+    }
+  }
+  const s3done=tableHasRow;
+
+  // Step 4 done: s1+s2+s3 all done
+  const s4done=s1done&&s2done&&s3done;
+
+  const doneMap=[s1done,s2done,s3done,s4done];
+
+  // Scroll-based active step
   const vpm=window.innerHeight/2;
-  // sec indices: 0=BatteryData,1=Photos,2=Invoice,3=PWA,4=NDMS,5=VehHistory
   const sectionMap=[{end:1,step:1},{end:2,step:2},{end:3,step:3},{end:5,step:4}];
   let activeStep=1;
   sections.forEach((section,idx)=>{
@@ -821,11 +856,17 @@ function updateStepper(){
       for(const map of sectionMap){if(idx<=map.end){activeStep=map.step;break;}}
     }
   });
+
   for(let i=1;i<=4;i++){
     const st=document.getElementById('agm-st'+i),sn=document.getElementById('agm-sn'+i);
     if(!st||!sn)continue;
-    st.className='step '+(i<activeStep?'done':i===activeStep?'active':'');
-    sn.innerHTML=i<activeStep?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':i;
+    if(doneMap[i-1]){
+      st.className='step done';
+      sn.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+    }else{
+      st.className='step'+(i===activeStep?' active':'');
+      sn.textContent=i;
+    }
   }
 }
 
@@ -839,7 +880,7 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
   });
   formWrap.querySelectorAll('input[type=hidden]').forEach(el=>el.value='');
   // Clear custom dropdowns
-  ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
+  ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability','analyser_result'].forEach(id=>{
     const v=document.getElementById(id);if(v)v.value='';
     const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}
   });
@@ -907,7 +948,7 @@ function fillFromHistory(entry){
     // Restore all plain input fields
     Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];if(entry[id])el.classList.remove('pre');}});
     // Restore custom dropdowns
-    ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
+    ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability','analyser_result'].forEach(id=>{
       if(!entry[id])return;
       const h=document.getElementById(id);if(h)h.value=entry[id];
       const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}
