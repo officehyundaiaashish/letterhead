@@ -380,15 +380,6 @@ body {
   </div>
 </div>
 
-<!-- Page Jumpers -->
-<div class="page-jumper" id="pageJumper">
-  <button class="pj-btn hidden" id="pjTop" title="Back to top" tabindex="0">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
-  </button>
-  <button class="pj-btn hidden" id="pjBottom" title="Go to bottom" tabindex="0">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-  </button>
-</div>
 
 <script>
 // ─────────────────────────────────────────────────────────────────
@@ -637,22 +628,40 @@ function updateStepper(){
 }
 
 // ─── PAGE JUMPERS ───
-(()=>{
-  const pjTop=document.getElementById('pjTop');
-  const pjBot=document.getElementById('pjBottom');
-  if(!pjTop||!pjBot)return;
-  const showJumpers=()=>{
-    const scrollY=window.scrollY||window.pageYOffset;
-    const maxScroll=document.documentElement.scrollHeight-window.innerHeight;
-    pjTop.classList.toggle('hidden',scrollY<120);
-    pjBot.classList.toggle('hidden',scrollY>=maxScroll-60);
-  };
-  window.addEventListener('scroll',showJumpers,{passive:true});
-  pjTop.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
-  pjBot.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
-  handleKeyClick(pjTop,()=>window.scrollTo({top:0,behavior:'smooth'}));
-  handleKeyClick(pjBot,()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
-  showJumpers();
+(function(){
+  const jumperHTML=`<div class="page-jumper" id="pageJumper">
+    <button class="pj-btn hidden" id="pjTop" title="Go to top" tabindex="0" aria-label="Scroll to top">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+    <button class="pj-btn hidden" id="pjBottom" title="Go to bottom" tabindex="0" aria-label="Scroll to bottom">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend',jumperHTML);
+  const topBtn=document.getElementById('pjTop');
+  const botBtn=document.getElementById('pjBottom');
+  let hideTimer=null;
+  function showJumpers(){
+    const scrollTop=window.scrollY||document.documentElement.scrollTop;
+    const scrollHeight=document.documentElement.scrollHeight;
+    const clientHeight=window.innerHeight;
+    const isScrollable=scrollHeight>clientHeight+50;
+    const nearTop=scrollTop<120;
+    const nearBottom=scrollTop+clientHeight>scrollHeight-120;
+    topBtn.classList.toggle('hidden',nearTop||!isScrollable);
+    botBtn.classList.toggle('hidden',nearBottom||!isScrollable);
+  }
+  function scheduleHide(){
+    clearTimeout(hideTimer);
+    hideTimer=setTimeout(()=>{topBtn.classList.add('hidden');botBtn.classList.add('hidden');},2000);
+  }
+  function onScroll(){showJumpers();scheduleHide();}
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',()=>{showJumpers();},{passive:true});
+  setTimeout(showJumpers,300);
+  topBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+  botBtn.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+  [topBtn,botBtn].forEach(b=>b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}}));
 })();
 
 // Scroll-based stepper active
