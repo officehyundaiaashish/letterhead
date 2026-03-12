@@ -832,28 +832,34 @@ function updateStepper(){
 // ─── CLEAR ───
 document.getElementById('btnClear').addEventListener('click',async()=>{
   if(!(await customConfirm('Clear all form data?','Yes, Clear')))return;
-  formWrap.querySelectorAll('input[type=text]').forEach(el=>{
+  // Clear ALL inputs (text, no-type, number) except hidden and file
+  formWrap.querySelectorAll('input:not([type=hidden]):not([type=file])').forEach(el=>{
     if(el.id&&el.id.includes('_dealer_no')){el.value='N3235';el.classList.add('pre');}
     else{el.value='';el.classList.remove('pre');}
   });
   formWrap.querySelectorAll('input[type=hidden]').forEach(el=>el.value='');
+  // Clear custom dropdowns
   ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
     const v=document.getElementById(id);if(v)v.value='';
     const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}
   });
+  // Clear date pickers
   const calIds=['sale_date','repair_date','battery_production_date','vehicle_received_date','pdi_inspection_result'];
   calIds.forEach(id=>{
     CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};
     const dv=document.getElementById('dv_'+id);if(dv){dv.textContent='Pick date';dv.classList.add('empty');}
     const di=document.getElementById('di_'+id);if(di)di.value='';
   });
+  // Clear photos
   Object.keys(PHOTOS).forEach(k=>delete PHOTOS[k]);
   document.querySelectorAll('.photo-slot').forEach(sl=>{
     sl.classList.remove('filled');
     const img=sl.querySelector('img');if(img)img.src='';
     const inp=sl.querySelector('input[type=file]');if(inp)inp.value='';
   });
+  // Recalculate all live totals
   for(let i=1;i<=2;i++){calcPartRow(i);calcLabourRow(i);}
+  calcNDMS();
   closeAllPopups();clearStatus();
 });
 
@@ -898,12 +904,15 @@ function renderHistory(filter=''){
 function fillFromHistory(entry){
   setMode('form');
   setTimeout(()=>{
-    Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];el.classList.remove('pre');}});
+    // Restore all plain input fields
+    Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];if(entry[id])el.classList.remove('pre');}});
+    // Restore custom dropdowns
     ['battery_spec_ah','agm_supplier_name','dealer_action','model','battery_availability'].forEach(id=>{
       if(!entry[id])return;
       const h=document.getElementById(id);if(h)h.value=entry[id];
       const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}
     });
+    // Restore date pickers
     ['sale_date','repair_date','battery_production_date','vehicle_received_date','pdi_inspection_result'].forEach(id=>{
       const val=entry[id];if(!val)return;
       const p=val.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);if(isNaN(d))return;
@@ -912,8 +921,15 @@ function fillFromHistory(entry){
       const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}
       const di=document.getElementById('di_'+id);if(di)di.value=val;
     });
+    // Restore Invoice rows (plain inputs already handled above, just recalc)
     for(let i=1;i<=2;i++){calcPartRow(i);calcLabourRow(i);}
+    // Restore NDMS (plain inputs already handled above, just recalc live table)
     calcNDMS();
+    // Restore Vehicle History dealer_no styling
+    for(let i=1;i<=20;i++){
+      const el=document.getElementById(`sh${i}_dealer_no`);
+      if(el&&el.value&&el.value!=='N3235')el.classList.remove('pre');
+    }
     closeAllPopups();clearStatus();
   },100);
 }
@@ -965,10 +981,35 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       data[`labour_amount_${i}`]=(lp*lq).toFixed(2);
     }
 
-    // NDMS
+    // NDMS — collect user inputs
     ['part_total_cost_with_tax','labour_total_cost_with_tax',
      'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
      'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'].forEach(id=>data[id]=get(id));
+
+    // NDMS — pre-calculate all sharing amounts so formula cells get real values (no #VALUE! errors)
+    {
+      const pTotal=parseFloat(data.part_total_cost_with_tax)||0;
+      const lTotal=parseFloat(data.labour_total_cost_with_tax)||0;
+      const hPctP=parseFloat(data.hmil_share_pct_part)||0;
+      const dPctP=parseFloat(data.dealer_share_pct_part)||0;
+      const cPctP=parseFloat(data.customer_share_pct_part)||0;
+      const hPctL=parseFloat(data.hmil_share_pct_labour)||0;
+      const dPctL=parseFloat(data.dealer_share_pct_labour)||0;
+      const cPctL=parseFloat(data.customer_share_pct_labour)||0;
+      // Part row amounts (Excel row 2: O2, Q2, S2)
+      data.ndms_hmil_amt_part   = +((pTotal*hPctP)/100).toFixed(2);
+      data.ndms_dealer_amt_part = +((pTotal*dPctP)/100).toFixed(2);
+      data.ndms_cust_amt_part   = +((pTotal*cPctP)/100).toFixed(2);
+      // Labour row amounts (Excel row 3: O3, Q3, S3)
+      data.ndms_hmil_amt_labour   = +((lTotal*hPctL)/100).toFixed(2);
+      data.ndms_dealer_amt_labour = +((lTotal*dPctL)/100).toFixed(2);
+      data.ndms_cust_amt_labour   = +((lTotal*cPctL)/100).toFixed(2);
+      // Grand total row (Excel row 4: M4, O4, Q4, S4)
+      data.ndms_grand_total      = +(pTotal+lTotal).toFixed(2);
+      data.ndms_grand_hmil_amt   = +(((pTotal*hPctP)+(lTotal*hPctL))/100).toFixed(2);
+      data.ndms_grand_dealer_amt = +(((pTotal*dPctP)+(lTotal*dPctL))/100).toFixed(2);
+      data.ndms_grand_cust_amt   = +(((pTotal*cPctP)+(lTotal*cPctL))/100).toFixed(2);
+    }
 
     // Veh History — per row — keys must match replaceVehHistoryXml lookup format sh${i}_*
     for(let i=1;i<=20;i++){
@@ -996,7 +1037,11 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       'labour_amount_1','labour_amount_2',
       'part_total_cost_with_tax','labour_total_cost_with_tax',
       'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
-      'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'
+      'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour',
+      // NDMS calculated amounts (injected directly into formula cells)
+      'ndms_hmil_amt_part','ndms_dealer_amt_part','ndms_cust_amt_part',
+      'ndms_hmil_amt_labour','ndms_dealer_amt_labour','ndms_cust_amt_labour',
+      'ndms_grand_total','ndms_grand_hmil_amt','ndms_grand_dealer_amt','ndms_grand_cust_amt'
     ]);
 
     // Replace in shared strings (text cells)
@@ -1073,6 +1118,11 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       if(sp.match(/sheet5\.xml$/i)){
         // Vehicle History sheet — full rebuild via inlineStr
         shXml=replaceVehHistoryXml(shXml,data);
+      }else if(sp.match(/sheet4\.xml$/i)){
+        // NDMS sheet — replace placeholders + inject calculated values into formula cells
+        if(shXml.includes('{'))shXml=replacePlaceholders(shXml);
+        if(ssXmlAfter) shXml=convertNumericCellsInSheet(shXml,ssXmlAfter);
+        shXml=replaceNDMSFormulaXml(shXml,data);
       }else{
         if(shXml.includes('{'))shXml=replacePlaceholders(shXml);
         // ── FIX BUG 1: convert shared-string cells that resolved to numbers into proper numeric cells ──
@@ -1129,22 +1179,75 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
 
     const outBuf=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE',compressionOptions:{level:6}});
     const vinClean=(data.vin_number||'NOVIN').replace(/[^a-zA-Z0-9]/g,'');
-    const fname=`${vinClean}_N3235_AGM.xlsx`;
+    const dealerClean=(data['sh1_dealer_no']||'N3235').replace(/[^a-zA-Z0-9]/g,'');
+    const fname=`${vinClean}_${dealerClean}.xlsx`;
     saveAs(new Blob([outBuf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fname);
     showStatus('Downloaded: '+fname,'success');
 
-    // Save history
+    // Save history — everything except photos
     const histEntry={};
+    // Battery Data
     ['model','vin_number','mileage_km','battery_spec_ah','agm_supplier_name',
      'sale_date','repair_date','battery_production_date','vehicle_received_date',
      'pdi_inspection_result','pdi_voltage','pdi_cca','pdi_soc',
      'analyser_voltage','analyser_cca','analyser_soc','analyser_result','result_slip',
      'dealer_action','battery_availability'].forEach(k=>histEntry[k]=data[k]||'');
+    // Invoice — Parts & Labour rows
+    for(let i=1;i<=2;i++){
+      ['si_no','part_number','part_description','part_list_price','part_qty','part_amount'].forEach(f=>histEntry[`${f}_${i}`]=data[`${f}_${i}`]||'');
+      ['si_no_labour','labour_code','labour_description','labour_list_price','labour_qty','labour_amount'].forEach(f=>histEntry[`${f}_${i}`]=data[`${f}_${i}`]||'');
+    }
+    // NDMS
+    ['part_total_cost_with_tax','labour_total_cost_with_tax',
+     'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
+     'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'].forEach(k=>histEntry[k]=data[k]||'');
+    // Vehicle History rows
+    for(let i=1;i<=20;i++){
+      ['dealer_no','ro_no','ro_date','vin','mileage','work_type','reg_no','remarks'].forEach(f=>histEntry[`sh${i}_${f}`]=data[`sh${i}_${f}`]||'');
+    }
     saveHistory(histEntry);
 
   }catch(err){showStatus('Error: '+err.message,'error');console.error(err);}
   finally{btnInject.disabled=false;btnInject.textContent='Generate XLSX';}
 });
+
+// ─── NDMS SHEET — INJECT CALCULATED VALUES INTO FORMULA CELLS ───
+// Excel sheet4 layout (NDMS Invoice, Sharing %):
+//   Row 2: Part  — M2=part_total, N2=hmil_pct_part,   O2=hmil_amt(formula),  P2=dealer_pct, Q2=dealer_amt, R2=cust_pct, S2=cust_amt
+//   Row 3: Labour— M3=lab_total,  N3=hmil_pct_labour, O3=hmil_amt(formula),  P3=dealer_pct, Q3=dealer_amt, R3=cust_pct, S3=cust_amt
+//   Row 4: Total — M4=formula,    O4=formula, Q4=formula, S4=formula
+// We replace formula cells (t="e") with our pre-calculated numeric values,
+// preserving the cell's style (s=) attribute.
+function replaceNDMSFormulaXml(shXml, data){
+  // Map of cell reference → data key
+  const cellMap={
+    // Formula cells — replace with calculated values
+    'O2':'ndms_hmil_amt_part',
+    'Q2':'ndms_dealer_amt_part',
+    'S2':'ndms_cust_amt_part',
+    'O3':'ndms_hmil_amt_labour',
+    'Q3':'ndms_dealer_amt_labour',
+    'S3':'ndms_cust_amt_labour',
+    'M4':'ndms_grand_total',
+    'O4':'ndms_grand_hmil_amt',
+    'Q4':'ndms_grand_dealer_amt',
+    'S4':'ndms_grand_cust_amt',
+  };
+
+  // Replace each formula cell with a plain numeric cell
+  // Matches: <c r="O2" s="40" t="e"><f>M2*N2%</f><v>#VALUE!</v></c>  (or any formula/value)
+  return shXml.replace(/<c\s([^>]*)r="([A-Z]+\d+)"([^>]*)>(?:<f>[^<]*<\/f>)?<v>[^<]*<\/v><\/c>/g,(match,pre,ref,post)=>{
+    const key=cellMap[ref];
+    if(key===undefined) return match;
+    const val=data[key];
+    if(val===undefined||val===null||val==='') return match;
+    const numVal=parseFloat(String(val));
+    if(isNaN(numVal)) return match;
+    // Keep style attribute, remove t= and formula, write as plain number cell
+    const allAttrs=(pre+post).replace(/\s*t="[^"]*"/g,'').trim();
+    return `<c ${allAttrs} r="${ref}"><v>${numVal}</v></c>`;
+  });
+}
 
 // ─── VEH HISTORY — ROBUST FIX ───
 // ROOT CAUSE 1: Hardcoded sharedString indices (121-128) may not match actual Excel file.
