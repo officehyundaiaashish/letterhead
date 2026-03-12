@@ -1474,58 +1474,69 @@
 
         const zip = await JSZip.loadAsync(window.TEMPLATE_B64, { base64: true });
 
-        const fields = {
-          "{{MODEL}}":     v("f-model"),
-          "{{VIN}}":       v("f-vin"),
-          "{{MILEAGE}}":   v("f-mileage") || "N/A",
-          "{{PROD_DATE}}": v("f-proddate") || "N/A",
-          "{{RO_NUMBER}}": v("f-ro") || "N/A",
-          "{{D_CODE}}":    v("f-dcode"),
-          "{{D_NAME}}":    v("f-dname"),
-          "{{T_NAME}}":    v("f-tname"),
-          "{{T_NUM}}":     v("f-tnum"),
-          "{{CP_NO}}":     v("f-cpno") || "N/A",
-          "{{CP_NAME}}":   v("f-cpname") || "N/A",
-          "{{DTC}}":       v("f-dtc") || "N/A",
-          "{{FREQ}}":      v("f-freq"),
-          "{{CONCERN}}":   v("f-concern") || "N/A",
-          "{{OBS}}":       v("f-obs") || "N/A"
-        };
-
-        // Inject text fields — ALL xml files in ppt/slides/
-        const slideFiles = Object.keys(zip.files).filter(f =>
-          f.match(/^ppt\/slides\/slide\d+\.xml$/)
-        );
-        if (slideFiles.length === 0) {
-          throw new Error("No slide XML files found in template. Verify the PPTX structure.");
-        }
-        for (const file of slideFiles) {
-          let content = await zip.file(file).async("string");
-          for (const [key, val] of Object.entries(fields)) {
-            const safeVal = String(val || "N/A")
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&apos;");
-            // Replace even when PowerPoint splits placeholder across runs
-            content = content.split(key).join(safeVal);
-          }
-          zip.file(file, content);
+        // Helper: XML-encode a value
+        function xe(s) {
+          return String(s || 'N/A')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&apos;');
         }
 
-        // Inject photos
+        // Helper: replace exact <a:t>OLD</a:t> with new value
+        function replaceVal(xml, oldVal, newVal) {
+          return xml.split('<a:t>' + oldVal + '</a:t>').join('<a:t>' + xe(newVal) + '</a:t>');
+        }
+
+        // Helper: build a single-run txBody for multi-run cells (concern/obs)
+        function buildTxBody(text, tcprContent) {
+          const rpr = '<a:rPr lang="en-IN" altLang="ko-KR" sz="1050" b="0" dirty="0" smtClean="0"><a:solidFill><a:schemeClr val="tx1"/></a:solidFill><a:latin typeface="Tahoma" panose="020B0604030504040204" pitchFamily="34" charset="0"/><a:ea typeface="Tahoma" panose="020B0604030504040204" pitchFamily="34" charset="0"/><a:cs typeface="Tahoma" panose="020B0604030504040204" pitchFamily="34" charset="0"/></a:rPr>';
+          const pPr = '<a:pPr marL="0" indent="0" latinLnBrk="1"><a:lnSpc><a:spcPct val="150000"/></a:lnSpc><a:buFont typeface="Wingdings" panose="05000000000000000000" pitchFamily="2" charset="2"/><a:buNone/></a:pPr>';
+          const safeText = xe(text);
+          return `<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p>${pPr}<a:r>${rpr}<a:t>${safeText}</a:t></a:r></a:p></a:txBody>${tcprContent}</a:tc>`;
+        }
+
+        // The exact tcPr block from obs cell (borders/padding)
+        const obsTcPr = '<a:tcPr marL="36005" marR="36005" marT="18001" marB="18001"><a:lnL w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="bg1"><a:lumMod val="50000"/></a:schemeClr></a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:lnL><a:lnR w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="bg1"><a:lumMod val="50000"/></a:schemeClr></a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:lnR><a:lnT w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="bg1"><a:lumMod val="50000"/></a:schemeClr></a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:lnT><a:lnB w="12700" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="bg1"><a:lumMod val="50000"/></a:schemeClr></a:solidFill><a:prstDash val="solid"/><a:round/><a:headEnd type="none" w="med" len="med"/><a:tailEnd type="none" w="med" len="med"/></a:lnB><a:noFill/></a:tcPr>';
+
+        let slide1 = await zip.file('ppt/slides/slide1.xml').async('string');
+
+        // Simple <a:t> replacements — exact hardcoded values in template
+        slide1 = replaceVal(slide1, 'NEW CRETA D',           v('f-model') || 'N/A');
+        slide1 = replaceVal(slide1, 'MALPC813LMM802614',     v('f-vin')   || 'N/A');
+        slide1 = replaceVal(slide1, '19400',                  v('f-mileage') || 'N/A');
+        slide1 = replaceVal(slide1, 'R202206882',             v('f-ro')    || 'N/A');
+        slide1 = replaceVal(slide1, 'N3235',                  v('f-dcode') || 'N/A');
+        slide1 = replaceVal(slide1, 'JAVED',                  v('f-tname') || 'N/A');
+        slide1 = replaceVal(slide1, '8979040022',             v('f-tnum')  || 'N/A');
+        slide1 = replaceVal(slide1, '361002A150',             v('f-cpno')  || 'N/A');
+        slide1 = replaceVal(slide1, 'STARTER ASSY',           v('f-cpname')|| 'N/A');
+        slide1 = replaceVal(slide1, 'N/A',                    v('f-dtc')   || 'N/A');
+        slide1 = replaceVal(slide1, 'CONTINOUSLY',            v('f-freq')  || 'N/A');
+
+        // Proddate — template has '-' as value
+        slide1 = replaceVal(slide1, '-', v('f-proddate') || 'N/A');
+
+        // Concern — single run, simple replace
+        slide1 = replaceVal(slide1, 'Vehicle having starting problem while operating.', v('f-concern') || 'N/A');
+
+        // Obs — multi-run cell, replace entire <a:tc>...</a:tc> block
+        const obsOldStart = '<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:pPr marL="0" indent="0" latinLnBrk="1"><a:lnSpc><a:spcPct val="150000"/></a:lnSpc><a:buFont typeface="Wingdings" panose="05000000000000000000" pitchFamily="2" charset="2"/><a:buNone/></a:pPr><a:r><a:rPr lang="en-IN"';
+        const obsOldEnd = '</a:tc>';
+        const obsStart = slide1.indexOf(obsOldStart);
+        if (obsStart >= 0) {
+          const obsEnd = slide1.indexOf(obsOldEnd, obsStart) + obsOldEnd.length;
+          slide1 = slide1.slice(0, obsStart) + buildTxBody(v('f-obs') || 'N/A', obsTcPr) + slide1.slice(obsEnd);
+        }
+
+        zip.file('ppt/slides/slide1.xml', slide1);
+
+        // Photos — slide2 has the image placeholder
         const mediaFiles = Object.keys(zip.files)
           .filter(f => /^ppt\/media\/image\d+\.(jpg|jpeg|png|gif|bmp)$/i.test(f))
-          .sort((a, b) => {
-            const na = parseInt(a.match(/\d+/)?.[0] || 0);
-            const nb = parseInt(b.match(/\d+/)?.[0] || 0);
-            return na - nb;
-          });
+          .sort((a, b) => parseInt(a.match(/\d+/)?.[0]||0) - parseInt(b.match(/\d+/)?.[0]||0));
+
         for (let i = 0; i < 6; i++) {
           if (photoData[i] && mediaFiles[i]) {
-            const b64Data = photoData[i].b64.split(",")[1];
-            zip.file(mediaFiles[i], b64Data, { base64: true });
+            zip.file(mediaFiles[i], photoData[i].b64.split(',')[1], { base64: true });
           }
         }
 
