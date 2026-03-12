@@ -65,8 +65,9 @@
 *::-webkit-scrollbar-thumb:hover{background:var(--border-input);}
 
 /* ── Stepper ── */
-.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:14px 20px;box-sizing:border-box;}
-.step{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:8px;transition:all .18s;min-width:0;overflow:hidden;}
+.stepper-container{padding:14px 20px;border-bottom:1px solid var(--border-light);background:var(--bg-card);position:sticky;top:0;z-index:900;}
+.stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.step{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:8px;transition:all .18s;min-width:0;}
 .step.done{background:rgba(0,44,95,.06);border-color:var(--accent-bg);}
 [data-theme=dark] .step.done{background:rgba(77,143,214,.1);}
 .step.active{border-color:var(--accent-bg);}
@@ -75,7 +76,7 @@
 .step-t{font-size:11px;font-weight:600;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .step-s{font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:640px){
-  .stepper{padding:10px 14px;gap:4px;}
+  .stepper-container{padding:10px 14px;}
   .step{padding:7px 7px;gap:5px;}
   .step-n{width:20px;height:20px;font-size:9px;}
   .step-t{font-size:10px;}
@@ -316,21 +317,21 @@ body {
   </div>
 
   <!-- Stepper -->
-  <div class="stepper-wrap" id="stepperWrap" style="display:none;">
-  <div class="stepper" id="lh-stepper">
-    <div class="step active" id="lh-st1">
-      <div class="step-n" id="lh-sn1">1</div>
-      <div><div class="step-t">Report Type</div><div class="step-s">Tyre or Battery</div></div>
+  <div class="stepper-container" id="stepperWrap" style="display:none;">
+    <div class="stepper" id="lh-stepper">
+      <div class="step active" id="lh-st1">
+        <div class="step-n" id="lh-sn1">1</div>
+        <div><div class="step-t">Report Type</div><div class="step-s">Tyre or Battery</div></div>
+      </div>
+      <div class="step" id="lh-st2">
+        <div class="step-n" id="lh-sn2">2</div>
+        <div><div class="step-t">Customer Info</div><div class="step-s">Name, vehicle</div></div>
+      </div>
+      <div class="step" id="lh-st3">
+        <div class="step-n" id="lh-sn3">3</div>
+        <div><div class="step-t">Ready</div><div class="step-s">Generate DOCX</div></div>
+      </div>
     </div>
-    <div class="step" id="lh-st2">
-      <div class="step-n" id="lh-sn2">2</div>
-      <div><div class="step-t">Customer Info</div><div class="step-s">Name, vehicle</div></div>
-    </div>
-    <div class="step" id="lh-st3">
-      <div class="step-n" id="lh-sn3">3</div>
-      <div><div class="step-t">Ready</div><div class="step-s">Generate DOCX</div></div>
-    </div>
-  </div>
   </div>
 
   <div class="mode-wrap" id="modeWrap">
