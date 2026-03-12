@@ -319,9 +319,18 @@ function customConfirm(msg,okText='Yes'){
   });
 }
 
+// ── Dropdown Options Lists ──
 const fuelTypes=["Petrol","Diesel","CNG","Electric","Hybrid"];
 const ynOpts=["Y","N"];
-const roadOpts=["General Road","Highway","Off-Road","Wet Road","City Traffic"];
+const roadOpts=["General Road","Highway","Off-Road","Wet Road","City Traffic","Speed Breakers","Potholes/Rough","Uphill/Incline","Downhill","Dusty/Sandy"];
+const causeCodeOpts=["Material Defect","Manufacturing Defect","Wear & Tear","Software Glitch","Fluid Leakage","Electrical Short","Corrosion/Rust","Physical Damage","Improper Assembly","Calibration Issue","Sensor Failure","Unknown/Pending"];
+const occurrenceOpts=["Always","Intermittent","Right after starting","When engine is cold","When engine is hot","While accelerating","While braking","While turning","At high speeds","At low speeds","Over bumps/rough roads","Randomly"];
+const natureCodeOpts=["Noise/Rattle","Vibration","Leakage","Warning Light ON","Overheating","Hard Shifting","Loss of Power","Poor Mileage","Starting Trouble","Smoke Output","Smell/Odor","Stalling"];
+const timePeriodOpts=["All times","Morning/Cold Start","After warming up","During rain/wet","In hot weather","In cold weather","After long drive","Short trips only","Idling","Under heavy load"];
+const speedRangeOpts=["Idle (0 km/h)","Low Speed (1-30 km/h)","Medium Speed (30-60 km/h)","High Speed (60-100 km/h)","Over 100 km/h","While accelerating","While decelerating","Varies","NA"];
+const problemConditionOpts=["Engine Cold","Engine Hot","A/C ON","A/C OFF","Under Heavy Load","Driving Uphill","Driving Downhill","Full Throttle","Light Throttle","Braking","Turning Left","Turning Right"];
+
+const ALL_SELECTS = ['fuelType','ew','mailYN','roadCondition','causeCode','occurrence','natureCode','timePeriod','speedRange','problemCondition'];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 let templateBuffer=null,currentMode='form';
@@ -455,8 +464,8 @@ function makeDateField(id,label){
   return wrap;
 }
 
-function makeSelect(id,label,options){
-  const wrap=document.createElement('div');wrap.className='field-col';
+function makeSelect(id,label,options,full=false){
+  const wrap=document.createElement('div');wrap.className='field-col'+(full?' full':'');
   wrap.innerHTML=`<label>${label}</label><div class="custom-select-wrap"><div class="custom-select-trigger" id="cst_${id}" tabindex="0"><span class="cs-val empty" id="csv_${id}">Select…</span><span class="cs-arr">${icons.chevronDown}</span></div><div class="custom-select-opts" id="cso_${id}">${options.map(o=>`<div class="cs-opt" data-val="${o}" tabindex="0">${o}</div>`).join('')}</div><input type="hidden" id="${id}" value=""></div>`;
   requestAnimationFrame(()=>{
     const trig=document.getElementById('cst_'+id),opts=document.getElementById('cso_'+id),valEl=document.getElementById('csv_'+id),hidInp=document.getElementById(id);
@@ -524,15 +533,13 @@ function buildForm(){
   // Problem Nature
   sec=mkSec('Problem Nature');
   const pnGrid=document.createElement('div');pnGrid.className='grid-wrap';
-  pnGrid.appendChild(makeInput('causeCode','Cause Code','e.g. Part Material Defect…'));
-  pnGrid.appendChild(makeInput('occurrence','Occurrence','e.g. Right after starting…'));
-  pnGrid.appendChild(makeInput('natureCode','Nature Code','e.g. TM Heating issue…'));
-  pnGrid.appendChild(makeInput('timePeriod','Time Period','e.g. All times…'));
+  pnGrid.appendChild(makeSelect('causeCode','Cause Code',causeCodeOpts));
+  pnGrid.appendChild(makeSelect('occurrence','Occurrence',occurrenceOpts));
+  pnGrid.appendChild(makeSelect('natureCode','Nature Code',natureCodeOpts));
+  pnGrid.appendChild(makeSelect('timePeriod','Time Period',timePeriodOpts));
   pnGrid.appendChild(makeSelect('roadCondition','Road Condition',roadOpts));
-  pnGrid.appendChild(makeInput('speedRange','Speed Range','e.g. NA…'));
-  const pcWrap=document.createElement('div');pcWrap.className='field-col full';
-  pcWrap.innerHTML=`<label>Problem Occurrence Condition</label><input type="text" id="problemCondition" placeholder="Describe condition…" tabindex="0">`;
-  pnGrid.appendChild(pcWrap);
+  pnGrid.appendChild(makeSelect('speedRange','Speed Range',speedRangeOpts));
+  pnGrid.appendChild(makeSelect('problemCondition','Problem Occurrence Condition',problemConditionOpts, true));
   sec.appendChild(pnGrid);formWrap.appendChild(sec);
 
   // Narrative
@@ -723,7 +730,7 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
     if(defs[el.id])el.classList.add('pre');else el.classList.remove('pre');
   });
   formWrap.querySelectorAll('input[type=hidden]').forEach(el=>el.value='');
-  ['fuelType','ew','mailYN','roadCondition'].forEach(id=>{const v=document.getElementById(id);if(v)v.value='';const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}});
+  ALL_SELECTS.forEach(id=>{const v=document.getElementById(id);if(v)v.value='';const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent='Select…';lbl.classList.add('empty');}});
   Object.keys(CAL).forEach(id=>{CAL[id]={date:null,open:false,year:new Date().getFullYear(),month:new Date().getMonth(),view:'days'};const dv=document.getElementById('dv_'+id);if(dv){dv.textContent='Pick date';dv.classList.add('empty');}const manEl=document.getElementById('dm_'+id);if(manEl)manEl.value='';});
   Object.keys(PHOTOS).forEach(k=>delete PHOTOS[k]);
   document.querySelectorAll('.photo-slot').forEach(sl=>{sl.classList.remove('filled');const img=sl.querySelector('img');if(img)img.src='';const inp=sl.querySelector('input[type=file]');if(inp)inp.value='';});
@@ -737,22 +744,29 @@ document.getElementById('btnClear').addEventListener('click',async()=>{
 document.getElementById('btnInject').addEventListener('click',async()=>{
   if(!templateBuffer){showStatus('Template not loaded.','error');return;}
   const get=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  
+  // ZERO INJECTION FIX: Ensure empty Quantity or Rate strictly injects "0" instead of empty string
+  const getNum=id=>{const el=document.getElementById(id); const v=el?el.value.trim():''; return v===''? '0' : v;};
+  
   const getDate=id=>{const st=CAL[id];if(st&&st.date)return fmtDash(st.date);const manEl=document.getElementById('dm_'+id);return manEl?manEl.value.trim():'';};
   // Also capture dm_ values for history
   const dmIds=['productionDate','deliveryDate','reportDate','repairDate'];  const data={};
-  ['dealerCode','dealerName','model','tmType','vin','engineNo','tmNumber','mileage','numVehicles','causalPartNo','partName','affectedPart','dtc','partSupplier','partLotNo','causeCode','occurrence','natureCode','timePeriod','speedRange','problemCondition','subject','introduction','detailedSymptom','investigationResult','correctiveAction','comment','serviceManager','warrantyManager','partsManager','serviceAdvisor','repairOrderNo','regNo','vinNo'].forEach(id=>data[id]=get(id));
-  ['fuelType','ew','mailYN','roadCondition'].forEach(id=>data[id]=get(id));
+  
+  ['dealerCode','dealerName','model','tmType','vin','engineNo','tmNumber','mileage','numVehicles','causalPartNo','partName','affectedPart','dtc','partSupplier','partLotNo','subject','introduction','detailedSymptom','investigationResult','correctiveAction','comment','serviceManager','warrantyManager','partsManager','serviceAdvisor','repairOrderNo','regNo','vinNo'].forEach(id=>data[id]=get(id));
+  
+  ALL_SELECTS.forEach(id=>data[id]=get(id));
+  
   ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>data[id]=getDate(id));
   for(let i=1;i<=17;i++)['Date','Kms','JobType','Status'].forEach(f=>data[`sh${i}${f}`]=get(`sh${i}${f}`));
-  for(let i=1;i<=11;i++)['No','Name','Qty','Rate','Tag'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
-  for(let i=1;i<=6;i++)['OpCode','Name','Qty','Rate'].forEach(f=>data[`labour${i}${f}`]=get(`labour${i}${f}`));
   
-  const getSpan=id=>{const el=document.getElementById(id);return el&&el.textContent!=='—'?el.textContent.replace(/,/g, ''):'';};
-  for(let i=1;i<=11;i++) data[`part${i}Total`]=getSpan(`part${i}Total`);
-  for(let i=1;i<=6;i++) data[`labour${i}Total`]=getSpan(`labour${i}Total`);
-  data['partsTotal']=getSpan('partsTotal');
-  data['labourTotal']=getSpan('labourTotal');
-  data['gTotal']=getSpan('gTotal');
+  for(let i=1;i<=11;i++){
+    ['No','Name','Tag'].forEach(f=>data[`part${i}${f}`]=get(`part${i}${f}`));
+    ['Qty','Rate'].forEach(f=>data[`part${i}${f}`]=getNum(`part${i}${f}`));
+  }
+  for(let i=1;i<=6;i++){
+    ['OpCode','Name'].forEach(f=>data[`labour${i}${f}`]=get(`labour${i}${f}`));
+    ['Qty','Rate'].forEach(f=>data[`labour${i}${f}`]=getNum(`labour${i}${f}`));
+  }
 
   // Collect photo dataURLs from PHOTOS store
   const photoKeys=['vinPhoto','meterPhoto','part1Photo','part2Photo','part3Photo','part4Photo','part5Photo','part6Photo','part7Photo','part8Photo','part9Photo'];
@@ -1016,7 +1030,7 @@ function fillFromHistory(entry){
   setMode('form');
   setTimeout(()=>{
     Object.keys(entry).forEach(id=>{const el=document.getElementById(id);if(el&&el.type!=='hidden'){el.value=entry[id];el.classList.remove('pre');}});
-    ['fuelType','ew','mailYN','roadCondition'].forEach(id=>{if(!entry[id])return;const hidEl=document.getElementById(id);if(hidEl)hidEl.value=entry[id];const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}});
+    ALL_SELECTS.forEach(id=>{if(!entry[id])return;const hidEl=document.getElementById(id);if(hidEl)hidEl.value=entry[id];const lbl=document.getElementById('csv_'+id);if(lbl){lbl.textContent=entry[id];lbl.classList.remove('empty');}});
     ['productionDate','deliveryDate','reportDate','repairDate'].forEach(id=>{const val=entry[id];if(!val)return;const p=val.split('-');const d=new Date(+p[2],+p[1]-1,+p[0]);if(isNaN(d))return;if(!CAL[id])CAL[id]={};Object.assign(CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),open:false,view:'days'});const dv=document.getElementById('dv_'+id);if(dv){dv.textContent=val;dv.classList.remove('empty');}const manEl=document.getElementById('dm_'+id);if(manEl)manEl.value=entry['dm_'+id]||val;});
     for(let i=1;i<=11;i++)calcRow(i);for(let i=1;i<=6;i++)calcLabourRow(i);
     closeAllPopups();clearStatus();
