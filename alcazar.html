@@ -1,49 +1,45 @@
-<!DOCTYPE html>      
-<html lang="en" data-theme="light">      
-<head>      
-  <meta charset="UTF-8">      
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">      
-  <title>Alcazar Form</title>      
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">      
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>      
-  
-  <script src="ppt-template.js"></script>
-      
-  <style>      
-    :root {      
-      --bg: #f4f4f2;      
-      --surface: #ffffff;      
-      --surface2: #f0f0ee;      
-      --border: #e3e3df;      
-      --text: #181816;      
-      --text2: #6a6a67;      
-      --text3: #9a9a97;      
-      --accent: #002C5F;      
-      --accent-h: #001F47;      
-      --accent-s: #e8edf5;      
-      --radius: 10px;      
-      --radius-lg: 16px;      
-      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);      
-      --shadow-lg: 0 4px 24px rgba(0,0,0,.09);      
-      --font: 'Inter', sans-serif;      
-      --mono: 'ui-monospace', monospace;      
-      --tr: 180ms ease;      
-    }      
-    [data-theme=dark] {      
-      --bg: #111110;      
-      --surface: #1c1c1a;      
-      --surface2: #232321;      
-      --border: #2d2d2b;      
-      --text: #f0f0ee;      
-      --text2: #888885;      
-      --text3: #525250;      
-      --accent: #4D8FD6;      
-      --accent-h: #3A7BC8;      
-      --accent-s: #001A3A;      
-      --shadow: 0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);      
-      --shadow-lg: 0 4px 28px rgba(0,0,0,.45);      
-    }      
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alcazar Form</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+    :root {
+      --bg: #f4f4f2;
+      --surface: #ffffff;
+      --surface2: #f0f0ee;
+      --border: #e3e3df;
+      --text: #181816;
+      --text2: #6a6a67;
+      --text3: #9a9a97;
+      --accent: #002C5F;
+      --accent-h: #001F47;
+      --accent-s: #e8edf5;
+      --radius: 10px;
+      --radius-lg: 16px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+      --shadow-lg: 0 4px 24px rgba(0,0,0,.09);
+      --font: 'Inter', sans-serif;
+      --mono: 'ui-monospace', monospace;
+      --tr: 180ms ease;
+    }
+    [data-theme=dark] {
+      --bg: #111110;
+      --surface: #1c1c1a;
+      --surface2: #232321;
+      --border: #2d2d2b;
+      --text: #f0f0ee;
+      --text2: #888885;
+      --text3: #525250;
+      --accent: #4D8FD6;
+      --accent-h: #3A7BC8;
+      --accent-s: #001A3A;
+      --shadow: 0 1px 4px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.2);
+      --shadow-lg: 0 4px 28px rgba(0,0,0,.45);
+    }
     /* ── History Panel ── */
     .hist-panel { display:none; }
     .hist-panel.show { display:block; }
@@ -63,241 +59,242 @@
     .hist-clr:hover, .hist-clr:focus { color:#dc2626; }
     [data-theme=dark] .hist-clr:hover, [data-theme=dark] .hist-clr:focus { color:#f87171; }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }      
-    html { font-size: 14px; font-family: 'Inter', sans-serif; }      
-    body {      
-      font-family: var(--font);      
-      background: var(--bg);      
-      color: var(--text);      
-      padding: 20px;      
-      transition: background var(--tr), color var(--tr);      
-    }      
-    .ph {      
-      display: flex;      
-      align-items: flex-start;      
-      justify-content: space-between;      
-      margin-bottom: 20px;      
-      flex-wrap: wrap;      
-      gap: 12px;      
-    }      
-    .ph-title {      
-      font-size: 20px;      
-      font-weight: 600;      
-      letter-spacing: -.4px;      
-      margin-bottom: 4px;      
-    }      
-    .ph-sub {      
-      font-size: 12.5px;      
-      color: var(--text2);      
-    }      
-    .chip {      
-      display: inline-flex;      
-      align-items: center;      
-      gap: 5px;      
-      padding: 4px 10px;      
-      background: var(--accent-s);      
-      color: var(--accent);      
-      border-radius: 20px;      
-      font-size: 11px;      
-      font-weight: 500;      
-    }      
-    .stepper {      
-      display: grid;      
-      grid-template-columns: repeat(4, 1fr);      
-      gap: 10px;      
-      margin-bottom: 20px;      
-    }      
-    .step {      
-      display: flex;      
-      align-items: center;      
-      gap: 10px;      
-      padding: 10px 12px;      
-      background: var(--surface);      
-      border: 1px solid var(--border);      
-      border-radius: var(--radius);      
-      transition: all var(--tr);      
-    }      
-    .step.done {      
-      background: var(--accent-s);      
-      border-color: var(--accent);      
-    }      
-    .step.active {      
-      border-color: var(--accent);      
-    }      
-    .step-n {      
-      width: 26px;      
-      height: 26px;      
-      border-radius: 50%;      
-      background: var(--surface2);      
-      color: var(--text2);      
-      display: flex;      
-      align-items: center;      
-      justify-content: center;      
-      font-size: 12px;      
-      font-weight: 600;      
-      flex-shrink: 0;      
-    }      
-    .step.done .step-n {      
-      background: var(--accent);      
-      color: white;      
-    }      
-    .step-t {      
-      font-size: 12.5px;      
-      font-weight: 600;      
-      color: var(--text);      
-    }      
-    .step-s {      
-      font-size: 11px;      
-      color: var(--text2);      
-    }      
-    .card {      
-      background: var(--surface);      
-      border: 1px solid var(--border);      
-      border-radius: var(--radius-lg);      
-      padding: 18px 20px;      
-      margin-bottom: 14px;      
-      transition: background var(--tr), border-color var(--tr);      
-    }      
-    .card-title {      
-      font-size: 13.5px;      
-      font-weight: 600;      
-      display: flex;      
-      align-items: center;      
-      gap: 7px;      
-      margin-bottom: 14px;      
-      color: var(--text);      
-    }      
-    .card-title svg {      
-      color: var(--accent);      
-    }      
-    .fg {      
-      display: grid;      
-      gap: 12px;      
-    }      
-    .fg.c3 {      
-      grid-template-columns: repeat(3, 1fr);      
-    }      
-    .field {      
-      display: flex;      
-      flex-direction: column;      
-      gap: 5px;      
-    }      
-    .field.s2 {      
-      grid-column: span 2;      
-    }      
-    .field.s3 {      
-      grid-column: span 3;      
-    }      
-    .field label {      
-      font-size: 12px;      
-      font-weight: 500;      
-      color: var(--text2);      
-    }      
-    .req {      
-      color: #d64545;      
-    }      
-    .field input, .field select, .field textarea {      
-      padding: 8px 12px;      
-      border: 1px solid var(--border);      
-      border-radius: 8px;      
-      background: var(--bg);      
-      color: var(--text);      
-      font-size: 13px;      
-      font-family: var(--font);      
-      transition: all var(--tr);      
-    }      
-    .field input:focus, .field select:focus, .field textarea:focus {      
-      outline: none;      
-      border-color: var(--accent);      
-      box-shadow: 0 0 0 3px var(--accent-s);      
-    }      
-    .pg {      
-      display: grid;      
-      grid-template-columns: repeat(3, 1fr);      
-      gap: 10px;      
-    }      
-    .pslot {      
-      aspect-ratio: 4/3;      
-      background: var(--bg);      
-      border: 2px dashed var(--border);      
-      border-radius: var(--radius);      
-      display: flex;      
-      flex-direction: column;      
-      align-items: center;      
-      justify-content: center;      
-      gap: 6px;      
-      cursor: pointer;      
-      transition: all var(--tr);      
-      position: relative;      
-      overflow: hidden;      
-    }      
-    .pslot:hover {      
-      border-color: var(--accent);      
-      background: var(--surface2);      
-    }      
-    .pslot.filled {      
-      border-style: solid;      
-      border-color: var(--accent);      
-    }      
-    .pslot img {      
-      position: absolute;      
-      width: 100%;      
-      height: 100%;      
-      object-fit: cover;      
-    }      
-    .slot-ico {      
-      color: var(--text3);      
-    }      
-    .pslot.filled .slot-ico {      
-      display: none;      
-    }      
-    .slot-lbl {      
-      font-size: 11px;      
-      color: var(--text3);      
-      text-align: center;      
-      padding: 0 6px;      
-      position: relative;      
-      z-index: 1;      
-    }      
-    .pslot.filled .slot-lbl {      
-      background: rgba(0,0,0,.75);      
-      color: white;      
-      padding: 3px 8px;      
-      border-radius: 4px;      
-    }      
-    .ov {      
-      position: absolute;      
-      inset: 0;      
-      background: rgba(0,0,0,.4);      
-      display: none;      
-      align-items: center;      
-      justify-content: center;      
-    }      
-    .pslot.filled:hover .ov {      
-      display: flex;      
-    }      
-    .slot-rm {      
-      position: absolute;      
-      top: 6px;      
-      right: 6px;      
-      width: 22px;      
-      height: 22px;      
-      background: rgba(214,69,69,.95);      
-      border-radius: 50%;      
-      display: none;      
-      align-items: center;      
-      justify-content: center;      
-      cursor: pointer;      
-      z-index: 2;      
-    }      
-    .pslot.filled .slot-rm {      
-      display: flex;      
-    }      
-    .divhr {      
-      height: 1px;      
-      background: var(--border);      
-      margin: 20px 0;      
-    }      
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 14px; font-family: 'Inter', sans-serif; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      transition: background var(--tr), color var(--tr);
+    }
+    .ph {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .ph-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -.4px;
+      margin-bottom: 4px;
+    }
+    .ph-sub {
+      font-size: 12.5px;
+      color: var(--text2);
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      background: var(--accent-s);
+      color: var(--accent);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    /* ── Sticky Stepper ── */
+    .stepper-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;position:sticky;top:0;z-index:900;}
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: all var(--tr);
+    }
+    .step.done {
+      background: var(--accent-s);
+      border-color: var(--accent);
+    }
+    .step.active {
+      border-color: var(--accent);
+    }
+    .step-n {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--surface2);
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .step.done .step-n {
+      background: var(--accent);
+      color: white;
+    }
+    .step-t {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .step-s {
+      font-size: 11px;
+      color: var(--text2);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      transition: background var(--tr), border-color var(--tr);
+    }
+    .card-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+    .card-title svg {
+      color: var(--accent);
+    }
+    .fg {
+      display: grid;
+      gap: 12px;
+    }
+    .fg.c3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .field.s2 {
+      grid-column: span 2;
+    }
+    .field.s3 {
+      grid-column: span 3;
+    }
+    .field label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+    .req {
+      color: #d64545;
+    }
+    .field input, .field select, .field textarea {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font);
+      transition: all var(--tr);
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-s);
+    }
+    .pg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .pslot {
+      aspect-ratio: 4/3;
+      background: var(--bg);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all var(--tr);
+      position: relative;
+      overflow: hidden;
+    }
+    .pslot:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+    .pslot.filled {
+      border-style: solid;
+      border-color: var(--accent);
+    }
+    .pslot img {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .slot-ico {
+      color: var(--text3);
+    }
+    .pslot.filled .slot-ico {
+      display: none;
+    }
+    .slot-lbl {
+      font-size: 11px;
+      color: var(--text3);
+      text-align: center;
+      padding: 0 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .pslot.filled .slot-lbl {
+      background: rgba(0,0,0,.75);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .ov {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .pslot.filled:hover .ov {
+      display: flex;
+    }
+    .slot-rm {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      background: rgba(214,69,69,.95);
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .pslot.filled .slot-rm {
+      display: flex;
+    }
+    .divhr {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
     /* ── Modern Scrollbar ── */
     *{scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
     *::-webkit-scrollbar{width:5px;height:5px;}
@@ -318,133 +315,142 @@
     .mode-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
 
     /* ── Action Button Row ── */
-    .btn-row {      
-      display: flex;      
+    .btn-row {
+      display: flex;
       gap: 8px;
       flex-direction: row;
-    }      
-    .btn {      
+    }
+    .btn {
       flex:1;
-      height:36px;      
-      border: none;      
-      border-radius: 7px;      
-      font-size: 13px;      
-      font-weight: 600;      
-      cursor: pointer;      
-      transition: all var(--tr);      
-      display: inline-flex;      
-      align-items: center;      
+      height:36px;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--tr);
+      display: inline-flex;
+      align-items: center;
       justify-content:center;
-      gap: 6px;      
+      gap: 6px;
       font-family: var(--font);
       outline:none;
     }
     .btn:focus{box-shadow:0 0 0 3px var(--accent-s);}
-    .btn-p {      
-      background: var(--accent);      
-      color: white;      
-    }      
-    .btn-p:hover {      
-      background: var(--accent-h);      
-    }      
-    .btn-g {      
-      background: var(--surface2);      
-      color: var(--text);      
-      border: 1px solid var(--border);      
-    }      
-    .btn-g:hover {      
-      background: var(--border);      
+    .btn-p {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-p:hover {
+      background: var(--accent-h);
+    }
+    .btn-g {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-g:hover {
+      background: var(--border);
     }
     /* Red tint for all clear buttons */
     .btn-danger{background:rgba(239,68,68,.08);color:#dc2626;border:1px solid rgba(239,68,68,.2);}
     .btn-danger:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);}
     [data-theme=dark] .btn-danger{background:rgba(248,113,113,.08);color:#f87171;border:1px solid rgba(248,113,113,.2);}
-    [data-theme=dark] .btn-danger:hover{background:rgba(248,113,113,.15);}      
-    #loader {      
-      position: fixed;      
-      inset: 0;      
-      background: rgba(0,0,0,.25);      
-      backdrop-filter: blur(2px);      
-      display: none;      
-      align-items: center;      
-      justify-content: center;      
-      z-index: 500;      
-    }      
-    #loader.show {      
-      display: flex;      
-    }      
-    .ld-card {      
-      background: var(--surface);      
-      border-radius: 16px;      
-      padding: 28px 36px;      
-      display: flex;      
-      flex-direction: column;      
-      align-items: center;      
-      gap: 14px;      
-      box-shadow: var(--shadow-lg);      
-    }      
-    .spin {      
-      width: 32px;      
-      height: 32px;      
-      border: 3px solid var(--border);      
-      border-top-color: var(--accent);      
-      border-radius: 50%;      
-      animation: sp 650ms linear infinite;      
-    }      
-    @keyframes sp {      
-      to { transform: rotate(360deg); }      
-    }      
-    .ld-card p {      
-      font-size: 13.5px;      
-      color: var(--text2);      
-      font-weight: 500;      
-    }      
-    #toast {      
-      position: fixed;      
-      bottom: 20px;      
-      left: 50%;      
-      transform: translateX(-50%) translateY(100px);      
-      background: var(--surface);      
-      border: 1px solid var(--border);      
-      border-radius: var(--radius);      
-      padding: 11px 16px;      
-      display: flex;      
-      align-items: center;      
-      gap: 8px;      
-      font-size: 12.5px;      
-      font-weight: 500;      
-      box-shadow: var(--shadow-lg);      
-      opacity: 0;      
-      transition: all 280ms ease;      
-      z-index: 600;      
-    }      
-    #toast.show {      
-      opacity: 1;      
-      transform: translateX(-50%) translateY(0);      
-    }      
-    #toast.ok {      
-      color: #16a34a;      
-      border-color: #16a34a;      
-    }      
-    #toast.err {      
-      color: #d64545;      
-      border-color: #d64545;      
-    }      
-    #toast.info {      
-      color: var(--accent);      
-      border-color: var(--accent);      
-    }      
-    #finputs {      
-      display: none;      
-    }      
-    @media(max-width:768px) {      
-      .fg.c3 { grid-template-columns: 1fr; }      
-      .field.s2, .field.s3 { grid-column: span 1; }      
-      .pg { grid-template-columns: repeat(2, 1fr); }      
-      .stepper { grid-template-columns: repeat(2, 1fr); }      
+    [data-theme=dark] .btn-danger:hover{background:rgba(248,113,113,.15);}
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.25);
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+    }
+    #loader.show {
+      display: flex;
+    }
+    .ld-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 28px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow-lg);
+    }
+    .spin {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: sp 650ms linear infinite;
+    }
+    @keyframes sp {
+      to { transform: rotate(360deg); }
+    }
+    .ld-card p {
+      font-size: 13.5px;
+      color: var(--text2);
+      font-weight: 500;
+    }
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      opacity: 0;
+      transition: all 280ms ease;
+      z-index: 600;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.ok {
+      color: #16a34a;
+      border-color: #16a34a;
+    }
+    #toast.err {
+      color: #d64545;
+      border-color: #d64545;
+    }
+    #toast.info {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    #finputs {
+      display: none;
+    }
+    /* ── Page Jumpers ── */
+    .page-jumper{position:fixed;right:16px;z-index:9000;display:flex;flex-direction:column;gap:8px;transition:opacity .3s ease,transform .3s ease;}
+    .page-jumper{bottom:80px;}
+    .pj-btn{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:all .25s cubic-bezier(.4,0,.2,1);outline:none;background:var(--accent);color:#fff;}
+    .pj-btn:hover{transform:scale(1.12);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+    .pj-btn:active{transform:scale(.95);}
+    .pj-btn:focus{box-shadow:0 0 0 3px var(--accent-s),0 4px 14px rgba(0,0,0,.2);}
+    .pj-btn.hidden{opacity:0;pointer-events:none;transform:translateY(12px);}
+
+    @media(max-width:768px) {
+      .fg.c3 { grid-template-columns: 1fr; }
+      .field.s2, .field.s3 { grid-column: span 1; }
+      .pg { grid-template-columns: repeat(2, 1fr); }
+      .stepper { grid-template-columns: repeat(2, 1fr); }
       .mode-btns{flex-wrap:wrap;}
       .mode-btn{flex:1 1 calc(50% - 3px);}
-    }      
+    }
 
   /* ── Custom Calendar Picker ── */
   .date-trigger {
@@ -497,13 +503,14 @@
   .cs-arr { color: var(--text3); display: flex; align-items: center; transition: transform 0.25s; }
   .cs-trigger.active .cs-arr { transform: rotate(180deg); }
   .cs-opts {
-    position: fixed; z-index: 9999;
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 9999;
     background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-height: 220px; overflow-y: auto;
-    opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+    opacity: 0; pointer-events: none; transition: opacity 0.18s ease, transform 0.18s ease;
+    transform: translateY(-4px);
   }
   [data-theme=dark] .cs-opts { background: #222220; border-color: #3a3a38; }
-  .cs-opts.open { opacity: 1; pointer-events: all; }
+  .cs-opts.open { opacity: 1; pointer-events: all; transform: translateY(0); }
   .cs-opt { padding: 11px 14px; font-size: 14px; color: var(--text); cursor: pointer; transition: background 0.12s; border-bottom: 1px solid var(--border); }
   .cs-opt:last-child { border-bottom: none; }
   .cs-opt:hover { background: var(--surface2); font-weight: 500; }
@@ -520,9 +527,9 @@
   .modal-btn-cancel:hover { background:var(--border); }
   .modal-btn-ok { background:#ef4444; color:#fff; }
   .modal-btn-ok:hover { opacity:0.88; }
-  </style>      
-</head>      
-<body>      
+  </style>
+</head>
+<body>
 <div class="modal-overlay" id="alcModalOverlay">
   <div class="modal-box" id="alcModalBox">
     <div class="modal-msg" id="alcModalMsg">Are you sure?</div>
@@ -533,47 +540,49 @@
   </div>
 </div>
 
-  <div id="toast"></div>      
-  <div id="loader"><div class="ld-card"><div class="spin"></div><p>Processing...</p></div></div>      
-  <div id="finputs"></div>      
-      
-  <div class="ph">      
-    <div>      
-      <div class="ph-title">Alcazar Warranty Claim Form</div>      
-      <div class="ph-sub">All processing happens in your browser — no data is sent anywhere</div>      
-    </div>      
-    <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>PPT Auto-fill</span>      
-  </div>      
-      
-  <div class="stepper">      
-    <div class="step active" id="st1">      
-      <div class="step-n" id="sn1">1</div>      
-      <div>      
-        <div class="step-t">Vehicle Info</div>      
-        <div class="step-s">Model, VIN, mileage</div>      
-      </div>      
-    </div>      
-    <div class="step inactive" id="st2">      
-      <div class="step-n" id="sn2">2</div>      
-      <div>      
-        <div class="step-t">Dealer &amp; Tech</div>      
-        <div class="step-s">Dealer, technician</div>      
-      </div>      
-    </div>      
-    <div class="step inactive" id="st3">      
-      <div class="step-n" id="sn3">3</div>      
-      <div>      
-        <div class="step-t">Condition</div>      
-        <div class="step-s">DTC, analysis</div>      
-      </div>      
-    </div>      
-    <div class="step inactive" id="st4">      
-      <div class="step-n" id="sn4">4</div>      
-      <div>      
-        <div class="step-t">Photos</div>      
-        <div class="step-s">Up to 6 images</div>      
-      </div>      
-    </div>      
+  <div id="toast"></div>
+  <div id="loader"><div class="ld-card"><div class="spin"></div><p>Processing...</p></div></div>
+  <div id="finputs"></div>
+
+  <div class="ph">
+    <div>
+      <div class="ph-title">Alcazar Warranty Claim Form</div>
+      <div class="ph-sub">All processing happens in your browser — no data is sent anywhere</div>
+    </div>
+    <span class="chip"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>PPT Auto-fill</span>
+  </div>
+
+  <div class="stepper-container">
+  <div class="stepper">
+    <div class="step active" id="st1">
+      <div class="step-n" id="sn1">1</div>
+      <div>
+        <div class="step-t">Vehicle Info</div>
+        <div class="step-s">Model, VIN, mileage</div>
+      </div>
+    </div>
+    <div class="step inactive" id="st2">
+      <div class="step-n" id="sn2">2</div>
+      <div>
+        <div class="step-t">Dealer &amp; Tech</div>
+        <div class="step-s">Dealer, technician</div>
+      </div>
+    </div>
+    <div class="step inactive" id="st3">
+      <div class="step-n" id="sn3">3</div>
+      <div>
+        <div class="step-t">Condition</div>
+        <div class="step-s">DTC, analysis</div>
+      </div>
+    </div>
+    <div class="step inactive" id="st4">
+      <div class="step-n" id="sn4">4</div>
+      <div>
+        <div class="step-t">Photos</div>
+        <div class="step-s">Up to 6 images</div>
+      </div>
+    </div>
+  </div>
   </div>
 
   <div class="mode-wrap">
@@ -587,47 +596,56 @@
         Saved Entries
       </button>
     </div>
-  </div>      
-      
+  </div>
+
   <!-- Form Content (hidden when history is shown) -->
   <div id="alc-formContent">
-  <div class="card">      
-    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicle Information</div>      
-    <div class="fg c3">      
-      <div class="field"><label>Model <span class="req">*</span></label><input type="text" id="f-model" placeholder="e.g. NEW CRETA D"></div>      
-      <div class="field"><label>VIN <span class="req">*</span></label><input type="text" id="f-vin" placeholder="17-char VIN" style="font-family:var(--mono);font-size:12.5px;"></div>      
-      <div class="field"><label>Mileage (km)</label><input type="text" id="f-mileage" placeholder="e.g. 19400"></div>      
+  <div class="card">
+    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="1" y="3" width="15" height="13" rx="1"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Vehicle Information</div>
+    <div class="fg c3">
+      <div class="field"><label>Model <span class="req">*</span></label>
+        <div class="cs-wrap" id="csw_f-model">
+          <div class="cs-trigger" id="cst_f-model" tabindex="0">
+            <span class="cs-val" id="csv_f-model" style="color:var(--text3);">Select Model…</span>
+            <span class="cs-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </div>
+          <div class="cs-opts" id="cso_f-model"></div>
+          <input type="hidden" id="f-model" value="">
+        </div>
+      </div>
+      <div class="field"><label>VIN <span class="req">*</span></label><input type="text" id="f-vin" placeholder="17-char VIN" style="font-family:var(--mono);font-size:12.5px;"></div>
+      <div class="field"><label>Mileage (km)</label><input type="text" id="f-mileage" placeholder="e.g. 19400"></div>
       <div class="field"><label>Production Date</label>
         <div class="date-wrap">
-          <div class="date-trigger" id="dt_f-proddate" tabindex="0">
-            <span class="dval empty" id="dv_f-proddate">Pick a date</span>
-            <span class="date-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
+          <div class="date-trigger" id="dt_f-proddate" tabindex="0" style="cursor:text;">
+            <input type="text" id="di_f-proddate" placeholder="DD/MM/YYYY or pick →" style="flex:1;border:none;background:transparent;font-size:13px;color:var(--text);outline:none;font-family:var(--font);width:100%;cursor:text;" tabindex="-1">
+            <span class="date-icon" id="dico_f-proddate" style="cursor:pointer;flex-shrink:0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span>
           </div>
           <div class="cal-pop" id="cp_f-proddate"></div>
           <input type="hidden" id="f-proddate" value="NA">
         </div>
-      </div>      
-      <div class="field"><label>RO Number</label><input type="text" id="f-ro" placeholder="e.g. R202206882"></div>      
-    </div>      
-  </div>      
-      
-  <div class="card">      
-    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Dealer &amp; Technician</div>      
-    <div class="fg c3">      
-      <div class="field"><label>Dealer Code</label><input type="text" id="f-dcode" value="N3235" placeholder="e.g. N3235"></div>      
-      <div class="field s2"><label>Dealer Name</label><input type="text" id="f-dname" value="Khanna Automart Pvt Ltd" placeholder="Full dealer name"></div>      
-      <div class="field"><label>Tech. Person Name</label><input type="text" id="f-tname" value="JAVED" placeholder="Technician name"></div>      
-      <div class="field"><label>Tech. Person Number</label><input type="text" id="f-tnum" value="8979040022" placeholder="Mobile number"></div>      
-      <div class="field"></div>      
-      <div class="field"><label>Causal Part No.</label><input type="text" id="f-cpno" placeholder="Part number" style="font-family:var(--mono);font-size:12.5px;"></div>      
-      <div class="field"><label>Causal Part Name</label><input type="text" id="f-cpname" placeholder="e.g. STARTER ASSY"></div>      
-    </div>      
-  </div>      
-      
-  <div class="card">      
-    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Fault Condition</div>      
-    <div class="fg c3">      
-      <div class="field"><label>DTC Code</label><input type="text" id="f-dtc" value="N/A" placeholder="e.g. N/A or P0XXX"></div>      
+      </div>
+      <div class="field"><label>RO Number</label><input type="text" id="f-ro" placeholder="e.g. R202206882"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Dealer &amp; Technician</div>
+    <div class="fg c3">
+      <div class="field"><label>Dealer Code</label><input type="text" id="f-dcode" value="N3235" placeholder="e.g. N3235"></div>
+      <div class="field s2"><label>Dealer Name</label><input type="text" id="f-dname" value="Khanna Automart Pvt Ltd" placeholder="Full dealer name"></div>
+      <div class="field"><label>Tech. Person Name</label><input type="text" id="f-tname" value="JAVED" placeholder="Technician name"></div>
+      <div class="field"><label>Tech. Person Number</label><input type="text" id="f-tnum" value="8979040022" placeholder="Mobile number"></div>
+      <div class="field"></div>
+      <div class="field"><label>Causal Part No.</label><input type="text" id="f-cpno" placeholder="Part number" style="font-family:var(--mono);font-size:12.5px;"></div>
+      <div class="field"><label>Causal Part Name</label><input type="text" id="f-cpname" placeholder="e.g. STARTER ASSY"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Fault Condition</div>
+    <div class="fg c3">
+      <div class="field"><label>DTC Code</label><input type="text" id="f-dtc" value="N/A" placeholder="e.g. N/A or P0XXX"></div>
       <div class="field"><label>Frequency</label>
         <div class="cs-wrap" id="csw_f-freq">
           <div class="cs-trigger" id="cst_f-freq" tabindex="0">
@@ -641,18 +659,18 @@
           </div>
           <input type="hidden" id="f-freq" value="CONTINOUSLY">
         </div>
-      </div>      
-      <div class="field"></div>      
-      <div class="field s3"><label>Concern Description</label><textarea id="f-concern" rows="2"></textarea></div>      
-      <div class="field s3"><label>Observations / Detailed Analysis</label><textarea id="f-obs" rows="5"></textarea></div>      
-    </div>      
-  </div>      
-      
-  <div class="card">      
-    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photo Evidence <span style="font-weight:400;color:var(--text3);font-size:12px;margin-left:4px;">(6 slots — click to upload)</span></div>      
-    <div class="pg" id="pgrid"></div>      
-  </div>      
-      
+      </div>
+      <div class="field"></div>
+      <div class="field s3"><label>Concern Description</label><textarea id="f-concern" rows="2"></textarea></div>
+      <div class="field s3"><label>Observations / Detailed Analysis</label><textarea id="f-obs" rows="5"></textarea></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photo Evidence <span style="font-weight:400;color:var(--text3);font-size:12px;margin-left:4px;">(6 slots — click to upload)</span></div>
+    <div class="pg" id="pgrid"></div>
+  </div>
+
   <div style="border-top:1px solid var(--border);margin-top:24px;padding:20px 0 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
     <span style="font-size:11.5px;color:var(--text3);" id="save-status"></span>
   </div>
@@ -677,8 +695,8 @@
     <input type="text" class="hist-search" id="alc-histSearch" placeholder="Search by VIN or Model..." autocomplete="off">
     <div class="hist-list" id="alc-histList"></div>
   </div>
-      
-  <script>      
+
+  <script>
 
     // ── Backup / Restore via postMessage ──
     window.addEventListener('message', (e) => {
@@ -708,10 +726,10 @@
         }
       }
     });
-      
-      
-    const SLOT_LABELS = ["Causal Part Photo", "Affected Parts Photo", "Photo Showing Defect", "Assembly Photo", "DTC Screenshot", "OK vs Defective Comparison"];      
-    const photoData = Array(6).fill(null);      
+
+
+    const SLOT_LABELS = ["Causal Part Photo", "Affected Parts Photo", "Photo Showing Defect", "Assembly Photo", "DTC Screenshot", "OK vs Defective Comparison"];
+    const photoData = Array(6).fill(null);
 
 
     // ── Custom Confirm Modal ──
@@ -790,9 +808,11 @@
           const act = e => {
           e.stopPropagation();
           const s = _CAL[el.dataset.cid]; s.date = new Date(s.year, s.month, parseInt(el.dataset.d));
+          const di = document.getElementById('di_'+el.dataset.cid);
           const dv = document.getElementById('dv_'+el.dataset.cid);
           const hid = document.getElementById(el.dataset.cid);
           const val = _fmtSlash(s.date);
+          if (di) di.value = val;
           if (dv) { dv.textContent = val; dv.classList.remove('empty'); }
           if (hid) { hid.value = val; hid.dispatchEvent(new Event('change')); }
           _closeAllCals(); _renderCal(el.dataset.cid);
@@ -826,10 +846,38 @@
       const t = new Date();
       _CAL[id] = {date:null,open:false,view:'days',year:t.getFullYear(),month:t.getMonth()};
       const dt = document.getElementById('dt_'+id);
+      const di = document.getElementById('di_'+id);
+      const ico = document.getElementById('dico_'+id);
+      // Icon click opens calendar
+      if (ico) {
+        ico.addEventListener('click', e => { e.stopPropagation(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id); });
+      }
+      // Trigger bar click focuses text input (if di exists) or opens cal
       if (dt) {
-        const dtAct = e => { e.stopPropagation(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id); };
-        dt.addEventListener('click', dtAct);
-        dt.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();dtAct(e);} });
+        dt.addEventListener('click', e => {
+          if (ico && ico.contains(e.target)) return; // handled by icon
+          if (di) di.focus();
+          else { e.stopPropagation(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id); }
+        });
+        dt.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault(); document.getElementById('cp_'+id)?.classList.contains('open') ? _closeAllCals() : _openCal(id);} });
+      }
+      // Manual text input wiring
+      if (di) {
+        di.addEventListener('input', () => {
+          const val = di.value.trim();
+          if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+            const p = val.split('/'); const d = new Date(+p[2],+p[1]-1,+p[0]);
+            if (!isNaN(d)) {
+              if (!_CAL[id]) _CAL[id] = {};
+              Object.assign(_CAL[id],{date:d,year:d.getFullYear(),month:d.getMonth(),view:'days'});
+              const hid = document.getElementById(id);
+              if (hid) { hid.value = val; hid.dispatchEvent(new Event('change')); }
+            }
+          }
+          scheduleSave(); updateSteps();
+        });
+        di.addEventListener('focus', () => { if(dt){ dt.style.borderColor='var(--accent)'; dt.style.boxShadow='0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent)'; } });
+        di.addEventListener('blur', () => { if(dt){ dt.style.borderColor=''; dt.style.boxShadow=''; } });
       }
     }
     function _setCalToday(id) {
@@ -837,15 +885,24 @@
       if (!_CAL[id]) _CAL[id] = {date:null,open:false,view:'days',year:t.getFullYear(),month:t.getMonth()};
       if (!_CAL[id].date) {
         _CAL[id].date = t; _CAL[id].year = t.getFullYear(); _CAL[id].month = t.getMonth();
+        const di = document.getElementById('di_'+id);
         const dv = document.getElementById('dv_'+id);
         const hid = document.getElementById(id);
         const val = _fmtSlash(t);
+        if (di) di.value = val;
         if (dv) { dv.textContent = val; dv.classList.remove('empty'); }
         if (hid) hid.value = val;
       }
     }
     document.addEventListener('click', () => { _closeAllCals(); if(typeof _closeAllDropdowns==='function') _closeAllDropdowns(); });
-    window.addEventListener('scroll', () => { _closeAllCals(); if(typeof _closeAllDropdowns==='function') _closeAllDropdowns(); }, true);
+    window.addEventListener('scroll', (e) => {
+      _closeAllCals();
+      // Don't close dropdown if scrolling inside it
+      if (typeof _closeAllDropdowns==='function') {
+        const openOpts = document.querySelector('.cs-opts.open');
+        if (!openOpts || !openOpts.contains(e.target)) _closeAllDropdowns();
+      }
+    }, true);
     window.addEventListener('resize', () => { _closeAllCals(); if(typeof _closeAllDropdowns==='function') _closeAllDropdowns(); });
     // ── End Calendar Logic ──
 
@@ -867,10 +924,6 @@
         _closeAllDropdowns();
         _closeAllCals();
         if (!isOpen) {
-          const rect = trig.getBoundingClientRect();
-          optsEl.style.top = (rect.bottom + 4) + 'px';
-          optsEl.style.left = rect.left + 'px';
-          optsEl.style.width = rect.width + 'px';
           optsEl.classList.add('open');
           trig.classList.add('active');
         }
@@ -893,84 +946,142 @@
     }
     // ── End Custom Select ──
 
-          
-    document.addEventListener("DOMContentLoaded", () => {      
-      _initCal('f-proddate');
-      _setCalToday('f-proddate');
+
+    // ── Hyundai Model List ──
+    const HYUNDAI_MODELS = [
+      'Hyundai Creta Electric','Hyundai Alcazar','Hyundai Creta','Hyundai Exter',
+      'Hyundai Verna','Hyundai Ioniq 5','Hyundai Tucson','Hyundai i20 N Line',
+      'Hyundai i20','Hyundai Venue N Line','Hyundai Venue','Hyundai Aura',
+      'Hyundai Grand i10 NIOS','Hyundai Grand i10','Hyundai i10','Hyundai Xcent',
+      'Hyundai Elite i20','Hyundai Active i20','Hyundai Santro','Hyundai Santro Xing',
+      'Hyundai Eon','Hyundai Accent','Hyundai Elantra','Hyundai Sonata','Hyundai Santa Fe'
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Init model dropdown
+      const modelOptsEl = document.getElementById('cso_f-model');
+      if (modelOptsEl) {
+        modelOptsEl.innerHTML = HYUNDAI_MODELS.map(m => `<div class="cs-opt" data-val="${m}">${m}</div>`).join('');
+      }
+      _initCS('f-model', HYUNDAI_MODELS.map(m => ({val:m})));
+      // Override default val — no pre-select for model
+      const modelHid = document.getElementById('f-model');
+      const modelVal = document.getElementById('csv_f-model');
+      if (modelHid) modelHid.value = '';
+      if (modelVal) { modelVal.textContent = 'Select Model…'; modelVal.style.color = 'var(--text3)'; }
+
       _initCS('f-freq', [{val:'CONTINOUSLY'},{val:'INTERMITTENT'},{val:'ONCE'}]);
-      buildGrid();      
-      buildFileInputs();      
-      const restored = restoreFormData();      
-      restorePhotos();      
-      if (restored) setSaveStatus("Draft restored");      
-      FIELD_IDS.forEach(id => {      
-        const el = document.getElementById(id);      
-        if (!el) return;      
-        el.addEventListener("input", () => { scheduleSave(); updateSteps(); });      
-        el.addEventListener("change", () => { scheduleSave(); updateSteps(); });      
-      });      
-      updateSteps();      
-    });      
-      
-    function buildGrid() {      
-      const g = document.getElementById("pgrid");      
-      g.innerHTML = "";      
-      SLOT_LABELS.forEach((lbl, i) => {      
-        const s = document.createElement("div");      
-        s.className = "pslot";      
-        s.id = "s" + i;      
-        s.innerHTML = `<svg class="slot-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="slot-lbl">${lbl}</span><div class="ov"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div><div class="slot-rm" onclick="rmPhoto(event,${i})"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>`;      
-        s.addEventListener("click", e => { if (!e.target.closest(".slot-rm")) document.getElementById("fi" + i).click(); });      
-        g.appendChild(s);      
-      });      
-    }      
-      
-    function buildFileInputs() {      
-      const c = document.getElementById("finputs");      
-      c.innerHTML = "";      
-      for (let i = 0; i < 6; i++) {      
-        const inp = document.createElement("input");      
-        inp.type = "file";      
-        inp.accept = "image/*";      
-        inp.id = "fi" + i;      
-        inp.addEventListener("change", e => {      
-          const f = e.target.files[0];      
-          if (!f) return;      
-          const r = new FileReader();      
-          r.onload = ev => {      
-            photoData[i] = { b64: ev.target.result, name: f.name };      
-            updateSlot(i);      
-            updateSteps();      
-            savePhotos();      
-          };      
-          r.readAsDataURL(f);      
-          e.target.value = "";      
-        });      
-        c.appendChild(inp);      
-      }      
-    }      
-      
-    function updateSlot(i) {      
-      const s = document.getElementById("s" + i);      
-      if (!s) return;      
-      const old = s.querySelector("img");      
-      if (old) old.remove();      
-      if (photoData[i]) {      
-        s.classList.add("filled");      
-        const img = document.createElement("img");      
-        img.src = photoData[i].b64;      
-        s.insertBefore(img, s.firstChild);      
-      } else s.classList.remove("filled");      
-    }      
-      
-    function rmPhoto(e, i) {      
-      e.stopPropagation();      
-      photoData[i] = null;      
-      updateSlot(i);      
-      updateSteps();      
-      savePhotos();      
-    }      
-      
+      _initCal('f-proddate');
+      buildGrid();
+      buildFileInputs();
+      const restored = restoreFormData();
+      restorePhotos();
+      if (restored) setSaveStatus("Draft restored");
+      FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", () => { scheduleSave(); updateSteps(); });
+        el.addEventListener("change", () => { scheduleSave(); updateSteps(); });
+      });
+      updateSteps();
+
+      // ── Page Jumpers (AGM pattern) ──
+      (function(){
+        const jumperHTML=`<div class="page-jumper" id="pageJumper">
+          <button class="pj-btn hidden" id="pjTop" title="Go to top" tabindex="0" aria-label="Scroll to top">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button class="pj-btn hidden" id="pjBottom" title="Go to bottom" tabindex="0" aria-label="Scroll to bottom">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', jumperHTML);
+        const topBtn=document.getElementById('pjTop');
+        const botBtn=document.getElementById('pjBottom');
+        let hideTimer=null;
+        function showJumpers(){
+          const scrollTop=window.scrollY||document.documentElement.scrollTop;
+          const scrollHeight=document.documentElement.scrollHeight;
+          const clientHeight=window.innerHeight;
+          const isScrollable=scrollHeight>clientHeight+50;
+          const nearTop=scrollTop<120;
+          const nearBottom=scrollTop+clientHeight>scrollHeight-120;
+          topBtn.classList.toggle('hidden',nearTop||!isScrollable);
+          botBtn.classList.toggle('hidden',nearBottom||!isScrollable);
+        }
+        function scheduleHide(){
+          clearTimeout(hideTimer);
+          hideTimer=setTimeout(()=>{topBtn.classList.add('hidden');botBtn.classList.add('hidden');},2000);
+        }
+        function onScroll(){showJumpers();scheduleHide();}
+        window.addEventListener('scroll',onScroll,{passive:true});
+        window.addEventListener('resize',()=>{showJumpers();},{passive:true});
+        setTimeout(showJumpers,300);
+        topBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+        botBtn.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
+        [topBtn,botBtn].forEach(b=>b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click();}}));
+      })();
+    });
+
+    function buildGrid() {
+      const g = document.getElementById("pgrid");
+      g.innerHTML = "";
+      SLOT_LABELS.forEach((lbl, i) => {
+        const s = document.createElement("div");
+        s.className = "pslot";
+        s.id = "s" + i;
+        s.innerHTML = `<svg class="slot-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="slot-lbl">${lbl}</span><div class="ov"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div><div class="slot-rm" onclick="rmPhoto(event,${i})"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>`;
+        s.addEventListener("click", e => { if (!e.target.closest(".slot-rm")) document.getElementById("fi" + i).click(); });
+        g.appendChild(s);
+      });
+    }
+
+    function buildFileInputs() {
+      const c = document.getElementById("finputs");
+      c.innerHTML = "";
+      for (let i = 0; i < 6; i++) {
+        const inp = document.createElement("input");
+        inp.type = "file";
+        inp.accept = "image/*";
+        inp.id = "fi" + i;
+        inp.addEventListener("change", e => {
+          const f = e.target.files[0];
+          if (!f) return;
+          const r = new FileReader();
+          r.onload = ev => {
+            photoData[i] = { b64: ev.target.result, name: f.name };
+            updateSlot(i);
+            updateSteps();
+            savePhotos();
+          };
+          r.readAsDataURL(f);
+          e.target.value = "";
+        });
+        c.appendChild(inp);
+      }
+    }
+
+    function updateSlot(i) {
+      const s = document.getElementById("s" + i);
+      if (!s) return;
+      const old = s.querySelector("img");
+      if (old) old.remove();
+      if (photoData[i]) {
+        s.classList.add("filled");
+        const img = document.createElement("img");
+        img.src = photoData[i].b64;
+        s.insertBefore(img, s.firstChild);
+      } else s.classList.remove("filled");
+    }
+
+    function rmPhoto(e, i) {
+      e.stopPropagation();
+      photoData[i] = null;
+      updateSlot(i);
+      updateSteps();
+      savePhotos();
+    }
+
     async function clearPhotos() {
       if (!(await alcConfirm('Clear all photos?', 'Clear'))) return;
       for (let i = 0; i < 6; i++) {
@@ -980,22 +1091,22 @@
       updateSteps();
       savePhotos();
       toast("Photos cleared", "info");
-    }      
-      
-    function updateSteps() {      
-      const c = [v("f-model") && v("f-vin"), v("f-dcode") || v("f-dname"), v("f-obs"), photoData.some(p => p !== null)];      
-      c.forEach((done, i) => {      
-        const st = document.getElementById("st" + (i + 1)), sn = document.getElementById("sn" + (i + 1));      
-        st.className = "step " + (done ? "done" : i === 0 ? "active" : "inactive");      
-        sn.innerHTML = done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : (i + 1);      
-      });      
-    }      
-      
-    function v(id) {      
-      const el = document.getElementById(id);      
-      return el ? el.value.trim() : "";      
-    }      
-      
+    }
+
+    function updateSteps() {
+      const c = [v("f-model") && v("f-vin"), v("f-dcode") || v("f-dname"), v("f-obs"), photoData.some(p => p !== null)];
+      c.forEach((done, i) => {
+        const st = document.getElementById("st" + (i + 1)), sn = document.getElementById("sn" + (i + 1));
+        st.className = "step " + (done ? "done" : i === 0 ? "active" : "inactive");
+        sn.innerHTML = done ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : (i + 1);
+      });
+    }
+
+    function v(id) {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : "";
+    }
+
     const DEFAULTS = {
       "f-model": "",
       "f-vin": "",
@@ -1011,27 +1122,32 @@
       "f-dtc": "N/A",
       "f-concern": "",
       "f-obs": ""
-    };      
-      
+    };
+
     async function resetForm() {
       if (!(await alcConfirm('Reset all fields to defaults?', 'Reset'))) return;
-      Object.entries(DEFAULTS).forEach(([id, val]) => {      
-        const el = document.getElementById(id);      
-        if (el) el.value = val;      
-      });      
+      Object.entries(DEFAULTS).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      });
+      // Reset model dropdown
+      const modelCsv = document.getElementById('csv_f-model');
+      if (modelCsv) { modelCsv.textContent = 'Select Model…'; modelCsv.style.color = 'var(--text3)'; }
       // Reset calendar display
       if (_CAL['f-proddate']) Object.assign(_CAL['f-proddate'], {date:null,view:'days',year:new Date().getFullYear(),month:new Date().getMonth()});
+      const diProd = document.getElementById('di_f-proddate');
+      if (diProd) diProd.value = '';
       const dv = document.getElementById('dv_f-proddate');
       if (dv) { dv.textContent = 'Pick a date'; dv.classList.add('empty'); }
       document.getElementById("f-freq").value = "CONTINOUSLY";
       const _csv = document.getElementById("csv_f-freq"); if(_csv) _csv.textContent = "CONTINUOUSLY";
       document.querySelectorAll("#cso_f-freq .cs-opt").forEach(o => o.classList.toggle("selected", o.dataset.val==="CONTINOUSLY"));
-      updateSteps();      
-      toast("Form reset", "info");      
-    }      
-      
-    const FIELD_IDS = ["f-model", "f-vin", "f-mileage", "f-proddate", "f-ro", "f-dcode", "f-dname", "f-tname", "f-tnum", "f-cpno", "f-cpname", "f-dtc", "f-concern", "f-obs", "f-freq"];      
-    const SAVE_KEY = "od_form_v1";      
+      updateSteps();
+      toast("Form reset", "info");
+    }
+
+    const FIELD_IDS = ["f-model", "f-vin", "f-mileage", "f-proddate", "f-ro", "f-dcode", "f-dname", "f-tname", "f-tnum", "f-cpno", "f-cpname", "f-dtc", "f-concern", "f-obs", "f-freq"];
+    const SAVE_KEY = "od_form_v1";
     const PHOTO_KEY = "od_photos_v1";
 
     // ── Saved Entries History ──
@@ -1098,16 +1214,21 @@
         if (!el) return;
         if (entry[id] !== undefined) {
           el.value = entry[id];
+          // Sync model dropdown display
+          if (id === 'f-model' && entry[id]) {
+            const csv = document.getElementById('csv_f-model');
+            if (csv) { csv.textContent = entry[id]; csv.style.color = ''; }
+          }
           // Handle date calendar sync
           if (id === 'f-proddate' && entry[id] && entry[id] !== 'NA') {
-            const parts = entry[id].split('-');
+            const di = document.getElementById('di_f-proddate');
+            if (di) di.value = entry[id];
+            const parts = entry[id].split('/');
             if (parts.length === 3) {
               const d = new Date(+parts[2], +parts[1]-1, +parts[0]);
               if (!isNaN(d)) {
                 if (!_CAL[id]) _CAL[id] = {};
                 Object.assign(_CAL[id], {date:d, year:d.getFullYear(), month:d.getMonth(), view:'days'});
-                const dv = document.getElementById('dv_'+id);
-                if (dv) { dv.textContent = entry[id]; dv.classList.remove('empty'); }
               }
             }
           }
@@ -1161,189 +1282,257 @@
       const srch = document.getElementById('alc-histSearch');
       if (srch) srch.addEventListener('input', () => alcRenderHistory(srch.value));
     });
-    // ── End Saved Entries History ──      
-      
-    let saveTimer;      
-    function scheduleSave() {      
-      clearTimeout(saveTimer);      
-      saveTimer = setTimeout(saveFormData, 600);      
-    }      
-      
-    function saveFormData() {      
-      const data = {};      
-      FIELD_IDS.forEach(id => {      
-        const el = document.getElementById(id);      
-        if (el) data[id] = el.value;      
-      });      
-      try {      
-        localStorage.setItem(SAVE_KEY, JSON.stringify(data));      
-        setSaveStatus("Saved " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));      
-      } catch (e) {}      
-    }      
-      
-    function restoreFormData() {      
-      try {      
-        const raw = localStorage.getItem(SAVE_KEY);      
-        if (!raw) return false;      
-        const data = JSON.parse(raw);      
-        FIELD_IDS.forEach(id => {      
-          const el = document.getElementById(id);      
-          if (el && data[id] !== undefined) el.value = data[id];      
-        });      
-        return true;      
-      } catch (e) {      
-        return false;      
-      }      
-    }      
-      
+    // ── End Saved Entries History ──
+
+    let saveTimer;
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveFormData, 600);
+    }
+
+    function saveFormData() {
+      const data = {};
+      FIELD_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) data[id] = el.value;
+      });
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+        setSaveStatus("Saved " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      } catch (e) {}
+    }
+
+    function restoreFormData() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        FIELD_IDS.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && data[id] !== undefined) {
+            el.value = data[id];
+            // Sync model dropdown display
+            if (id === 'f-model' && data[id]) {
+              const csv = document.getElementById('csv_f-model');
+              if (csv) { csv.textContent = data[id]; csv.style.color = ''; }
+            }
+            // Sync proddate di_ display
+            if (id === 'f-proddate' && data[id] && data[id] !== 'NA') {
+              const di = document.getElementById('di_f-proddate');
+              if (di) di.value = data[id];
+              const parts = data[id].split('/');
+              if (parts.length === 3) {
+                const d = new Date(+parts[2],+parts[1]-1,+parts[0]);
+                if (!isNaN(d)) {
+                  if (!_CAL['f-proddate']) _CAL['f-proddate'] = {};
+                  Object.assign(_CAL['f-proddate'],{date:d,year:d.getFullYear(),month:d.getMonth(),view:'days'});
+                }
+              }
+            }
+          }
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
     async function clearSavedData() {
       if (!(await alcConfirm('Clear all saved data?', 'Yes, Clear'))) return;
       try {
         localStorage.removeItem(SAVE_KEY);
         localStorage.removeItem(PHOTO_KEY);
       } catch (e) {}
+      // Reset fields to defaults
+      Object.entries(DEFAULTS).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      });
+      // Reset model dropdown display
+      const csv = document.getElementById('csv_f-model');
+      if (csv) { csv.textContent = 'Select Model…'; csv.style.color = 'var(--text3)'; }
+      const modelHid = document.getElementById('f-model');
+      if (modelHid) modelHid.value = '';
+      // Reset date
+      if (_CAL['f-proddate']) Object.assign(_CAL['f-proddate'], {date:null,view:'days',year:new Date().getFullYear(),month:new Date().getMonth()});
+      const di = document.getElementById('di_f-proddate');
+      if (di) di.value = '';
+      const dv = document.getElementById('dv_f-proddate');
+      if (dv) { dv.textContent = 'Pick a date'; dv.classList.add('empty'); }
+      const prodHid = document.getElementById('f-proddate');
+      if (prodHid) prodHid.value = 'NA';
+      // Reset freq dropdown
+      const freqHid = document.getElementById('f-freq');
+      const freqCsv = document.getElementById('csv_f-freq');
+      if (freqHid) freqHid.value = 'CONTINOUSLY';
+      if (freqCsv) freqCsv.textContent = 'CONTINUOUSLY';
+      document.querySelectorAll('#cso_f-freq .cs-opt').forEach(o => o.classList.toggle('selected', o.dataset.val === 'CONTINOUSLY'));
+      // Clear photos
+      for (let i = 0; i < 6; i++) { photoData[i] = null; updateSlot(i); }
+      updateSteps();
       setSaveStatus("Cleared");
       setTimeout(() => setSaveStatus(""), 2000);
-      toast("Saved data cleared", "info");
-    }      
-      
-    function setSaveStatus(msg) {      
-      const el = document.getElementById("save-status");      
-      if (el) el.textContent = msg;      
-    }      
-      
-    function savePhotos() {      
-      try {      
-        localStorage.setItem(PHOTO_KEY, JSON.stringify(photoData));      
-      } catch (e) {}      
-    }      
-      
-    function restorePhotos() {      
-      try {      
-        const raw = localStorage.getItem(PHOTO_KEY);      
-        if (!raw) return;      
-        const saved = JSON.parse(raw);      
-        if (Array.isArray(saved) && saved.length === 6) {      
-          saved.forEach((p, i) => {      
-            photoData[i] = p;      
-            updateSlot(i);      
-          });      
-        }      
-      } catch (e) {}      
-    }      
-      
-    let tt;      
-    function toast(msg, type) {      
-      const icons = {      
-        ok: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',      
-        err: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',      
-        info: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'      
-      };      
-      const el = document.getElementById("toast");      
-      el.className = "show " + (type || "info");      
-      el.innerHTML = (icons[type] || icons.info) + msg;      
-      clearTimeout(tt);      
-      tt = setTimeout(() => { el.className = ""; }, 3500);      
-    }      
-      
-    function showLoader(s) {      
-      document.getElementById("loader").className = s ? "show" : "";      
-    }      
-      
-    async function applyForm() {      
+      toast("Form cleared", "info");
+    }
+
+    function setSaveStatus(msg) {
+      const el = document.getElementById("save-status");
+      if (el) el.textContent = msg;
+    }
+
+    function savePhotos() {
+      try {
+        localStorage.setItem(PHOTO_KEY, JSON.stringify(photoData));
+      } catch (e) {}
+    }
+
+    function restorePhotos() {
+      try {
+        const raw = localStorage.getItem(PHOTO_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved) && saved.length === 6) {
+          saved.forEach((p, i) => {
+            photoData[i] = p;
+            updateSlot(i);
+          });
+        }
+      } catch (e) {}
+    }
+
+    let tt;
+    function toast(msg, type) {
+      const icons = {
+        ok: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',
+        err: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+        info: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+      };
+      const el = document.getElementById("toast");
+      el.className = "show " + (type || "info");
+      el.innerHTML = (icons[type] || icons.info) + msg;
+      clearTimeout(tt);
+      tt = setTimeout(() => { el.className = ""; }, 3500);
+    }
+
+    function showLoader(s) {
+      document.getElementById("loader").className = s ? "show" : "";
+    }
+
+    async function applyForm() {
       const model = v("f-model"), vin = v("f-vin");
-      const mEl = document.getElementById('f-model');
+      const mTrig = document.getElementById('cst_f-model');
       const vEl = document.getElementById('f-vin');
       const valMsg = document.getElementById('alc-valMsg');
       const valTxt = document.getElementById('alc-valText');
       let hasErr = false;
-      if (!model) { mEl.style.borderColor='#ef4444'; mEl.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)'; hasErr=true; }
-      else { mEl.style.borderColor=''; mEl.style.boxShadow=''; }
-      if (!vin) { vEl.style.borderColor='#ef4444'; vEl.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)'; hasErr=true; }
-      else { vEl.style.borderColor=''; vEl.style.boxShadow=''; }
+      const missing = [];
+
+      if (!model) {
+        if (mTrig) { mTrig.style.borderColor='#ef4444'; mTrig.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)'; }
+        missing.push('Model'); hasErr = true;
+      } else {
+        if (mTrig) { mTrig.style.borderColor=''; mTrig.style.boxShadow=''; }
+      }
+      if (!vin) {
+        if (vEl) { vEl.style.borderColor='#ef4444'; vEl.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)'; }
+        missing.push('VIN'); hasErr = true;
+      } else {
+        if (vEl) { vEl.style.borderColor=''; vEl.style.boxShadow=''; }
+      }
+      if (!photoData.some(p => p !== null)) {
+        missing.push('At least 1 Photo');
+        hasErr = true;
+        document.getElementById('pgrid')?.scrollIntoView({behavior:'smooth', block:'center'});
+      }
       if (hasErr) {
-        const missing = [];
-        if (!model) missing.push('Model');
-        if (!vin) missing.push('VIN');
         if (valTxt) valTxt.textContent = 'Please fill required fields: ' + missing.join(', ');
         if (valMsg) { valMsg.style.display='flex'; valMsg.scrollIntoView({behavior:'smooth',block:'nearest'}); }
         return;
       }
-      if (valMsg) valMsg.style.display='none';
-      const btn = document.getElementById("applyBtn");      
-      btn.disabled = true;      
-      showLoader(true);      
-      
-      try { 
-        // 1. Verify Template Exists     
-        if (typeof window.TEMPLATE_B64 === "undefined") {
-          throw new Error("Template not found! Ensure ppt-template.js is properly uploaded and linked.");
+      if (valMsg) valMsg.style.display = 'none';
+
+      const btn = document.getElementById("applyBtn");
+      btn.disabled = true;
+      showLoader(true);
+
+      try {
+        // Load JSZip if needed
+        if (typeof JSZip === 'undefined') {
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+          });
         }
 
-        // 2. Load the base64 string into JSZip
+        // Load TEMPLATE_B64 — must be injected into page via ppt-template.js
+        if (typeof window.TEMPLATE_B64 === 'undefined') {
+          throw new Error("Template not loaded. Make sure ppt-template.js is served alongside this file and contains: window.TEMPLATE_B64 = \"<base64>\"");
+        }
+
         const zip = await JSZip.loadAsync(window.TEMPLATE_B64, { base64: true });
-        
-        // 3. Define the template mapping. 
-        // Ensure your PPT file contains these exact "{{KEY}}" strings.
+
         const fields = {
-          "{{MODEL}}": v("f-model"),
-          "{{VIN}}": v("f-vin"),
-          "{{MILEAGE}}": v("f-mileage"),
-          "{{PROD_DATE}}": v("f-proddate"),
-          "{{RO_NUMBER}}": v("f-ro"),
-          "{{D_CODE}}": v("f-dcode"),
-          "{{D_NAME}}": v("f-dname"),
-          "{{T_NAME}}": v("f-tname"),
-          "{{T_NUM}}": v("f-tnum"),
-          "{{CP_NO}}": v("f-cpno"),
-          "{{CP_NAME}}": v("f-cpname"),
-          "{{DTC}}": v("f-dtc"),
-          "{{FREQ}}": v("f-freq"),
-          "{{CONCERN}}": v("f-concern"),
-          "{{OBS}}": v("f-obs")
+          "{{MODEL}}":     v("f-model"),
+          "{{VIN}}":       v("f-vin"),
+          "{{MILEAGE}}":   v("f-mileage") || "N/A",
+          "{{PROD_DATE}}": v("f-proddate") || "N/A",
+          "{{RO_NUMBER}}": v("f-ro") || "N/A",
+          "{{D_CODE}}":    v("f-dcode"),
+          "{{D_NAME}}":    v("f-dname"),
+          "{{T_NAME}}":    v("f-tname"),
+          "{{T_NUM}}":     v("f-tnum"),
+          "{{CP_NO}}":     v("f-cpno") || "N/A",
+          "{{CP_NAME}}":   v("f-cpname") || "N/A",
+          "{{DTC}}":       v("f-dtc") || "N/A",
+          "{{FREQ}}":      v("f-freq"),
+          "{{CONCERN}}":   v("f-concern") || "N/A",
+          "{{OBS}}":       v("f-obs") || "N/A"
         };
 
-        // 4. Inject Text fields into slide XML files
-        const slideFiles = Object.keys(zip.files).filter(f => f.startsWith("ppt/slides/slide") && f.endsWith(".xml"));
-        
+        // Inject text fields — ALL xml files in ppt/slides/
+        const slideFiles = Object.keys(zip.files).filter(f =>
+          f.match(/^ppt\/slides\/slide\d+\.xml$/)
+        );
+        if (slideFiles.length === 0) {
+          throw new Error("No slide XML files found in template. Verify the PPTX structure.");
+        }
         for (const file of slideFiles) {
           let content = await zip.file(file).async("string");
-          
           for (const [key, val] of Object.entries(fields)) {
-            // Encode XML entities to prevent file corruption
-            const safeVal = (val || "N/A").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            const safeVal = String(val || "N/A")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&apos;");
+            // Replace even when PowerPoint splits placeholder across runs
             content = content.split(key).join(safeVal);
           }
-          
           zip.file(file, content);
         }
 
-        // 5. Inject Images into the template
-        const mediaFiles = Object.keys(zip.files).filter(f => f.startsWith("ppt/media/image"));
-        
-        // Sort them numerically so image1, image2, etc., match your form slots
-        mediaFiles.sort((a, b) => {
-          const mA = a.match(/\d+/);
-          const mB = b.match(/\d+/);
-          return (mA ? parseInt(mA[0]) : 0) - (mB ? parseInt(mB[0]) : 0);
-        });
-
+        // Inject photos
+        const mediaFiles = Object.keys(zip.files)
+          .filter(f => /^ppt\/media\/image\d+\.(jpg|jpeg|png|gif|bmp)$/i.test(f))
+          .sort((a, b) => {
+            const na = parseInt(a.match(/\d+/)?.[0] || 0);
+            const nb = parseInt(b.match(/\d+/)?.[0] || 0);
+            return na - nb;
+          });
         for (let i = 0; i < 6; i++) {
           if (photoData[i] && mediaFiles[i]) {
-            // Strip the base64 prefix (e.g. "data:image/jpeg;base64,")
             const b64Data = photoData[i].b64.split(",")[1];
             zip.file(mediaFiles[i], b64Data, { base64: true });
           }
         }
 
-        // 6. Generate and Download - FIXED MIME TYPE HERE
-        const blob = await zip.generateAsync({ 
+        const blob = await zip.generateAsync({
           type: "blob",
-          mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" // Forces it to be a PPTX
+          mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         });
-        
         const fname = `Alcazar_${vin}_${Date.now()}.pptx`;
-        
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = fname;
@@ -1351,17 +1540,17 @@
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-      
-        toast("PPT template generated successfully", "ok");
+
+        toast("PPT generated successfully", "ok");
         alcSaveHistory();
-      } catch (err) {      
-        toast("Export error: " + err.message, "err");      
-        console.error(err);      
-      } finally {      
-        showLoader(false);      
-        btn.disabled = false;      
-      }      
-    }      
-  </script>      
-</body>      
+      } catch (err) {
+        toast("Export error: " + err.message, "err");
+        console.error("applyForm error:", err);
+      } finally {
+        showLoader(false);
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
 </html>
