@@ -1141,49 +1141,77 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       zip.file(sp,shXml);
     }
 
-    // ── PHOTO INJECTION ──
-    // Replace existing image files directly in xl/media/
-    // drawing XML and rels are preserved — we just swap the bytes
+    // ── PHOTO INJECTION + PLACEHOLDER REMOVAL ──
+    // For uploaded photos: replace media bytes in xl/media/
+    // For missing photos: remove the anchor from drawing XML + its relationship entry
 
     const photoMap=[
-      // PHOTOS sheet (drawing1) — photo_1..10 → image1..10.jpeg
-      {key:'photo_1',   file:'image1.jpeg'},
-      {key:'photo_2',   file:'image2.jpeg'},
-      {key:'photo_3',   file:'image3.jpeg'},
-      {key:'photo_4',   file:'image4.jpeg'},
-      {key:'photo_5',   file:'image5.jpeg'},
-      {key:'photo_6',   file:'image6.jpeg'},
-      {key:'photo_7',   file:'image7.jpeg'},
-      {key:'photo_8',   file:'image8.jpeg'},
-      {key:'photo_9',   file:'image9.jpeg'},
-      {key:'photo_10',  file:'image10.jpeg'},
-      // INVOICE sheet (drawing2) — pic3=image11, pic4=image12, pwa=image14
-      {key:'invoice_pic3', file:'image11.jpeg'},
-      {key:'invoice_pic4', file:'image12.jpeg'},
-      {key:'invoice_pwa',  file:'image14.jpeg'},
-      // NDMS sheet (drawing3) — ndms_pic1=image13
-      {key:'ndms_pic1', file:'image13.jpeg'},
+      // drawing1 — photo_1..10 → rId1..rId10 → image1..10.jpeg
+      {key:'photo_1',   file:'image1.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId1'},
+      {key:'photo_2',   file:'image2.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId2'},
+      {key:'photo_3',   file:'image3.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId3'},
+      {key:'photo_4',   file:'image4.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId4'},
+      {key:'photo_5',   file:'image5.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId5'},
+      {key:'photo_6',   file:'image6.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId6'},
+      {key:'photo_7',   file:'image7.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId7'},
+      {key:'photo_8',   file:'image8.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId8'},
+      {key:'photo_9',   file:'image9.jpeg',  drawing:'xl/drawings/drawing1.xml', rId:'rId9'},
+      {key:'photo_10',  file:'image10.jpeg', drawing:'xl/drawings/drawing1.xml', rId:'rId10'},
+      // drawing2 — invoice pics
+      {key:'invoice_pic3', file:'image11.jpeg', drawing:'xl/drawings/drawing2.xml', rId:'rId1'},
+      {key:'invoice_pic4', file:'image12.jpeg', drawing:'xl/drawings/drawing2.xml', rId:'rId2'},
+      {key:'ndms_pic1',    file:'image13.jpeg', drawing:'xl/drawings/drawing2.xml', rId:'rId3'},
+      // drawing3 — PWA screen
+      {key:'invoice_pwa',  file:'image14.jpeg', drawing:'xl/drawings/drawing3.xml', rId:'rId1'},
     ];
 
+    // Collect which rIds to remove per drawing (those with no uploaded photo)
+    const drawingRemovals={}; // drawingPath → Set of rIds to remove
+    for(const {key,drawing,rId} of photoMap){
+      const photo=PHOTOS[key];
+      if(!photo||!photo.dataUrl){
+        if(!drawingRemovals[drawing]) drawingRemovals[drawing]=new Set();
+        drawingRemovals[drawing].add(rId);
+      }
+    }
+
+    // Inject uploaded photos
     for(const {key,file} of photoMap){
       const photo=PHOTOS[key];
-      if(!photo||!photo.dataUrl)continue;
+      if(!photo||!photo.dataUrl) continue;
       const bytes=dataUrlToBytes(photo.dataUrl);
       const mime=mimeFromDataUrl(photo.dataUrl);
       const ext=extFromMime(mime);
-      // Replace with correct extension — if different from .jpeg, update file name
-      // But since drawing rels point to specific filenames, keep original filename and just replace bytes
       zip.file(`xl/media/${file}`,bytes);
-
-      // If uploaded image is png/webp, also update content_types if needed
       if(ext!=='jpg'){
         const ctPath='[Content_Types].xml';
         let ct=await zip.files[ctPath].async('string');
-        const extUpper=ext;
-        if(!ct.includes(`Extension="${extUpper}"`)){
-          ct=ct.replace('</Types>',`<Default Extension="${extUpper}" ContentType="${mime}"/></Types>`);
+        if(!ct.includes(`Extension="${ext}"`)){
+          ct=ct.replace('</Types>',`<Default Extension="${ext}" ContentType="${mime}"/></Types>`);
           zip.file(ctPath,ct);
         }
+      }
+    }
+
+    // Remove anchors for missing photos from drawing XML + their rels entries
+    for(const [drawingPath, ridsToRemove] of Object.entries(drawingRemovals)){
+      // --- Drawing XML: strip twoCellAnchor blocks that reference any removed rId ---
+      let dXml=await zip.files[drawingPath].async('string');
+      dXml=dXml.replace(/<xdr:twoCellAnchor[\s\S]*?<\/xdr:twoCellAnchor>/g,anchor=>{
+        const ridMatch=anchor.match(/r:embed="([^"]+)"/);
+        if(ridMatch&&ridsToRemove.has(ridMatch[1])) return '';
+        return anchor;
+      });
+      zip.file(drawingPath,dXml);
+
+      // --- Drawing rels: strip Relationship entries for removed rIds ---
+      const relsPath=drawingPath.replace('xl/drawings/','xl/drawings/_rels/')+ '.rels';
+      if(zip.files[relsPath]){
+        let rXml=await zip.files[relsPath].async('string');
+        for(const rId of ridsToRemove){
+          rXml=rXml.replace(new RegExp(`<Relationship[^>]*Id="${rId}"[^>]*/>`,'g'),'');
+        }
+        zip.file(relsPath,rXml);
       }
     }
 
@@ -1441,8 +1469,9 @@ function replaceVehHistoryXml(shXml, data){
 
   const topBtn=document.getElementById('pjTop');
   const botBtn=document.getElementById('pjBottom');
+  let hideTimer=null;
 
-  function updateJumpers(){
+  function showJumpers(){
     const scrollTop=window.scrollY||document.documentElement.scrollTop;
     const scrollHeight=document.documentElement.scrollHeight;
     const clientHeight=window.innerHeight;
@@ -1453,9 +1482,30 @@ function replaceVehHistoryXml(shXml, data){
     botBtn.classList.toggle('hidden',nearBottom||!isScrollable);
   }
 
-  window.addEventListener('scroll',updateJumpers,{passive:true});
-  window.addEventListener('resize',updateJumpers,{passive:true});
-  setTimeout(updateJumpers,500);
+  function scheduleHide(){
+    clearTimeout(hideTimer);
+    hideTimer=setTimeout(()=>{
+      topBtn.classList.add('hidden');
+      botBtn.classList.add('hidden');
+    },2000);
+  }
+
+  function onScroll(){
+    showJumpers();
+    scheduleHide();
+  }
+
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',()=>{showJumpers();scheduleHide();},{passive:true});
+  // Start hidden — only appear on scroll
+  setTimeout(()=>{
+    const scrollHeight=document.documentElement.scrollHeight;
+    const clientHeight=window.innerHeight;
+    if(scrollHeight<=clientHeight+50){
+      topBtn.classList.add('hidden');
+      botBtn.classList.add('hidden');
+    }
+  },500);
 
   topBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
   botBtn.addEventListener('click',()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'smooth'}));
