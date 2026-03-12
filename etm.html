@@ -188,11 +188,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
 .modal-btn-ok:hover,.modal-btn-ok:focus{opacity:.9;box-shadow:0 0 0 3px rgba(239,68,68,.2);}
 
 /* ── Page Jumpers ── */
-.pj{position:fixed;right:16px;width:36px;height:36px;border-radius:50%;background:var(--accent-bg);color:var(--accent-text);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:900;}
-.pj.vis{opacity:1;pointer-events:all;}
-.pj:hover{opacity:.85;}
-#pjTop{bottom:66px;}
-#pjBot{bottom:20px;}
+.page-jumper{position:fixed;right:16px;bottom:80px;z-index:9000;display:flex;flex-direction:column;gap:8px;}
+.pj{width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:all .25s cubic-bezier(.4,0,.2,1);outline:none;background:var(--accent-bg);color:var(--accent-text);opacity:0;pointer-events:none;transform:translateY(12px);}
+.pj:hover{transform:scale(1.12);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+.pj:active{transform:scale(.95);}
+.pj:focus{box-shadow:0 0 0 3px var(--focus-ring),0 4px 14px rgba(0,0,0,.2);}
+.pj.vis{opacity:1;pointer-events:all;transform:translateY(0);}
 
 /* ── Date field with manual input ── */
 .date-wrap{display:flex;gap:5px;align-items:flex-start;}
@@ -207,7 +208,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   .card-header,.mode-wrap,.form-section,.actions,.history-wrap{padding-left:14px;padding-right:14px;}
   .photo-grid{grid-template-columns:1fr;}
   .stepper{grid-template-columns:1fr 1fr;padding-left:14px;padding-right:14px;}
-  #pjTop{bottom:72px;}#pjBot{bottom:26px;}
+  .page-jumper{right:10px;bottom:70px;}
 }
 </style>
 </head>
@@ -223,8 +224,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg-page);color:var(--text-m
   </div>
 </div>
 
+<div class="page-jumper" id="pageJumper">
 <button id="pjTop" class="pj" title="Back to top" aria-label="Scroll to top"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>
 <button id="pjBot" class="pj" title="Go to bottom" aria-label="Scroll to bottom"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+</div>
 
 <div class="card">
   <div class="card-header">
