@@ -986,29 +986,33 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
      'hmil_share_pct_part','dealer_share_pct_part','customer_share_pct_part',
      'hmil_share_pct_labour','dealer_share_pct_labour','customer_share_pct_labour'].forEach(id=>data[id]=get(id));
 
-    // NDMS — pre-calculate all sharing amounts so formula cells get real values (no #VALUE! errors)
+    // NDMS — pre-calculate sharing amounts; use null so blank inputs produce blank cells
     {
-      const pTotal=parseFloat(data.part_total_cost_with_tax)||0;
-      const lTotal=parseFloat(data.labour_total_cost_with_tax)||0;
+      const pTotalRaw=data.part_total_cost_with_tax;
+      const lTotalRaw=data.labour_total_cost_with_tax;
+      const pTotal=parseFloat(pTotalRaw)||0;
+      const lTotal=parseFloat(lTotalRaw)||0;
+      const hasP=!!(pTotalRaw&&pTotal);
+      const hasL=!!(lTotalRaw&&lTotal);
       const hPctP=parseFloat(data.hmil_share_pct_part)||0;
       const dPctP=parseFloat(data.dealer_share_pct_part)||0;
       const cPctP=parseFloat(data.customer_share_pct_part)||0;
       const hPctL=parseFloat(data.hmil_share_pct_labour)||0;
       const dPctL=parseFloat(data.dealer_share_pct_labour)||0;
       const cPctL=parseFloat(data.customer_share_pct_labour)||0;
-      // Part row amounts (Excel row 2: O2, Q2, S2)
-      data.ndms_hmil_amt_part   = +((pTotal*hPctP)/100).toFixed(2);
-      data.ndms_dealer_amt_part = +((pTotal*dPctP)/100).toFixed(2);
-      data.ndms_cust_amt_part   = +((pTotal*cPctP)/100).toFixed(2);
-      // Labour row amounts (Excel row 3: O3, Q3, S3)
-      data.ndms_hmil_amt_labour   = +((lTotal*hPctL)/100).toFixed(2);
-      data.ndms_dealer_amt_labour = +((lTotal*dPctL)/100).toFixed(2);
-      data.ndms_cust_amt_labour   = +((lTotal*cPctL)/100).toFixed(2);
-      // Grand total row (Excel row 4: M4, O4, Q4, S4)
-      data.ndms_grand_total      = +(pTotal+lTotal).toFixed(2);
-      data.ndms_grand_hmil_amt   = +(((pTotal*hPctP)+(lTotal*hPctL))/100).toFixed(2);
-      data.ndms_grand_dealer_amt = +(((pTotal*dPctP)+(lTotal*dPctL))/100).toFixed(2);
-      data.ndms_grand_cust_amt   = +(((pTotal*cPctP)+(lTotal*cPctL))/100).toFixed(2);
+      // Part sharing amounts — null if no part total entered
+      data.ndms_hmil_amt_part   = hasP ? +((pTotal*hPctP)/100).toFixed(2) : null;
+      data.ndms_dealer_amt_part = hasP ? +((pTotal*dPctP)/100).toFixed(2) : null;
+      data.ndms_cust_amt_part   = hasP ? +((pTotal*cPctP)/100).toFixed(2) : null;
+      // Labour sharing amounts — null if no labour total entered
+      data.ndms_hmil_amt_labour   = hasL ? +((lTotal*hPctL)/100).toFixed(2) : null;
+      data.ndms_dealer_amt_labour = hasL ? +((lTotal*dPctL)/100).toFixed(2) : null;
+      data.ndms_cust_amt_labour   = hasL ? +((lTotal*cPctL)/100).toFixed(2) : null;
+      // Grand totals — null if neither part nor labour entered
+      data.ndms_grand_total      = (hasP||hasL) ? +(pTotal+lTotal).toFixed(2) : null;
+      data.ndms_grand_hmil_amt   = (hasP||hasL) ? +(((pTotal*hPctP)+(lTotal*hPctL))/100).toFixed(2) : null;
+      data.ndms_grand_dealer_amt = (hasP||hasL) ? +(((pTotal*dPctP)+(lTotal*dPctL))/100).toFixed(2) : null;
+      data.ndms_grand_cust_amt   = (hasP||hasL) ? +(((pTotal*cPctP)+(lTotal*cPctL))/100).toFixed(2) : null;
     }
 
     // Veh History — per row — keys must match replaceVehHistoryXml lookup format sh${i}_*
@@ -1051,7 +1055,6 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
       // Replace in <t> tags (shared strings / text cells)
       xml=xml.replace(/<t([^>]*)>([^<]*\{[^<]*)<\/t>/g,(match,attrs,content)=>{
         const replaced=content.replace(/\{([^}]+)\}/g,(_,key)=>{
-          // For numeric fields in sharedStrings, still store as text (will be overridden in sheet XML)
           return xmlEsc((data[key]===undefined||data[key]===null)?'':data[key]);
         });
         return `<t${attrs}>${replaced}</t>`;
@@ -1078,24 +1081,24 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
     };
 
     // Extra pass: scan sheet XML and convert numeric-field cells from text→number
-    // Looks for <c ... t="s"><v>N</v></c> where shared string N was replaced with a numeric value
     const convertNumericCellsInSheet=(shXml, ssXmlAfter)=>{
-      // Build map: shared string index → resolved text value
       const ssMap={};
       let si=0;
       ssXmlAfter.replace(/<si>[\s\S]*?<\/si>/g,match=>{
         const tMatch=match.match(/<t[^>]*>([^<]*)<\/t>/);
-        if(tMatch) ssMap[si]=tMatch[1];
+        ssMap[si]=tMatch?tMatch[1]:'';
         si++;
         return match;
       });
-      // Now scan sheet XML for t="s" cells whose resolved value is purely numeric
       return shXml.replace(/<c\s([^>]*)t="s"([^>]*)>\s*<v>(\d+)<\/v>\s*<\/c>/g,(match,pre,post,idx)=>{
         const resolved=ssMap[parseInt(idx)];
-        if(resolved===undefined||resolved===null||resolved==='')return match;
+        // Blank cell when placeholder resolved to empty
+        if(resolved===''||resolved===undefined||resolved===null){
+          const attrs=(pre+post).replace(/\s*t="s"/g,'');
+          return `<c ${attrs}></c>`;
+        }
         const numVal=parseFloat(String(resolved).replace(/,/g,''));
         if(!isNaN(numVal)&&String(numVal)===String(resolved).trim()){
-          // It's a pure number — convert cell to numeric type (remove t="s", keep style s=)
           const attrs=(pre+post).replace(/\s*t="s"/g,'');
           return `<c ${attrs}><v>${numVal}</v></c>`;
         }
@@ -1218,142 +1221,143 @@ document.getElementById('btnInject').addEventListener('click',async()=>{
   finally{btnInject.disabled=false;btnInject.textContent='Generate XLSX';}
 });
 
-// ─── NDMS SHEET — INJECT CALCULATED VALUES + FIX % CELL DISPLAY ───
-// Excel sheet4 layout:
-//   Row 2: Part  — M2=part_total, N2=hmil_pct%(style39=date!), O2=hmil_amt(formula)...
-//   Row 3: Labour— M3=lab_total,  N3=hmil_pct%(style39), O3=hmil_amt(formula)...
-//   Row 4: Total — M4=formula, O4=formula, Q4=formula, S4=formula
-// BUG: style39 has numFmtId=14 (date format) → 80 displays as "8000%"
-// FIX: change % cells to style38 (General format, same fill/font) so 80 shows as plain 80
+// ─── NDMS SHEET — INJECT VALUES + FIX % CELL FORMAT ───
+// Excel sheet4 layout (NDMS):
+//   Row 2: Part   — M2=part_total, N2=hmil_pct, P2=dealer_pct, R2=cust_pct  (% input cells, s="38" = numFmtId=14 date — BUG)
+//                   O2=formula M2*N2%, Q2=formula M2*P2%, S2=formula M2*R2%
+//   Row 3: Labour — M3=labour_total, N3..R3 same pattern
+//   Row 4: Total  — M4=formula, O4=formula, Q4=formula, S4=formula
+// FIX: % input cells have s="38" (numFmtId=14, date format) → storing 80 displays as a date.
+//      Switch to s="37" (numFmtId=0, General, same font/fill/border) so 80 displays as "80".
+//      The Excel formulas =M2*N2% treat N2 as a plain number (80 → 80/100 = 0.8) — correct math.
 function replaceNDMSFormulaXml(shXml, data){
-  // Formula cells — replace with calculated numeric values
+  // % input cells: swap style 38 (date) → 37 (General), then inject plain number
+  const pctCells=new Set(['N2','P2','R2','N3','P3','R3']);
+  // Formula result cells: replace formula with computed value; blank if no input
   const formulaCellMap={
     'O2':'ndms_hmil_amt_part',   'Q2':'ndms_dealer_amt_part',   'S2':'ndms_cust_amt_part',
     'O3':'ndms_hmil_amt_labour', 'Q3':'ndms_dealer_amt_labour', 'S3':'ndms_cust_amt_labour',
-    'M4':'ndms_grand_total',     'O4':'ndms_grand_hmil_amt',    'Q4':'ndms_grand_dealer_amt', 'S4':'ndms_grand_cust_amt',
+    'M4':'ndms_grand_total',
+    'O4':'ndms_grand_hmil_amt',  'Q4':'ndms_grand_dealer_amt',  'S4':'ndms_grand_cust_amt',
   };
-  // Percentage INPUT cells — fix style from 39 (date fmt) to 38 (General) so display is correct
-  // These cells already get their value from convertNumericCellsInSheet (80 stored as number)
-  // but style39 makes Excel show 80 as "8000%" — change to style38 fixes display
-  const pctCells=new Set(['N2','P2','R2','N3','P3','R3']);
-
-  // Replace formula cells (t="e") with plain numbers
-  shXml=shXml.replace(/<c\s([^>]*)r="([A-Z]+\d+)"([^>]*)>(?:<f>[^<]*<\/f>)?<v>[^<]*<\/v><\/c>/g,(match,pre,ref,post)=>{
-    const key=formulaCellMap[ref];
-    if(key===undefined) return match;
-    const val=data[key];
-    if(val===undefined||val===null||val==='') return match;
-    const numVal=parseFloat(String(val));
-    if(isNaN(numVal)) return match;
-    const allAttrs=(pre+post).replace(/\s*t="[^"]*"/g,'').trim();
-    return `<c ${allAttrs} r="${ref}"><v>${numVal}</v></c>`;
-  });
-  // Fix percentage display cells: change s="39" → s="38" to avoid date-format glitch
-  shXml=shXml.replace(/<c\s([^>]*)r="([A-Z]+\d+)"([^>]*)/g,(match,pre,ref,post)=>{
-    if(!pctCells.has(ref)) return match;
-    const fixed=(pre+post).replace(/s="39"/g,'s="38"');
-    return `<c ${fixed} r="${ref}"`;
+  // Inject % input cells with corrected style
+  shXml=shXml.replace(/<c\s+r="([^"]+)"([^>]*)>[\s\S]*?<\/c>/g,(match,ref,attrs)=>{
+    if(pctCells.has(ref)){
+      const rawKey={N2:'hmil_share_pct_part',P2:'dealer_share_pct_part',R2:'customer_share_pct_part',
+                    N3:'hmil_share_pct_labour',P3:'dealer_share_pct_labour',R3:'customer_share_pct_labour'}[ref];
+      const rawVal=data[rawKey];
+      // Fix style: replace s="38" with s="37" (General format, same visual style)
+      const fixedAttrs=attrs.replace(/s="38"/g,'s="37"');
+      if(!rawVal&&rawVal!==0) return `<c r="${ref}"${fixedAttrs}></c>`;
+      const numVal=parseFloat(rawVal);
+      if(isNaN(numVal)) return `<c r="${ref}"${fixedAttrs}></c>`;
+      return `<c r="${ref}"${fixedAttrs}><v>${numVal}</v></c>`;
+    }
+    if(ref in formulaCellMap){
+      const val=data[formulaCellMap[ref]];
+      const sMatch=attrs.match(/\ss="(\d+)"/);
+      const sAttr=sMatch?` s="${sMatch[1]}"`:'';
+      if(val===undefined||val===null||val===''||val===0) return `<c r="${ref}"${sAttr}></c>`;
+      const numVal=parseFloat(String(val));
+      if(isNaN(numVal)) return `<c r="${ref}"${sAttr}></c>`;
+      return `<c r="${ref}"${sAttr}><v>${numVal}</v></c>`;
+    }
+    return match;
   });
   return shXml;
 }
 
-// ─── INVOICE SHEET — INJECT CALCULATED TOTALS INTO FORMULA CELLS ───
 // ─── INVOICE SHEET — FULL DIRECT INJECTION ───
-// Sheet3 exact cell layout (Estimation section, columns Q–W):
-//   Row 2:  Headers (SI No / Part No / Part Desc / List Price / Qty / Amt ex-tax / Total w-tax)
-//   Row 3:  Part row 1   → Q3=si_no_1, R3=part_number_1, S3=part_description_1,
-//                           T3=part_list_price_1, U3=part_qty_1, V3=part_amount_1, W3=V3*1.18
-//   Row 4:  Part row 2   → Q4=si_no_2, R4=part_number_2, S4=part_description_2,
-//                           T4=part_list_price_2, U4=part_qty_2, V4=part_amount_2, W4=V4*1.18
-//   Row 5:  Parts Total  → S5="Total Part Amount", V5=SUM(V3:V4), W5=SUM(W3:W4)
-//   Row 8:  Labour headers
-//   Row 9:  Labour row 1 → Q9=si_no_labour_1, R9=labour_code_1, S9=labour_description_1,
-//                           T9=labour_list_price_1, U9=labour_qty_1, V9=labour_amount_1, W9=V9*1.18
-//   Row 10: Labour row 2 → Q10=si_no_labour_2, R10=labour_code_2, S10=labour_description_2,
-//                           T10=labour_list_price_2, U10=labour_qty_2, V10=labour_amount_2, W10=V10*1.18
-//   Row 11: Labour Total → S11="Total Labour Amount", T11=SUM(V9:V10), W11=SUM(W9:W10)
-//   Row 12: Grand Total  → Q12="Total Amount", W12=W5+W11
-//
-// STRATEGY: bypass sharedStrings entirely for data cells — write inlineStr for text,
-//           plain <v> for numbers. Replace all formula cells with calculated values.
+// Actual Excel layout (Estimation section, columns Q–W):
+//   Row 2:  Part headers
+//   Row 3:  Part row 1   — Q3..V3 data, W3=formula V3*1.18
+//   Row 4:  Part row 2   — Q4..V4 data, W4=formula V4*1.18
+//   Row 5:  Parts subtotal  — V5=SUM(V3:V4), W5=SUM(W3:W4)
+//   Row 6:  Labour headers
+//   Row 7:  Labour row 1 — Q7..V7 data, W7=formula V7*1.18
+//   Row 8:  Labour row 2 — Q8..V8 data, W8=formula V8*1.18
+//   Row 9:  Labour subtotal — V9=SUM(V7:V8), W9=SUM(W7:W8)
+//   Row 10: Grand total   — W10=SUM(W5+W9)
 function replaceInvoiceFormulaXml(shXml, data){
   const xmlEsc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
   const n=k=>parseFloat(data[k]||0);
+  // Only treat a row as having data if both price and qty are entered
+  const p1HasData = !!(data.part_list_price_1&&data.part_qty_1);
+  const p2HasData = !!(data.part_list_price_2&&data.part_qty_2);
+  const l1HasData = !!(data.labour_list_price_1&&data.labour_qty_1);
+  const l2HasData = !!(data.labour_list_price_2&&data.labour_qty_2);
 
-  // Pre-calculate all values
-  const p1amt = +(n('part_list_price_1')*n('part_qty_1')).toFixed(2);
-  const p2amt = +(n('part_list_price_2')*n('part_qty_2')).toFixed(2);
-  const l1amt = +(n('labour_list_price_1')*n('labour_qty_1')).toFixed(2);
-  const l2amt = +(n('labour_list_price_2')*n('labour_qty_2')).toFixed(2);
-  const w3    = +(p1amt*1.18).toFixed(2);
-  const w4    = +(p2amt*1.18).toFixed(2);
-  const w9    = +(l1amt*1.18).toFixed(2);
-  const w10   = +(l2amt*1.18).toFixed(2);
-  const v5    = +(p1amt+p2amt).toFixed(2);
-  const w5    = +(w3+w4).toFixed(2);
-  const t11   = +(l1amt+l2amt).toFixed(2);
-  const w11   = +(w9+w10).toFixed(2);
-  const w12   = +(w5+w11).toFixed(2);
+  const p1amt = p1HasData ? +(n('part_list_price_1')*n('part_qty_1')).toFixed(2) : null;
+  const p2amt = p2HasData ? +(n('part_list_price_2')*n('part_qty_2')).toFixed(2) : null;
+  const l1amt = l1HasData ? +(n('labour_list_price_1')*n('labour_qty_1')).toFixed(2) : null;
+  const l2amt = l2HasData ? +(n('labour_list_price_2')*n('labour_qty_2')).toFixed(2) : null;
 
-  // Direct cell value map — text cells use inlineStr, number cells use plain <v>
-  // Format: [value, 'str'|'num', keep_original_style]
+  const w3  = p1amt!==null ? +(p1amt*1.18).toFixed(2) : null;
+  const w4  = p2amt!==null ? +(p2amt*1.18).toFixed(2) : null;
+  const w7  = l1amt!==null ? +(l1amt*1.18).toFixed(2) : null;
+  const w8  = l2amt!==null ? +(l2amt*1.18).toFixed(2) : null;
+
+  const partsAmtTotal  = (p1amt!==null||p2amt!==null) ? +((p1amt||0)+(p2amt||0)).toFixed(2) : null;
+  const partsTaxTotal  = (w3!==null||w4!==null) ? +((w3||0)+(w4||0)).toFixed(2) : null;
+  const labourAmtTotal = (l1amt!==null||l2amt!==null) ? +((l1amt||0)+(l2amt||0)).toFixed(2) : null;
+  const labourTaxTotal = (w7!==null||w8!==null) ? +((w7||0)+(w8||0)).toFixed(2) : null;
+  const grandTotal     = (partsTaxTotal!==null||labourTaxTotal!==null) ? +((partsTaxTotal||0)+(labourTaxTotal||0)).toFixed(2) : null;
+
+  // [value, 'str'|'num'] — null value means leave cell blank
   const cellMap={
     // Part row 1
-    'Q3':[data.si_no_1||'','str'],
-    'R3':[data.part_number_1||'','str'],
-    'S3':[data.part_description_1||'','str'],
-    'T3':[n('part_list_price_1'),'num'],
-    'U3':[n('part_qty_1'),'num'],
+    'Q3':[data.si_no_1||null,'str'],
+    'R3':[data.part_number_1||null,'str'],
+    'S3':[data.part_description_1||null,'str'],
+    'T3':[data.part_list_price_1?n('part_list_price_1'):null,'num'],
+    'U3':[data.part_qty_1?n('part_qty_1'):null,'num'],
     'V3':[p1amt,'num'],
     'W3':[w3,'num'],
     // Part row 2
-    'Q4':[data.si_no_2||'','str'],
-    'R4':[data.part_number_2||'','str'],
-    'S4':[data.part_description_2||'','str'],
-    'T4':[n('part_list_price_2'),'num'],
-    'U4':[n('part_qty_2'),'num'],
+    'Q4':[data.si_no_2||null,'str'],
+    'R4':[data.part_number_2||null,'str'],
+    'S4':[data.part_description_2||null,'str'],
+    'T4':[data.part_list_price_2?n('part_list_price_2'):null,'num'],
+    'U4':[data.part_qty_2?n('part_qty_2'):null,'num'],
     'V4':[p2amt,'num'],
     'W4':[w4,'num'],
-    // Parts total row
-    'V5':[v5,'num'],
-    'W5':[w5,'num'],
+    // Parts subtotal (W/O tax & with tax)
+    'V5':[partsAmtTotal,'num'],
+    'W5':[partsTaxTotal,'num'],
     // Labour row 1
-    'Q9':[data.si_no_labour_1||'','str'],
-    'R9':[data.labour_code_1||'','str'],
-    'S9':[data.labour_description_1||'','str'],
-    'T9':[n('labour_list_price_1'),'num'],
-    'U9':[n('labour_qty_1'),'num'],
-    'V9':[l1amt,'num'],
-    'W9':[w9,'num'],
+    'Q7':[data.si_no_labour_1||null,'str'],
+    'R7':[data.labour_code_1||null,'str'],
+    'S7':[data.labour_description_1||null,'str'],
+    'T7':[data.labour_list_price_1?n('labour_list_price_1'):null,'num'],
+    'U7':[data.labour_qty_1?n('labour_qty_1'):null,'num'],
+    'V7':[l1amt,'num'],
+    'W7':[w7,'num'],
     // Labour row 2
-    'Q10':[data.si_no_labour_2||'','str'],
-    'R10':[data.labour_code_2||'','str'],
-    'S10':[data.labour_description_2||'','str'],
-    'T10':[n('labour_list_price_2'),'num'],
-    'U10':[n('labour_qty_2'),'num'],
-    'V10':[l2amt,'num'],
-    'W10':[w10,'num'],
-    // Labour total row
-    'T11':[t11,'num'],
-    'W11':[w11,'num'],
-    // Grand total
-    'W12':[w12,'num'],
+    'Q8':[data.si_no_labour_2||null,'str'],
+    'R8':[data.labour_code_2||null,'str'],
+    'S8':[data.labour_description_2||null,'str'],
+    'T8':[data.labour_list_price_2?n('labour_list_price_2'):null,'num'],
+    'U8':[data.labour_qty_2?n('labour_qty_2'):null,'num'],
+    'V8':[l2amt,'num'],
+    'W8':[w8,'num'],
+    // Labour subtotal (W/O tax & with tax)
+    'V9':[labourAmtTotal,'num'],
+    'W9':[labourTaxTotal,'num'],
+    // Grand total (parts with tax + labour with tax)
+    'W10':[grandTotal,'num'],
   };
 
-  // Replace every cell in the map — handles t="s", t="e", or any type
   return shXml.replace(/<c\s+r="([^"]+)"([^>]*)>[\s\S]*?<\/c>/g,(match,ref,attrs)=>{
-    const entry=cellMap[ref];
-    if(!entry) return match;
-    const [val,type]=entry;
-    // Extract style attribute to preserve formatting
+    if(!(ref in cellMap)) return match;
+    const [val,type]=cellMap[ref];
     const sMatch=attrs.match(/\ss="(\d+)"/);
     const sAttr=sMatch?` s="${sMatch[1]}"`:'';
+    // Blank cell when no data entered
+    if(val===null||val===undefined||val==='') return `<c r="${ref}"${sAttr}></c>`;
     if(type==='str'){
-      const escaped=xmlEsc(String(val));
-      return `<c r="${ref}"${sAttr} t="inlineStr"><is><t>${escaped}</t></is></c>`;
+      return `<c r="${ref}"${sAttr} t="inlineStr"><is><t>${xmlEsc(String(val))}</t></is></c>`;
     } else {
-      const numVal=isNaN(val)||val===''?0:+val;
-      return `<c r="${ref}"${sAttr}><v>${numVal}</v></c>`;
+      return `<c r="${ref}"${sAttr}><v>${+val}</v></c>`;
     }
   });
 }
