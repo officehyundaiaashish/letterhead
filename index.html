@@ -572,10 +572,10 @@
         <div id="editor"></div>
         <iframe id="preview" allow="geolocation; microphone; camera; fullscreen; payment; clipboard-read; clipboard-write"></iframe>
         <!-- Preview welcome overlay — shown when no project is loaded -->
-        <div id="preview-welcome" style="
+                <div id="preview-welcome" style="
             position:absolute;top:0;left:0;right:0;bottom:0;
             background:#10b981;
-            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            display:none;flex-direction:column;align-items:center;justify-content:center;
             z-index:25;padding:28px;
         ">
             <div style="font-size:38px;font-weight:900;color:white;font-family:monospace;margin-bottom:8px;">&lt;/&gt;</div>
@@ -677,8 +677,8 @@
     <div style="display:flex; justify-content:space-between; align-items:center; color:var(--accent); font-weight:600; margin-bottom:10px; font-size:14px;">
         Find & Replace <span class="material-icons-round" onclick="toggleFindReplace()" style="opacity:0.6; cursor:pointer; font-size: 18px; pointer-events:auto;">close</span>
     </div>
-    <textarea id="find-input" class="no-select" placeholder="Paste exact code to find..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px;"></textarea>
-    <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px;"></textarea>
+        <textarea id="find-input" class="no-select" placeholder="Paste exact code to find..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px; font-family: 'Poppins', sans-serif;"></textarea>
+    <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px; font-family: 'Poppins', sans-serif;"></textarea>
     <div class="find-options">
         <label class="find-check-label"><input type="checkbox" id="find-case"> Case Sensitive</label>
         <label class="find-check-label"><input type="checkbox" id="find-regex"> Regex</label>
@@ -1225,80 +1225,21 @@
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => jumpers.classList.remove('visible'), 2000);
     });
+        function saveSession() {
+        if (typeof fileTabs !== 'undefined' && fileTabs.length > 0) {
+            let cur = fileTabs.find(t => t.id === activeTabId);
+            if(cur) cur.content = editor.getValue();
+            localStorage.setItem('codx_session', JSON.stringify({tabs: fileTabs, active: activeTabId, counter: tabIdCounter}));
+        }
+    }
+
     editor.session.on("change", function() {
         if(_changeDebounce) return;
-        _changeDebounce = setTimeout(() => { checkScrollable(); _changeDebounce = null; }, 250);
+        _changeDebounce = setTimeout(() => { checkScrollable(); saveSession(); _changeDebounce = null; }, 250);
     });
 
-    // ── STEP 9: Initial content — minimal green demo ──
-    _setEditorValueFast(`<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CodX</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    min-height: 100vh;
-    background: #10b981;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: system-ui, sans-serif;
-  }
-  .card {
-    background: rgba(0,0,0,0.15);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 20px;
-    padding: 36px 28px;
-    text-align: center;
-    max-width: 320px;
-    width: 88%;
-  }
-  .logo {
-    font-size: 32px;
-    font-weight: 900;
-    color: white;
-    font-family: monospace;
-    margin-bottom: 12px;
-  }
-  h1 {
-    font-size: 22px;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 8px;
-  }
-  p {
-    font-size: 13px;
-    color: rgba(255,255,255,0.7);
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-  .btn {
-    display: inline-block;
-    padding: 12px 28px;
-    background: white;
-    color: #10b981;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: system-ui, sans-serif;
-  }
-</style>
-</head>
-<body>
-<div class="card">
-  <div class="logo">&lt;/&gt;</div>
-  <h1>CodX Editor</h1>
-  <p>Write code, preview instantly,<br>sync with GitHub.</p>
-  <button class="btn" onclick="this.textContent='Ready!'">Get Started</button>
-</div>
-</body>
-</html>`);
-    _setEditorMode('index.html');
+    // ── STEP 9: Initial content ──
+    // Example code removed. Content is loaded later by the session manager.
 
     function customFastScroll(direction) {
         let startPos = editor.renderer.getScrollTop();
@@ -1402,8 +1343,7 @@
             }
         }
     }, {passive: true});
-        bottomPanel.addEventListener('touchend', (e) => {
-        if (_swipeRaf) cancelAnimationFrame(_swipeRaf);
+    bottomPanel.addEventListener('touchend', (e) => {
         _swipeRaf = null;
         bottomPanel.style.transition = '';
         if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) {
@@ -1489,12 +1429,20 @@
         }
     }
 
-    // --- MULTI-TAB SYSTEM ---
-    let fileTabs = [{ id: 1, name: 'index.html', content: editor.getValue() }];
-    let activeTabId = 1;
-    let tabIdCounter = 2;
+        // --- MULTI-TAB SYSTEM ---
+    let _savedSession = null;
+    try { _savedSession = JSON.parse(localStorage.getItem('codx_session')); } catch(e) {}
+    
+    let fileTabs = _savedSession && _savedSession.tabs ? _savedSession.tabs : [{ id: 1, name: 'index.html', content: '' }];
+    let activeTabId = _savedSession && _savedSession.active ? _savedSession.active : 1;
+    let tabIdCounter = _savedSession && _savedSession.counter ? _savedSession.counter : 2;
+
+    let initialTab = fileTabs.find(t => t.id === activeTabId) || fileTabs[0];
+    _setEditorValueFast(initialTab.content);
+    _setEditorMode(initialTab.name, initialTab.content);
 
     function renderFileTabs() {
+        if (typeof saveSession === 'function') saveSession();
         const bar = document.getElementById('file-tabs-bar');
         bar.innerHTML = '';
         fileTabs.forEach(tab => {
@@ -1611,15 +1559,15 @@
         if(match.isEmpty() && showErrorAlert) { cdAlert('Find', 'No exact match found.', 'warn'); editor.clearSelection(); } 
         else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); }
     }
-        function replaceText() { 
-        let replaceStr = document.getElementById('replace-input').value.replace(/\n$/, ''); let match = editor.getSelectionRange();
+            function replaceText() { 
+        let replaceStr = document.getElementById('replace-input').value.trim(); let match = editor.getSelectionRange();
         if(!match.isEmpty()) { 
-            editor.session.replace(match, replaceStr); 
-            let lines = replaceStr.split('\n');
-            match.end.row = match.start.row + lines.length - 1;
-            match.end.column = lines.length > 1 ? lines[lines.length - 1].length : match.start.column + replaceStr.length;
-            editor.selection.setRange(match);
-        } else { cdAlert('Replace', "Click 'Find Next' first.", 'info'); }
+            let start = match.start;
+            editor.replace(replaceStr); 
+            editor.selection.setSelectionRange({start: start, end: editor.getCursorPosition()});
+        } else { 
+            cdAlert('Replace', "Click 'Find Next' first.", 'info'); 
+        }
     }
     function clearFind() { document.getElementById('find-input').value = ''; document.getElementById('replace-input').value = ''; editor.clearSelection(); }
 
@@ -2705,13 +2653,10 @@ RULES (STRICT):
         if(toast) toast.remove();
     }
 
-    // ===== WELCOME SCREEN (first-launch only) =====
+        // ===== WELCOME SCREEN (first-launch only) =====
     (async function() {
-        const seen = await CodXStore.get('codx_welcomed', null);
-        if (!seen) {
-            const ws = document.getElementById('welcome-screen');
-            ws.classList.remove('hidden');
-        }
+        // Welcome screen bypassed. App defaults straight to the blank editor.
+        await CodXStore.set('codx_welcomed', '1');
     })();
     async function dismissWelcome() {
         const ws = document.getElementById('welcome-screen');
