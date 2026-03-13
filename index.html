@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no, viewport-fit=cover">
     
     <meta name="theme-color" id="theme-color-meta" content="#0a0a0c">
+    <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f0f2f5" media="(prefers-color-scheme: light)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>CodX Editor</title>
@@ -44,7 +46,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
-        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; }
         .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
@@ -73,21 +75,33 @@
         /* will-change: transform → own GPU layer, no repaint on slide */
         .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; contain: layout style; }
         .bottom-wrapper.collapsed { transform: translateY(100%); }
-        .bottom-area { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -5px 25px rgba(0,0,0,0.3); }
-        .drag-handle-area { width: 100%; height: 20px; display: flex; justify-content: center; align-items: center; }
+        .bottom-area { 
+            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
+            border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+            padding-bottom: max(env(safe-area-inset-bottom), 12px);
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.3); 
+        }
+        .drag-handle-area { width: 100%; height: 16px; display: flex; justify-content: center; align-items: center; }
         .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
-        
-        .cursor-nav { display: flex; overflow-x: auto; padding: 0 10px 5px 10px; gap: 8px; }
-        .cursor-nav::-webkit-scrollbar { display: none; }
-        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 12px; min-width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer;}
-        .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
-        .icon-btn .material-icons-round { font-size: 20px; pointer-events: none; }
 
-        .toolbar { display: flex; overflow-x: auto; gap: 15px; padding: 5px 15px 10px 15px; scroll-behavior: smooth; }
-        .toolbar::-webkit-scrollbar { display: none; }
-        .toolbar-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-color); opacity: 0.8; font-size: 10px; font-weight: 600; gap: 2px; flex-shrink: 0; width: 50px; cursor: pointer;}
-        .toolbar-btn .material-icons-round { font-size: 24px; padding: 8px; border-radius: 50%; pointer-events: none; }
-        .toolbar-btn:active .material-icons-round { background: var(--accent-dim); transform: scale(0.9); }
+        /* Cursor nav row — compact */
+        .cursor-nav { display: flex; overflow-x: auto; padding: 0 8px 4px 8px; gap: 5px; }
+        .cursor-nav::-webkit-scrollbar { display: none; }
+        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer;}
+        .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
+        .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
+
+        /* 3-row toolbar grid */
+        .toolbar-rows { display: flex; flex-direction: column; gap: 0; padding: 2px 8px 4px 8px; }
+        .toolbar-row { display: flex; justify-content: space-between; gap: 2px; }
+        .toolbar-btn { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: none; border: none; color: var(--text-color); opacity: 0.8; 
+            font-size: 9px; font-weight: 600; gap: 1px; flex: 1;
+            padding: 5px 2px; cursor: pointer; border-radius: 8px; min-width: 0;
+        }
+        .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
+        .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
 
         .restore-btn { position: absolute; bottom: 20px; right: 20px; background: var(--accent); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px var(--accent-dim); border: none; z-index: 30; opacity: 0; pointer-events: none; transform: scale(0.8); transition: var(--transition); }
         .restore-btn.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
@@ -529,7 +543,7 @@
             <div class="cursor-nav">
                 <button class="icon-btn" onclick="editor.gotoLine(1)"><span class="material-icons-round">vertical_align_top</span></button>
                 <button class="icon-btn" onclick="editor.gotoLine(editor.session.getLength())"><span class="material-icons-round">vertical_align_bottom</span></button>
-                <div style="width:1px; background:var(--glass-border); margin: 5px 0;"></div>
+                <div style="width:1px; background:var(--glass-border); margin: 4px 2px;"></div>
                 <button class="icon-btn" onclick="editor.navigateLineStart()"><span class="material-icons-round">first_page</span></button>
                 <button class="icon-btn" onclick="editor.navigateLineEnd()"><span class="material-icons-round">last_page</span></button>
                 <button class="icon-btn" onclick="editor.navigateLeft()"><span class="material-icons-round">arrow_back</span></button>
@@ -538,21 +552,31 @@
                 <button class="icon-btn" onclick="editor.navigateDown()"><span class="material-icons-round">arrow_downward</span></button>
             </div>
             
-            <div class="toolbar">
-                <button class="toolbar-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round">folder_open</span> Open</button>
-                <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_circle</span> New</button>
-                <button class="toolbar-btn" onclick="saveFile()"><span class="material-icons-round">save</span> Save</button>
-                <button class="toolbar-btn" onclick="saveFileToRepo()"><span class="material-icons-round">cloud_upload</span> Commit</button>
-                <button class="toolbar-btn" onclick="closeAllTabs()"><span class="material-icons-round">close</span> Close All</button>
-                <button class="toolbar-btn" onclick="editor.selectAll()"><span class="material-icons-round">select_all</span> All</button>
-                <button class="toolbar-btn" onclick="pasteClipboard()"><span class="material-icons-round">content_paste</span> Paste</button>
-                <button class="toolbar-btn" onclick="cutClipboard()"><span class="material-icons-round">content_cut</span> Cut</button>
-                <button class="toolbar-btn" onclick="copyClipboard()"><span class="material-icons-round">content_copy</span> Copy</button>
-                <button class="toolbar-btn" onclick="editorUndo()"><span class="material-icons-round">undo</span> Undo</button>
-                <button class="toolbar-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span> Redo</button>
-                <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">search</span> Find</button>
-                <button class="toolbar-btn" onclick="openGithubModal()"><span class="material-icons-round">cloud_sync</span> GitSync</button>
-                <button class="toolbar-btn" onclick="openAgentModal()"><span class="material-icons-round">smart_toy</span> Agent</button>
+            <div class="toolbar-rows">
+                <!-- Row 1: File operations -->
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round">folder_open</span>Open</button>
+                    <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_circle</span>New</button>
+                    <button class="toolbar-btn" onclick="saveFile()"><span class="material-icons-round">save</span>Save</button>
+                    <button class="toolbar-btn" onclick="saveFileToRepo()"><span class="material-icons-round">cloud_upload</span>Commit</button>
+                    <button class="toolbar-btn" onclick="closeAllTabs()"><span class="material-icons-round">tab_close</span>Close All</button>
+                </div>
+                <!-- Row 2: Edit operations -->
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="editorUndo()"><span class="material-icons-round">undo</span>Undo</button>
+                    <button class="toolbar-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span>Redo</button>
+                    <button class="toolbar-btn" onclick="editor.selectAll()"><span class="material-icons-round">select_all</span>All</button>
+                    <button class="toolbar-btn" onclick="copyClipboard()"><span class="material-icons-round">content_copy</span>Copy</button>
+                    <button class="toolbar-btn" onclick="cutClipboard()"><span class="material-icons-round">content_cut</span>Cut</button>
+                </div>
+                <!-- Row 3: Tools -->
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="pasteClipboard()"><span class="material-icons-round">content_paste</span>Paste</button>
+                    <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">search</span>Find</button>
+                    <button class="toolbar-btn" onclick="openGithubModal()"><span class="material-icons-round">cloud_sync</span>GitSync</button>
+                    <button class="toolbar-btn" onclick="openAgentModal()"><span class="material-icons-round">smart_toy</span>Agent</button>
+                    <button class="toolbar-btn" onclick="toggleTheme()"><span class="material-icons-round" id="theme-icon-tb">light_mode</span>Theme</button>
+                </div>
             </div>
         </div>
     </div>
@@ -817,8 +841,15 @@
 </div>
 
 <script>
-    document.body.style.height = window.innerHeight + 'px';
-    window.visualViewport.addEventListener('resize', () => {
+    // Use dynamic viewport height to avoid Chrome bottom bar clipping
+    function _setBodyHeight() {
+        const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        document.body.style.height = h + 'px';
+    }
+    _setBodyHeight();
+    window.visualViewport && window.visualViewport.addEventListener('resize', _setBodyHeight);
+    window.addEventListener('resize', _setBodyHeight);
+    window.visualViewport && window.visualViewport.addEventListener('resize', () => {
         let kbHeight = window.innerHeight - window.visualViewport.height;
         let activeModal = document.querySelector('.modal.active:not(#github-modal)');
         if (activeModal) { activeModal.style.bottom = kbHeight > 0 ? (kbHeight + 10) + 'px' : '20px'; }
@@ -1090,7 +1121,10 @@
         let isDark = document.body.classList.contains('dark-theme');
         document.body.className = isDark ? 'light-theme no-select' : 'dark-theme no-select';
         editor.setTheme(isDark ? "ace/theme/textmate" : "ace/theme/tomorrow_night_eighties");
-        document.getElementById('theme-icon').innerText = isDark ? 'dark_mode' : 'light_mode';
+        const iconName = isDark ? 'dark_mode' : 'light_mode';
+        document.getElementById('theme-icon').innerText = iconName;
+        const tbIcon = document.getElementById('theme-icon-tb');
+        if (tbIcon) tbIcon.innerText = iconName;
         document.getElementById('theme-color-meta').content = isDark ? '#f0f2f5' : '#0a0a0c';
     }
 
