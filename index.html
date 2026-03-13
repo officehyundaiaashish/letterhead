@@ -432,52 +432,54 @@
         .agent-provider-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
         .agent-provider-btn .provider-tag { font-size: 9px; opacity: 0.6; display: block; margin-top: 2px; }
 
-        /* ===== AI AGENT BAR (bottom, above panel) ===== */
+        /* ===== AGENT BAR — compact strip inside nav panel ===== */
         #agent-bar {
-            position: absolute; bottom: 0; left: 0; right: 0; z-index: 35;
-            background: var(--glass-bg); border-top: 1px solid var(--glass-border);
-            border-radius: var(--panel-round) var(--panel-round) 0 0;
-            padding: 10px 12px 12px; padding-bottom: env(safe-area-inset-bottom);
-            display: none; flex-direction: column; gap: 8px;
-            box-shadow: none;
-            
+            display: none; flex-direction: column; gap: 0;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass-bg);
         }
-         to { transform: translateY(0); opacity: 1; } }
         #agent-bar.visible { display: flex; }
-        .agent-bar-header { display: flex; align-items: center; justify-content: space-between; }
-        .agent-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent);  flex-shrink: 0; }
-         50%{ opacity:0.4; transform:scale(0.8); } }
-        .agent-input-row { display: flex; gap: 8px; align-items: flex-end; }
+        #agent-compact-row {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 10px;
+        }
+        .agent-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; flex-shrink: 0; transition: background 0.3s; }
         #agent-prompt {
-            flex: 1; padding: 10px 12px; border-radius: 12px;
+            flex: 1; padding: 7px 10px; border-radius: 10px;
             background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
-            color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
-            resize: none; min-height: 42px; max-height: 100px; overflow-y: auto; line-height: 1.4;
+            color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 12px;
+            resize: none; height: 34px; max-height: 90px; overflow-y: auto; line-height: 1.4;
             user-select: text; -webkit-user-select: text;
             transition: border-color 0.2s;
         }
         #agent-prompt:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-dim); }
         #agent-attach-btn, #agent-send-btn {
-            width: 42px; height: 42px; border-radius: 12px; border: none; flex-shrink: 0;
+            width: 34px; height: 34px; border-radius: 10px; border: none; flex-shrink: 0;
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             transition: transform 0.15s, opacity 0.15s;
         }
         #agent-attach-btn:active, #agent-send-btn:active { transform: scale(0.9); }
         #agent-attach-btn { background: rgba(128,128,128,0.12); color: var(--text-color); }
         #agent-send-btn { background: var(--accent); color: white; }
-        #agent-send-btn .material-icons-round, #agent-attach-btn .material-icons-round { font-size: 18px; pointer-events: none; }
+        #agent-send-btn .material-icons-round, #agent-attach-btn .material-icons-round { font-size: 16px; pointer-events: none; }
+        #agent-bar-label { font-size: 10px; font-weight: 700; color: var(--accent); white-space: nowrap; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+        #agent-close-btn { font-size: 16px; opacity: 0.4; cursor: pointer; pointer-events: auto; flex-shrink: 0; }
         #agent-thinking {
-            display: none; align-items: center; gap: 8px; font-size: 11px; color: var(--accent); font-weight: 600;
+            display: none; align-items: center; gap: 6px; font-size: 10px; color: var(--accent); font-weight: 600;
+            padding: 0 10px 5px;
         }
         #agent-thinking.visible { display: flex; }
-        .agent-dots span {
-            display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
-             margin-right: 2px;
-        }
+        .agent-dots span { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin-right: 2px; animation: agentBounce 0.8s infinite; }
         .agent-dots span:nth-child(2) { animation-delay: 0.2s; }
         .agent-dots span:nth-child(3) { animation-delay: 0.4s; }
-         40%{ transform:translateY(-4px); opacity:1; } }
-        #agent-file-input { display: none; }
+        @keyframes agentBounce { 0%,80%,100%{ transform:translateY(0); opacity:0.6; } 40%{ transform:translateY(-4px); opacity:1; } }
+        #agent-file-selector { padding: 0 10px 5px; }
+        #agent-file-select {
+            width:100%; padding:5px 8px; border-radius:7px;
+            background:rgba(0,0,0,0.25); border:1px solid var(--glass-border);
+            color:var(--text-color); font-family:Poppins,sans-serif; font-size:10px;
+            font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;
+        }
     </style>
 </head>
 <body class="dark-theme no-select">
@@ -585,6 +587,26 @@
 
     <div class="bottom-wrapper no-select" id="bottom-panel">
         <div class="bottom-area">
+            <!-- AGENT BAR — compact strip, sits at top of nav panel -->
+            <div id="agent-bar">
+                <div id="agent-file-selector" style="display:none;">
+                    <select id="agent-file-select" onchange="agentSelectFile(this.value)"></select>
+                </div>
+                <div id="agent-compact-row">
+                    <div class="agent-status-dot"></div>
+                    <span id="agent-bar-label">AI</span>
+                    <textarea id="agent-prompt" placeholder="Ask agent to edit code..." rows="1"></textarea>
+                    <button id="agent-attach-btn" onclick="document.getElementById('agent-file-input').click()">
+                        <span class="material-icons-round">attach_file</span>
+                    </button>
+                    <button id="agent-send-btn" onclick="sendAgentPrompt()">
+                        <span class="material-icons-round">send</span>
+                    </button>
+                    <span class="material-icons-round" id="agent-close-btn" onclick="closeAgentBar()">close</span>
+                </div>
+                <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
+            </div>
+
             <div class="drag-handle-area"><div class="drag-pill"></div></div>
 
             <!-- ROW 0: Cursor Navigation (scroll row) -->
@@ -835,36 +857,7 @@
     </div>
 </div>
 
-<!-- Agent Bar -->
-<div id="agent-bar">
-    <div class="agent-bar-header">
-        <div style="display:flex; align-items:center; gap:6px;">
-            <div class="agent-status-dot"></div>
-            <span style="font-size:11px; font-weight:600; color:var(--accent);" id="agent-bar-label">Agent</span>
-        </div>
-        <span class="material-icons-round" onclick="closeAgentBar()" style="font-size:18px; opacity:0.5; cursor:pointer; pointer-events:auto;">close</span>
-    </div>
-    <!-- File selector — shown only when multiple tabs are open -->
-    <div id="agent-file-selector" style="display:none; margin-bottom:6px;">
-        <select id="agent-file-select" style="
-            width:100%; padding:7px 10px; border-radius:8px;
-            background:rgba(0,0,0,0.25); border:1px solid var(--glass-border);
-            color:var(--text-color); font-family:Poppins,sans-serif; font-size:11px;
-            font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;
-        " onchange="agentSelectFile(this.value)">
-        </select>
-    </div>
-    <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
-    <div class="agent-input-row">
-        <textarea id="agent-prompt" placeholder="Describe what to change..." rows="1"></textarea>
-        <button id="agent-attach-btn" onclick="document.getElementById('agent-file-input').click()">
-            <span class="material-icons-round">attach_file</span>
-        </button>
-        <button id="agent-send-btn" onclick="sendAgentPrompt()">
-            <span class="material-icons-round">send</span>
-        </button>
-    </div>
-</div>
+
 
 <script>
     // Use dynamic viewport height to avoid Chrome bottom bar clipping
@@ -1994,12 +1987,13 @@
         bar.classList.add('visible');
         document.getElementById('agent-bar-label').textContent = agentConfig.providerName;
         _updateAgentFileSelector();
-        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform=''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); }
-        setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
-        // Add agent nav tab if not already present
+        // Expand nav panel so agent bar is visible inside it
+        _expandNav();
+        // Add nav tab indicator
         _addAgentNavTab();
-        // Ping model for online/offline status
+        // Show green dot immediately
         _pingAgentModel();
+        setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
     }
 
     function _addAgentNavTab() {
@@ -2022,19 +2016,10 @@
     async function _pingAgentModel() {
         const dot = document.getElementById('agent-nav-status');
         const barDot = document.querySelector('.agent-status-dot');
-        if(dot) { dot.style.background = '#f59e0b'; dot.title = 'Checking...'; }
-        if(barDot) barDot.style.background = '#f59e0b';
-        try {
-            // Send a minimal test prompt to verify the model is reachable
-            const testSystem = 'Reply with the single word: ok';
-            const testMsg = 'ok?';
-            await _callAgentAPI(testSystem, testMsg);
-            if(dot) { dot.style.background = '#10b981'; dot.title = 'Online'; }
-            if(barDot) barDot.style.background = '#10b981';
-        } catch(e) {
-            if(dot) { dot.style.background = '#ef4444'; dot.title = 'Offline / Error: ' + (e.message||''); }
-            if(barDot) barDot.style.background = '#ef4444';
-        }
+        // Key already validated by connectAgent() — if we got here, it's connected
+        // Just show green immediately; no need to burn tokens on a test call
+        if(dot) { dot.style.background = '#10b981'; dot.title = 'Connected · ' + (agentConfig.providerName || ''); }
+        if(barDot) barDot.style.background = '#10b981';
     }
     function closeAgentBar() {
         document.getElementById('agent-bar').classList.remove('visible');
@@ -2203,7 +2188,7 @@ RULES (STRICT):
             errEl.id = 'agent-inline-error';
             errEl.style.cssText = 'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:8px 10px;font-size:11px;color:#ef4444;font-weight:600;margin-bottom:4px;word-break:break-word;';
             errEl.textContent = '⚠ ' + errMsg;
-            const inputRow = bar.querySelector('.agent-input-row');
+            const inputRow = document.getElementById('agent-compact-row');
             bar.insertBefore(errEl, inputRow);
             setTimeout(() => { if(errEl.parentElement) errEl.remove(); }, 8000);
         } finally {
@@ -2288,7 +2273,7 @@ RULES (STRICT):
         actions.appendChild(dismissBtn); actions.appendChild(openAllBtn);
         review.appendChild(actions);
 
-        const inputRow = bar.querySelector('.agent-input-row');
+        const inputRow = document.getElementById('agent-compact-row');
         bar.insertBefore(review, inputRow);
     }
 
@@ -2344,7 +2329,7 @@ RULES (STRICT):
         review.appendChild(actions);
 
         // Insert before input row
-        const inputRow = bar.querySelector('.agent-input-row');
+        const inputRow = document.getElementById('agent-compact-row');
         bar.insertBefore(review, inputRow);
     }
 
@@ -2395,7 +2380,7 @@ RULES (STRICT):
         undoBtn.style.cssText = 'color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;margin-left:10px;';
         undoBtn.onclick = _agentUndo;
         toast.appendChild(undoBtn);
-        const inputRow = bar.querySelector('.agent-input-row');
+        const inputRow = document.getElementById('agent-compact-row');
         bar.insertBefore(toast, inputRow);
         // Auto-remove after 5s
         setTimeout(() => { if(toast.parentElement) toast.remove(); }, 5000);
