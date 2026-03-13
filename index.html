@@ -1521,10 +1521,214 @@
         }
     }
 
+    // ===== AGENT SYSTEM (moved before fileTabs to avoid TDZ errors) =====
+    let agentList = [];
+    let activeAgentIdx = 0;
+    let agentAttachment = null;
+    let _agentPendingEdits = [];
+    let _agentOriginalCode = '';
+    let _agentUndoStack = [];
+    const AGENT_UNDO_LIMIT = 20;
+    let _agentTargetTabId = null; // null = active tab, 'all' = all tabs
+    let _agentHistory = {}; // per-tab undo: {tabId:[{request,before,ts}]}
+
+    function _saveAgentList() {
+        localStorage.setItem('agent_list', JSON.stringify(agentList));
+        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
+    }
+
+    function _activeAgent() {
+        return agentList[activeAgentIdx] || null;
+    }
+
+    // Backwards compat: load old single agent_config OR new agent_list
+    (function() {
+        try {
+            const list = localStorage.getItem('agent_list');
+            if(list) { agentList = JSON.parse(list); }
+            else {
+                const old = localStorage.getItem('agent_config');
+                if(old) { agentList = [JSON.parse(old)]; _saveAgentList(); }
+            }
+            activeAgentIdx = parseInt(localStorage.getItem('agent_active_idx') || '0') || 0;
+            if(activeAgentIdx >= agentList.length) activeAgentIdx = 0;
+        } catch(e){}
+    })();
+
+    // Legacy compat shim
+    Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
+
+    function _addAgentNavTab() {
+        const bar = document.getElementById('file-tabs-bar');
+        if(document.getElementById('agent-nav-tab')) {
+            const lbl = document.querySelector('#agent-nav-tab .agent-nav-label');
+            if(lbl) lbl.textContent = _activeAgent()?.providerName||'AI';
+            return;
+        }
+        const tab = document.createElement('div');
+        tab.id = 'agent-nav-tab';
+        tab.className = 'file-tab';
+        tab.style.cssText = 'color:var(--accent);border-bottom-color:var(--accent);opacity:1;gap:4px;cursor:pointer;';
+        tab.innerHTML = `<span class="material-icons-round" style="font-size:13px;pointer-events:none">smart_toy</span><span class="agent-nav-label" style="pointer-events:none;font-size:11px;">${_activeAgent()?.providerName||'AI'}</span><span id="agent-nav-status" style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;margin-left:1px;flex-shrink:0;"></span>`;
+        tab.onclick = () => {
+            _expandNav();
+            document.getElementById('agent-prompt').focus();
+        };
+        bar.insertBefore(tab, bar.firstChild);
+    }
+
+    function _removeAgentNavTab() { 
+        document.getElementById('agent-nav-tab')?.remove(); 
+    }
+
     // --- MULTI-TAB SYSTEM ---
     let fileTabs = [{ id: 1, name: 'index.html', content: editor.getValue() }];
     let activeTabId = 1;
     let tabIdCounter = 2;
+
+    function _getBlankContentForFile(fname) {
+        const ext = fname.split('.').pop().toLowerCase();
+        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n  \n</body>\n</html>`;
+        if (ext === 'css') return `/* ${fname} */\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n`;
+        if (ext === 'js') return `// ${fname}\n\n`;
+        if (ext === 'json') return `{\n  \n}\n`;
+        if (ext === 'md') return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
+        return '';
+    }
+
+    function _closeTabDropdown() {
+        document.getElementById('agent-tab-dropdown')?.remove();
+        document.removeEventListener('click', _closeTabDropdown);
+    }
+
+    function _updateAgentFileSelector() {
+        const wrap = document.getElementById('agent-file-selector');
+        if(!wrap) return;
+        wrap.style.display = 'block';
+        // Default to active tab
+        if(!_agentTargetTabId || (_agentTargetTabId !== 'all' && !fileTabs.find(t => t.id === _agentTargetTabId))) {
+            _agentTargetTabId = activeTabId;
+        }
+        _renderAgentPills();
+    }
+
+    function _showAddTabDropdown(anchor) {
+        // Close if already open
+        document.getElementById('agent-tab-dropdown')?.remove();
+        document.removeEventListener('click', _closeTabDropdown);
+
+        const dropdown = document.createElement('div');
+        dropdown.id = 'agent-tab-dropdown';
+
+        const rect = anchor.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + 6) + 'px';
+        dropdown.style.left = Math.max(8, rect.left - 40) + 'px';
+
+        // New blank file options
+        const templates = [
+            { icon: 'html', label: 'HTML file', name: 'untitled.html' },
+            { icon: 'palette', label: 'CSS file', name: 'untitled.css' },
+            { icon: 'javascript', label: 'JS file', name: 'untitled.js' },
+            { icon: 'data_object', label: 'JSON file', name: 'untitled.json' },
+            { icon: 'description', label: 'Markdown file', name: 'untitled.md' },
+            { icon: 'text_snippet', label: 'Text file', name: 'untitled.txt' },
+        ];
+
+        const header = document.createElement('div');
+        header.style.cssText = 'font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;padding:4px 12px 2px;opacity:0.8;';
+        header.textContent = 'Add Tab';
+        dropdown.appendChild(header);
+
+        templates.forEach(tmpl => {
+            const item = document.createElement('div');
+            item.className = 'atd-item';
+            item.innerHTML = `<span class="material-icons-round">${tmpl.icon}</span>${tmpl.label}`;
+            item.onclick = (e) => {
+                e.stopPropagation();
+                dropdown.remove();
+                document.removeEventListener('click', _closeTabDropdown);
+                // Ask for name then create
+                cdPrompt('New Tab', 'File name:', tmpl.name, (name) => {
+                    if(!name) return;
+                    const content = _getBlankContentForFile(name);
+                    openFileInTab(name, content, true);
+                    _updateAgentFileSelector();
+                    // Auto-select the new tab
+                    const newTab = fileTabs[fileTabs.length - 1];
+                    if(newTab) agentSelectFile(newTab.id);
+                });
+            };
+            dropdown.appendChild(item);
+        });
+
+        // Separator + custom name option
+        const sep = document.createElement('div'); sep.className = 'atd-sep';
+        dropdown.appendChild(sep);
+
+        const custom = document.createElement('div');
+        custom.className = 'atd-item';
+        custom.innerHTML = `<span class="material-icons-round">edit</span>Custom name...`;
+        custom.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.remove();
+            document.removeEventListener('click', _closeTabDropdown);
+            cdPrompt('New Tab', 'File name (e.g. app.js):', 'untitled.html', (name) => {
+                if(!name) return;
+                openFileInTab(name, _getBlankContentForFile(name), true);
+                _updateAgentFileSelector();
+                const newTab = fileTabs[fileTabs.length - 1];
+                if(newTab) agentSelectFile(newTab.id);
+            });
+        };
+        dropdown.appendChild(custom);
+
+        document.body.appendChild(dropdown);
+        setTimeout(() => document.addEventListener('click', _closeTabDropdown), 10);
+    }
+
+    function agentSelectFile(val) {
+        _agentTargetTabId = val === 'all' ? 'all' : (parseInt(val) || null);
+        _renderAgentPills();
+    }
+
+    function _renderAgentPills() {
+        const picker = document.getElementById('agent-tab-picker');
+        if(!picker) return;
+        picker.innerHTML = '';
+
+        // Custom tab pills — all open tabs
+        fileTabs.forEach(t => {
+            const pill = document.createElement('div');
+            pill.className = 'atp-pill' + (_agentTargetTabId === t.id ? ' active' : '');
+            const ext = t.name.split('.').pop().toLowerCase();
+            const iconMap = { html:'html', js:'javascript', css:'palette', json:'data_object', md:'description', ts:'code' };
+            const icon = iconMap[ext] || 'insert_drive_file';
+            pill.innerHTML = `<span class="material-icons-round">${icon}</span>${t.name}`;
+            pill.onclick = () => { agentSelectFile(t.id); };
+            picker.appendChild(pill);
+        });
+
+        // All Files pill
+        if(fileTabs.length > 1) {
+            const allPill = document.createElement('div');
+            allPill.className = 'atp-pill' + (_agentTargetTabId === 'all' ? ' active' : '');
+            allPill.innerHTML = `<span class="material-icons-round">bolt</span>All Files`;
+            allPill.onclick = () => { agentSelectFile('all'); };
+            picker.appendChild(allPill);
+        }
+
+        // + Add Tab button — opens dropdown
+        const addBtn = document.createElement('div');
+        addBtn.className = 'atp-pill';
+        addBtn.style.cssText += 'border-style:dashed;';
+        addBtn.innerHTML = `<span class="material-icons-round">add</span>New Tab`;
+        addBtn.onclick = (e) => { e.stopPropagation(); _showAddTabDropdown(addBtn); };
+        picker.appendChild(addBtn);
+
+        // Scroll active pill into view
+        const active = picker.querySelector('.atp-pill.active');
+        if(active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
 
     function renderFileTabs() {
         const bar = document.getElementById('file-tabs-bar');
@@ -1539,7 +1743,7 @@
             bar.appendChild(el);
         });
         // Sync agent pills
-        if(document.getElementById('agent-tab-picker')) _renderAgentPills();
+        if(typeof _renderAgentPills === 'function' && document.getElementById('agent-tab-picker')) _renderAgentPills();
     }
 
     function switchFileTab(id) {
@@ -2097,42 +2301,7 @@
     // Init GitHub selects when modal opens (called from openGithubModal -> checkGhLogin -> fetchGhRepos)
     // The select wrappers in HTML will be used as containers
 
-    // ===== AGENT SYSTEM =====
-    // ── MULTI-AGENT SYSTEM ──
-    // agentList = array of connected agents, activeAgentIdx = which one is active
-    let agentList = [];
-    let activeAgentIdx = 0;
-    let agentAttachment = null;
-    let _agentPendingEdits = [];
-    let _agentOriginalCode = '';
-    let _agentUndoStack = [];
-    const AGENT_UNDO_LIMIT = 20;
-
-    function _saveAgentList() {
-        localStorage.setItem('agent_list', JSON.stringify(agentList));
-        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
-    }
-
-    function _activeAgent() {
-        return agentList[activeAgentIdx] || null;
-    }
-
-    // Backwards compat: load old single agent_config OR new agent_list
-    (function() {
-        try {
-            const list = localStorage.getItem('agent_list');
-            if(list) { agentList = JSON.parse(list); }
-            else {
-                const old = localStorage.getItem('agent_config');
-                if(old) { agentList = [JSON.parse(old)]; _saveAgentList(); }
-            }
-            activeAgentIdx = parseInt(localStorage.getItem('agent_active_idx') || '0') || 0;
-            if(activeAgentIdx >= agentList.length) activeAgentIdx = 0;
-        } catch(e){}
-    })();
-
-    // Legacy compat shim
-    Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
+    // ===== AGENT SYSTEM (continued from before fileTabs) =====
 
     document.getElementById('agent-file-input').addEventListener('change', (e) => {
         const file = e.target.files[0]; if(!file) return;
@@ -2285,147 +2454,10 @@
         });
     }
 
-    let _agentTargetTabId = null; // null = active tab, 'all' = all tabs
-    let _agentHistory = {}; // per-tab undo: {tabId:[{request,before,ts}]}
-
     function _pushAgentHistory(tabId, request, before) {
         if(!_agentHistory[tabId]) _agentHistory[tabId] = [];
         _agentHistory[tabId].push({ request, before, ts: Date.now() });
         if(_agentHistory[tabId].length > 10) _agentHistory[tabId].shift();
-    }
-
-    function agentSelectFile(val) {
-        _agentTargetTabId = val === 'all' ? 'all' : (parseInt(val) || null);
-        _renderAgentPills();
-    }
-
-    function _renderAgentPills() {
-        const picker = document.getElementById('agent-tab-picker');
-        if(!picker) return;
-        picker.innerHTML = '';
-
-        // Custom tab pills — all open tabs
-        fileTabs.forEach(t => {
-            const pill = document.createElement('div');
-            pill.className = 'atp-pill' + (_agentTargetTabId === t.id ? ' active' : '');
-            const ext = t.name.split('.').pop().toLowerCase();
-            const iconMap = { html:'html', js:'javascript', css:'palette', json:'data_object', md:'description', ts:'code' };
-            const icon = iconMap[ext] || 'insert_drive_file';
-            pill.innerHTML = `<span class="material-icons-round">${icon}</span>${t.name}`;
-            pill.onclick = () => { agentSelectFile(t.id); };
-            picker.appendChild(pill);
-        });
-
-        // All Files pill
-        if(fileTabs.length > 1) {
-            const allPill = document.createElement('div');
-            allPill.className = 'atp-pill' + (_agentTargetTabId === 'all' ? ' active' : '');
-            allPill.innerHTML = `<span class="material-icons-round">bolt</span>All Files`;
-            allPill.onclick = () => { agentSelectFile('all'); };
-            picker.appendChild(allPill);
-        }
-
-        // + Add Tab button — opens dropdown
-        const addBtn = document.createElement('div');
-        addBtn.className = 'atp-pill';
-        addBtn.style.cssText += 'border-style:dashed;';
-        addBtn.innerHTML = `<span class="material-icons-round">add</span>New Tab`;
-        addBtn.onclick = (e) => { e.stopPropagation(); _showAddTabDropdown(addBtn); };
-        picker.appendChild(addBtn);
-
-        // Scroll active pill into view
-        const active = picker.querySelector('.atp-pill.active');
-        if(active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
-
-    function _showAddTabDropdown(anchor) {
-        // Close if already open
-        document.getElementById('agent-tab-dropdown')?.remove();
-        document.removeEventListener('click', _closeTabDropdown);
-
-        const dropdown = document.createElement('div');
-        dropdown.id = 'agent-tab-dropdown';
-
-        const rect = anchor.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 6) + 'px';
-        dropdown.style.left = Math.max(8, rect.left - 40) + 'px';
-
-        // New blank file options
-        const templates = [
-            { icon: 'html', label: 'HTML file', name: 'untitled.html' },
-            { icon: 'palette', label: 'CSS file', name: 'untitled.css' },
-            { icon: 'javascript', label: 'JS file', name: 'untitled.js' },
-            { icon: 'data_object', label: 'JSON file', name: 'untitled.json' },
-            { icon: 'description', label: 'Markdown file', name: 'untitled.md' },
-            { icon: 'text_snippet', label: 'Text file', name: 'untitled.txt' },
-        ];
-
-        const header = document.createElement('div');
-        header.style.cssText = 'font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;padding:4px 12px 2px;opacity:0.8;';
-        header.textContent = 'Add Tab';
-        dropdown.appendChild(header);
-
-        templates.forEach(tmpl => {
-            const item = document.createElement('div');
-            item.className = 'atd-item';
-            item.innerHTML = `<span class="material-icons-round">${tmpl.icon}</span>${tmpl.label}`;
-            item.onclick = (e) => {
-                e.stopPropagation();
-                dropdown.remove();
-                document.removeEventListener('click', _closeTabDropdown);
-                // Ask for name then create
-                cdPrompt('New Tab', 'File name:', tmpl.name, (name) => {
-                    if(!name) return;
-                    const content = _getBlankContentForFile(name);
-                    openFileInTab(name, content, true);
-                    _updateAgentFileSelector();
-                    // Auto-select the new tab
-                    const newTab = fileTabs[fileTabs.length - 1];
-                    if(newTab) agentSelectFile(newTab.id);
-                });
-            };
-            dropdown.appendChild(item);
-        });
-
-        // Separator + custom name option
-        const sep = document.createElement('div'); sep.className = 'atd-sep';
-        dropdown.appendChild(sep);
-
-        const custom = document.createElement('div');
-        custom.className = 'atd-item';
-        custom.innerHTML = `<span class="material-icons-round">edit</span>Custom name...`;
-        custom.onclick = (e) => {
-            e.stopPropagation();
-            dropdown.remove();
-            document.removeEventListener('click', _closeTabDropdown);
-            cdPrompt('New Tab', 'File name (e.g. app.js):', 'untitled.html', (name) => {
-                if(!name) return;
-                openFileInTab(name, _getBlankContentForFile(name), true);
-                _updateAgentFileSelector();
-                const newTab = fileTabs[fileTabs.length - 1];
-                if(newTab) agentSelectFile(newTab.id);
-            });
-        };
-        dropdown.appendChild(custom);
-
-        document.body.appendChild(dropdown);
-        setTimeout(() => document.addEventListener('click', _closeTabDropdown), 10);
-    }
-
-    function _closeTabDropdown() {
-        document.getElementById('agent-tab-dropdown')?.remove();
-        document.removeEventListener('click', _closeTabDropdown);
-    }
-
-    function _updateAgentFileSelector() {
-        const wrap = document.getElementById('agent-file-selector');
-        if(!wrap) return;
-        wrap.style.display = 'block';
-        // Default to active tab
-        if(!_agentTargetTabId || (_agentTargetTabId !== 'all' && !fileTabs.find(t => t.id === _agentTargetTabId))) {
-            _agentTargetTabId = activeTabId;
-        }
-        _renderAgentPills();
     }
 
     function showAgentRestoreMenu() {
@@ -2476,27 +2508,6 @@
         _pingAgentModel();
         setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
     }
-
-    function _addAgentNavTab() {
-        const bar = document.getElementById('file-tabs-bar');
-        if(document.getElementById('agent-nav-tab')) {
-            // Update label if already exists
-            const lbl = document.querySelector('#agent-nav-tab .agent-nav-label');
-            if(lbl) lbl.textContent = _activeAgent()?.providerName||'AI';
-            return;
-        }
-        const tab = document.createElement('div');
-        tab.id = 'agent-nav-tab';
-        tab.className = 'file-tab';
-        tab.style.cssText = 'color:var(--accent);border-bottom-color:var(--accent);opacity:1;gap:4px;cursor:pointer;';
-        tab.innerHTML = `<span class="material-icons-round" style="font-size:13px;pointer-events:none">smart_toy</span><span class="agent-nav-label" style="pointer-events:none;font-size:11px;">${_activeAgent()?.providerName||'AI'}</span><span id="agent-nav-status" style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;margin-left:1px;flex-shrink:0;"></span>`;
-        tab.onclick = () => {
-            _expandNav();
-            document.getElementById('agent-prompt').focus();
-        };
-        bar.insertBefore(tab, bar.firstChild); // agent tab always first
-    }
-    function _removeAgentNavTab() { document.getElementById('agent-nav-tab')?.remove(); }
 
     async function _pingAgentModel() {
         const dot = document.getElementById('agent-nav-status');
@@ -3173,15 +3184,6 @@ No markdown.`;
                 });
             });
         }
-    }
-    function _getBlankContentForFile(fname) {
-        const ext = fname.split('.').pop().toLowerCase();
-        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n  \n</body>\n</html>`;
-        if (ext === 'css') return `/* ${fname} */\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n`;
-        if (ext === 'js') return `// ${fname}\n\n`;
-        if (ext === 'json') return `{\n  \n}\n`;
-        if (ext === 'md') return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
-        return '';
     }
 
     // ===== CREATE GITHUB REPO =====
