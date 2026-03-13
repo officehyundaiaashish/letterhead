@@ -43,10 +43,29 @@
         }
 
         /* Anti-Google Search & Global UI Font */
+
+        /* ── PERF: GPU compositing hints for scroll containers ── */
+        #editor, #preview {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+        }
+        .cursor-nav, .toolbar-rows, .file-tabs-bar, .gh-custom-list, .agent-provider-grid {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+        /* Touch-action: tells browser which touches to handle natively — zero delay */
+        .bottom-area, .toolbar-rows, .cursor-nav { touch-action: pan-x pan-y; }
+        #editor { touch-action: pan-x pan-y pinch-zoom; }
+        /* Promote scrollable layers to own GPU composite layer */
+        .file-tabs-bar { transform: translateZ(0); }
+        /* Prevent text selection flicker during touch */
+        .toolbar-btn, .icon-btn, .tab, .file-tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        /* Remove 300ms tap delay on all interactive elements */
+        button, a, [onclick] { touch-action: manipulation; }
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
         .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
-        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; }
+        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; overscroll-behavior: none; -webkit-text-size-adjust: none; }
         .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
@@ -60,10 +79,10 @@
 
         /* FASTEST MONOSPACE FOR EDITOR ONLY */
         #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: size layout; }
-        #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; }
+        #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; transform: translateZ(0); }
         #preview.active-pane { visibility: visible; opacity: 1; }
 
-        .ace_mobile-menu, .ace_tooltip { display: none !important; opacity: 0 !important; pointer-events: none !important; }
+        .ace_mobile-menu, .ace_tooltip, .ace_callout { display: none !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important; }
         .ace_selection { background: rgba(16, 185, 129, 0.35) !important; }
         .ace_selected-word { background: rgba(16, 185, 129, 0.3) !important; border: 1px solid rgba(16, 185, 129, 0.6) !important; border-radius: 2px; }
 
@@ -74,6 +93,7 @@
 
         /* will-change: transform → own GPU layer, no repaint on slide */
         .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease;   }
+        .bottom-wrapper { will-change: transform; }
         .bottom-wrapper.collapsed { transform: translateY(100%); }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
@@ -86,7 +106,7 @@
         /* Cursor nav row — compact */
         .cursor-nav { display: flex; overflow-x: auto; padding: 0 8px 4px 8px; gap: 5px; }
         .cursor-nav::-webkit-scrollbar { display: none; }
-        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer;}
+        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
         .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
@@ -98,6 +118,7 @@
             background: none; border: none; color: var(--text-color); opacity: 0.8; 
             font-size: 9px; font-weight: 600; gap: 1px; flex: 1;
             padding: 5px 2px; cursor: pointer; border-radius: 8px; min-width: 0;
+            -webkit-tap-highlight-color: transparent;
         }
         .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
         .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
@@ -181,7 +202,7 @@
         /* File Tabs Bar */
         .file-tabs-bar { flex-shrink: 0; display: flex; overflow-x: auto; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 0 6px; gap: 2px; }
         .file-tabs-bar::-webkit-scrollbar { display: none; }
-        .file-tab { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.55; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; transition: opacity 0.2s, border-color 0.2s; flex-shrink: 0; }
+        .file-tab { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.55; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .file-tab.active { opacity: 1; border-bottom-color: var(--accent); color: var(--accent); }
         .file-tab .ft-close { font-size: 13px; opacity: 0.4; margin-left: 2px; line-height: 1; transition: opacity 0.15s; pointer-events: auto; }
         .file-tab .ft-close:active { opacity: 1; }
@@ -357,7 +378,7 @@
             background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
             color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
             cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-            transition: border-color 0.15s; user-select: none;
+             user-select: none;
         }
         .gh-custom-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
         .gh-custom-trigger .gh-trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
@@ -524,7 +545,7 @@
 
     <div class="main-container" id="editor-wrapper">
         <div id="editor"></div>
-        <iframe id="preview"></iframe>
+        <iframe id="preview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"></iframe>
         
         <div class="scroll-jumpers no-select" id="jumpers">
             <div class="jumper-btn" onclick="customFastScroll('up')"><span class="material-icons-round">keyboard_double_arrow_up</span></div>
@@ -957,14 +978,35 @@
         useSoftTabs: true,
         tabSize: 2,
         fixedWidthGutter: true,
+        scrollPastEnd: false,
+        copyWithEmptySelection: false,
+        mergeUndoDeltas: "always",
+        behavioursEnabled: false,
+        wrapBehavioursEnabled: false,
     });
 
     // Autocomplete is off by default in ACE when ext-language_tools is not loaded.
 
-    // ── STEP 2: Renderer micro-tuning ──
+    // ── STEP 2: Renderer deep-tuning ──
     editor.renderer.setScrollMargin(0, 0, 0, 0);
     editor.renderer.setPadding(6);
     try { editor.renderer.$printMarginLayer.element.style.display = 'none'; } catch(e){}
+    // Disable cursor blink — causes repaint every 530ms
+    try { editor.renderer.$cursorLayer.setBlinking(false); } catch(e){}
+    // Force hardware-accelerated scroller
+    try { editor.renderer.scroller.style.transform = 'translateZ(0)'; } catch(e){}
+    try { editor.renderer.content.style.transform = 'translateZ(0)'; } catch(e){}
+    // Prevent ACE from stealing passive touch events
+    try {
+        const s = editor.renderer.scroller;
+        s.addEventListener('touchstart', ()=>{}, {passive:true});
+        s.addEventListener('touchmove', ()=>{}, {passive:true});
+    } catch(e){}
+    // Kill cursor layer animation entirely
+    try { 
+        const cl = editor.renderer.$cursorLayer;
+        if(cl && cl.element) cl.element.style.transition = 'none';
+    } catch(e){}
 
     // ── STEP 3: Theme ──
     editor.setTheme("ace/theme/tomorrow_night_eighties");
@@ -1026,21 +1068,13 @@
         }
     }
 
-    // ── STEP 6: Scroll → rAF throttle (no mid-frame scroll jank) ──
-    let _scrollRaf = null;
+    // ── STEP 6: Scroll — direct passthrough (ACE renderer already batches internally) ──
     const _origScrollToY = editor.renderer.scrollToY.bind(editor.renderer);
-    editor.renderer.scrollToY = function(top) {
-        if(_scrollRaf) cancelAnimationFrame(_scrollRaf);
-        _scrollRaf = requestAnimationFrame(() => { _origScrollToY(top); _scrollRaf = null; });
-    };
+    // No rAF wrap needed — ACE uses its own render loop; double-wrapping caused jank
 
-    // ── STEP 7: Font size → rAF throttle ──
-    let _zoomRaf = null;
+    // ── STEP 7: Font size — keep direct reference for zoom handler ──
     const _origSetFontSize = editor.setFontSize.bind(editor);
-    editor.setFontSize = function(size) {
-        if(_zoomRaf) cancelAnimationFrame(_zoomRaf);
-        _zoomRaf = requestAnimationFrame(() => { _origSetFontSize(size); _zoomRaf = null; });
-    };
+    // editor.setFontSize is NOT overridden — zoom handler calls _origSetFontSize directly
 
     // ── STEP 8: Change event → debounced (not every keystroke) ──
     let _changeDebounce = null;
@@ -1062,7 +1096,7 @@
     });
     editor.session.on("change", function() {
         if(_changeDebounce) return;
-        _changeDebounce = setTimeout(() => { checkScrollable(); _changeDebounce = null; }, 400);
+        _changeDebounce = setTimeout(() => { checkScrollable(); _changeDebounce = null; }, 250);
     });
 
     // ── STEP 9: Initial content — beautiful demo ──
@@ -1244,25 +1278,41 @@
         requestAnimationFrame(animation);
     }
 
-    async function pasteClipboard() { try { const text = await navigator.clipboard.readText(); editor.insert(text); } catch (err) { cdAlert('Paste', 'Please paste natively using your keyboard.', 'info'); } }
+    async function pasteClipboard() { try { const text = await navigator.clipboard.readText(); if(text) editor.insert(text); } catch (err) { /* fallback silent — user can use keyboard paste */ } }
     async function copyClipboard() { try { const text = editor.getSelectedText(); if(text) { await navigator.clipboard.writeText(text); } else { cdAlert('Copy', 'Double-tap text to select it first.', 'info'); } } catch (err) { cdAlert('Copy', 'Copy failed.', 'error'); } }
     async function cutClipboard() { try { const text = editor.getSelectedText(); if(text) { await navigator.clipboard.writeText(text); editor.insert(''); } else { cdAlert('Cut', 'Double-tap text to select it first.', 'info'); } } catch (err) { cdAlert('Cut', 'Cut failed.', 'error'); } }
 
     const editorWrapper = document.getElementById('editor');
     let initialDistance = null, initialFontSize = 14;
+    let _lastZoomSize = 14, _zoomFrame = null;
     editorWrapper.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) { initialDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); initialFontSize = parseInt(editor.getOption("fontSize")); }
-    });
+        if (e.touches.length === 2) {
+            initialDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            initialFontSize = parseInt(editor.getOption("fontSize"));
+            _lastZoomSize = initialFontSize;
+        }
+    }, {passive: true});
     editorWrapper.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2 && initialDistance) {
             e.preventDefault();
             const d = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
             let s = Math.round(initialFontSize * d / initialDistance);
             s = Math.max(10, Math.min(40, s));
-            editor.setFontSize(s + "px"); // already rAF-throttled above
+            if (s !== _lastZoomSize) {
+                _lastZoomSize = s;
+                // Single rAF — schedule once, skip if already pending
+                if (!_zoomFrame) {
+                    _zoomFrame = requestAnimationFrame(() => {
+                        _origSetFontSize(_lastZoomSize + "px");
+                        _zoomFrame = null;
+                    });
+                }
+            }
         }
     }, {passive: false});
-    editorWrapper.addEventListener('touchend', (e) => { if (e.touches.length < 2) initialDistance = null; });
+    editorWrapper.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) { initialDistance = null; _zoomFrame = null; }
+    }, {passive: true});
 
     const bottomPanel = document.getElementById('bottom-panel'), restoreBtn = document.getElementById('restore-btn');
 
@@ -1292,13 +1342,32 @@
 
     // Swipe down to collapse
     let startY = 0, startX = 0, isSwipingDown = false;
-    bottomPanel.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; startX = e.touches[0].clientX; isSwipingDown = false; bottomPanel.style.transition = 'none'; }, {passive: true});
-    bottomPanel.addEventListener('touchmove', (e) => { let deltaY = e.touches[0].clientY - startY, deltaX = e.touches[0].clientX - startX; if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 0) { isSwipingDown = true; bottomPanel.style.transform = `translateY(${deltaY}px)`; } }, {passive: true});
+    bottomPanel.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        isSwipingDown = false;
+        bottomPanel.style.transition = 'none';
+    }, {passive: true});
+    let _swipeRaf = null;
+    bottomPanel.addEventListener('touchmove', (e) => {
+        const deltaY = e.touches[0].clientY - startY;
+        const deltaX = e.touches[0].clientX - startX;
+        if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 0) {
+            isSwipingDown = true;
+            if (!_swipeRaf) {
+                _swipeRaf = requestAnimationFrame(() => {
+                    bottomPanel.style.transform = `translateY(${deltaY}px)`;
+                    _swipeRaf = null;
+                });
+            }
+        }
+    }, {passive: true});
     bottomPanel.addEventListener('touchend', (e) => {
+        _swipeRaf = null;
         bottomPanel.style.transition = '';
         if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) { _collapseNav(); }
         else { bottomPanel.style.transform = 'translateY(0)'; }
-    });
+    }, {passive: true});
 
     // Dynamic Theme Color Updater
     function toggleTheme() {
