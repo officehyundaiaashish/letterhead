@@ -1370,12 +1370,13 @@
     }, {passive: true});
     bottomPanel.addEventListener('touchend', (e) => {
         _swipeRaf = null;
-        if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) {
-            bottomPanel.style.transition = 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+        // Sensitivity increased: threshold reduced from 40 to 15 for "thoda sa" swipe
+        if (isSwipingDown && e.changedTouches[0].clientY - startY > 15) {
+            bottomPanel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
             bottomPanel.style.transform = '';
             _collapseNav();
         } else {
-            bottomPanel.style.transition = 'transform 0.2s ease';
+            bottomPanel.style.transition = 'transform 0.2s ease-out';
             bottomPanel.style.transform = 'translateY(0)';
             setTimeout(() => { bottomPanel.style.transition = ''; }, 200);
         }
