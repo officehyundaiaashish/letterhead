@@ -1402,7 +1402,8 @@
             }
         }
     }, {passive: true});
-    bottomPanel.addEventListener('touchend', (e) => {
+        bottomPanel.addEventListener('touchend', (e) => {
+        if (_swipeRaf) cancelAnimationFrame(_swipeRaf);
         _swipeRaf = null;
         bottomPanel.style.transition = '';
         if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) {
@@ -1610,9 +1611,15 @@
         if(match.isEmpty() && showErrorAlert) { cdAlert('Find', 'No exact match found.', 'warn'); editor.clearSelection(); } 
         else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); }
     }
-    function replaceText() { 
-        let replaceStr = document.getElementById('replace-input').value; let match = editor.getSelectionRange();
-        if(!match.isEmpty()) { editor.replace(replaceStr); findText(false); } else { cdAlert('Replace', "Click 'Find Next' first.", 'info'); }
+        function replaceText() { 
+        let replaceStr = document.getElementById('replace-input').value.replace(/\n$/, ''); let match = editor.getSelectionRange();
+        if(!match.isEmpty()) { 
+            editor.session.replace(match, replaceStr); 
+            let lines = replaceStr.split('\n');
+            match.end.row = match.start.row + lines.length - 1;
+            match.end.column = lines.length > 1 ? lines[lines.length - 1].length : match.start.column + replaceStr.length;
+            editor.selection.setRange(match);
+        } else { cdAlert('Replace', "Click 'Find Next' first.", 'info'); }
     }
     function clearFind() { document.getElementById('find-input').value = ''; document.getElementById('replace-input').value = ''; editor.clearSelection(); }
 
