@@ -24,19 +24,19 @@
             --bg-color: #0a0a0c;
             --editor-bg: #141417;
             --text-color: #e0e0e0;
-            --glass-bg: rgba(20, 20, 25, 0.95);
+            --glass-bg: #141419;
             --glass-border: rgba(255, 255, 255, 0.08);
             --accent: #10b981; 
             --accent-dim: rgba(16, 185, 129, 0.15);
             --panel-round: 24px;
-            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --transition: opacity 0.15s;
         }
 
         body.light-theme {
             --bg-color: #f0f2f5;
             --editor-bg: #ffffff;
             --text-color: #1c1e21;
-            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-bg: #f8f9fb;
             --glass-border: rgba(0, 0, 0, 0.05);
             --accent: #059669;
             --accent-dim: rgba(5, 150, 105, 0.1);
@@ -50,16 +50,16 @@
         .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
-        .app-header { flex-shrink: 0; background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50; will-change: transform; }
+        .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
         .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
         body.light-theme .tabs { background: rgba(0,0,0,0.05); }
-        .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: var(--transition); cursor: pointer; }
+        .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .tab.active { background: var(--accent); color: white; opacity: 1; }
         
         .main-container { flex-grow: 1; position: relative; background-color: var(--editor-bg); overflow: hidden; }
 
         /* FASTEST MONOSPACE FOR EDITOR ONLY */
-        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: strict; }
+        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: size layout; }
         #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; }
         #preview.active-pane { visibility: visible; opacity: 1; }
 
@@ -69,17 +69,16 @@
 
         .scroll-jumpers { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none; flex-direction: column; gap: 15px; z-index: 45; opacity: 0; transition: opacity 0.3s; }
         .scroll-jumpers.visible { opacity: 1; }
-        .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,0.3); opacity: 0.5; transition: var(--transition); cursor: pointer; }
+        .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: none; opacity: 0.5; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* will-change: transform → own GPU layer, no repaint on slide */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; contain: layout style; }
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease;   }
         .bottom-wrapper.collapsed { transform: translateY(100%); }
         .bottom-area { 
-            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
-            border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+            background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.3); 
+            box-shadow: none; 
         }
         .drag-handle-area { width: 100%; height: 16px; display: flex; justify-content: center; align-items: center; }
         .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
@@ -108,19 +107,18 @@
             background: var(--accent); color: white; 
             width: 38px; height: 38px; border-radius: 50%; 
             display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 4px 14px rgba(16,185,129,0.45); 
+            box-shadow: none; 
             border: none; z-index: 30; 
             opacity: 1; pointer-events: auto; transform: scale(1); 
-            transition: var(--transition); 
+            transition: opacity 0.15s, transform 0.15s; 
         }
         .restore-btn.hidden-btn { opacity: 0 !important; pointer-events: none !important; transform: scale(0.7) !important; }
         .restore-btn .material-icons-round { font-size: 20px; pointer-events: none; }
 
         /* Shared Modal CSS */
         .modal { 
-            position: fixed; left: 5%; width: 90%; background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border); border-radius: var(--panel-round); padding: 15px; z-index: 100; 
-            box-shadow: 0 10px 50px rgba(0,0,0,0.8); transition: opacity 0.3s ease, transform 0.3s ease;
+            position: fixed; left: 5%; width: 90%; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--panel-round); padding: 15px; z-index: 100; 
+            box-shadow: none; transition: opacity 0.15s, transform 0.15s;
             bottom: -150%; opacity: 0; pointer-events: none; transform: scale(0.96);
         }
         .modal.active { bottom: 20px; opacity: 1; pointer-events: auto; transform: scale(1); }
@@ -145,15 +143,14 @@
             width: 88%;
             max-width: 400px;
             background: var(--glass-bg);
-            backdrop-filter: blur(40px);
             border: 1px solid var(--glass-border);
             border-radius: 20px;
             padding: 20px;
             z-index: 110;
-            box-shadow: 0 20px 70px rgba(0,0,0,0.9);
+            box-shadow: none;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: opacity 0.2s ease, transform 0.2s ease;
         }
         #github-modal.active {
             opacity: 1;
@@ -162,8 +159,7 @@
         }
         /* GitHub modal overlay */
         #gh-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
-            z-index: 105; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 105; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
         }
         #gh-overlay.active { opacity: 1; pointer-events: auto; }
 
@@ -174,13 +170,13 @@
             background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
             color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
             appearance: none; -webkit-appearance: none; cursor: pointer;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.15s;
         }
         .gh-select-wrap select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
-        #github-modal input { font-family: 'Poppins', sans-serif; border-radius: 10px; padding: 11px 12px; transition: border-color 0.2s, box-shadow 0.2s; }
+        #github-modal input { font-family: 'Poppins', sans-serif; border-radius: 10px; padding: 11px 12px; transition: border-color 0.15s; }
         #github-modal input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
-        .gh-section-anim { animation: ghSlideIn 0.3s cubic-bezier(0.25,0.8,0.25,1); }
-        @keyframes ghSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .gh-section-anim {  }
+         to { opacity: 1; transform: translateY(0); } }
 
         /* File Tabs Bar */
         .file-tabs-bar { flex-shrink: 0; display: flex; overflow-x: auto; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 0 6px; gap: 2px; }
@@ -196,15 +192,14 @@
             background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0a0a0c 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 30px;
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition: opacity 0.25s ease, transform 0.25s ease;
         }
         #welcome-screen.hiding { opacity: 0; transform: scale(1.04); pointer-events: none; }
         #welcome-screen.hidden { display: none; }
         .welcome-card {
-            background: rgba(255,255,255,0.07); backdrop-filter: blur(30px);
-            border: 1px solid rgba(255,255,255,0.15); border-radius: 28px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 28px;
             padding: 36px 28px 28px; width: 100%; max-width: 360px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.2);
+            box-shadow: none;
             animation: welcomeCardIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
             text-align: center;
         }
@@ -216,7 +211,7 @@
             width: 72px; height: 72px; border-radius: 20px; background: #10b981;
             display: flex; align-items: center; justify-content: center;
             margin: 0 auto 20px; font-size: 28px; font-weight: 900; color: white;
-            font-family: monospace; box-shadow: 0 10px 30px rgba(16,185,129,0.4);
+            font-family: monospace; box-shadow: none;
             animation: welcomeLogoPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.4s both;
         }
         @keyframes welcomeLogoPop { from { opacity:0; transform:scale(0.6); } to { opacity:1; transform:scale(1); } }
@@ -246,24 +241,24 @@
             background: linear-gradient(135deg, #10b981, #059669);
             color: white; font-size: 15px; font-weight: 700; font-family: 'Poppins', sans-serif;
             cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: 0 8px 25px rgba(16,185,129,0.4);
+            box-shadow: none;
             transition: transform 0.2s, box-shadow 0.2s;
             animation: welcomeFadeUp 0.5s ease 0.85s both;
         }
-        .welcome-start-btn:active { transform: scale(0.97); box-shadow: 0 4px 15px rgba(16,185,129,0.3); }
+        .welcome-start-btn:active { transform: scale(0.97); box-shadow: none; }
         .welcome-start-btn .material-icons-round { font-size: 20px; }
 
         /* ===== REPO LOAD PROGRESS BAR ===== */
         #repo-progress-overlay {
             position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px); display: none; flex-direction: column;
+            display: none; flex-direction: column;
             align-items: center; justify-content: center; gap: 20px;
         }
         #repo-progress-overlay.visible { display: flex; }
         .repo-progress-card {
             background: var(--glass-bg); border: 1px solid var(--glass-border);
             border-radius: 20px; padding: 28px 24px; width: 85%; max-width: 320px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            box-shadow: none;
             animation: welcomeCardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
         }
         .repo-progress-title { font-size: 14px; font-weight: 700; color: var(--text-color); margin-bottom: 6px; }
@@ -274,21 +269,20 @@
         .repo-progress-bar-fill {
             height: 100%; background: linear-gradient(90deg, #10b981, #34d399);
             border-radius: 10px; width: 0%; transition: width 0.3s ease;
-            box-shadow: 0 0 10px rgba(16,185,129,0.5);
+            box-shadow: none;
         }
         .repo-progress-count { font-size: 11px; color: var(--accent); font-weight: 600; text-align:right; }
 
         /* ===== NEW PROJECT MODAL ===== */
         #new-project-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
-            z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
             display: flex; align-items: center; justify-content: center;
         }
         #new-project-overlay.active { opacity: 1; pointer-events: auto; }
         #new-project-modal {
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;
             padding: 22px 20px; width: 88%; max-width: 400px;
-            box-shadow: 0 20px 70px rgba(0,0,0,0.9);
+            box-shadow: none;
             transform: scale(0.9) translateY(10px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
             font-family: 'Poppins', sans-serif; max-height: 90vh; overflow-y: auto;
         }
@@ -297,7 +291,7 @@
             width: 100%; padding: 11px 12px; border-radius: 10px; background: rgba(0,0,0,0.25);
             border: 1px solid var(--glass-border); color: var(--text-color);
             font-family: 'Poppins', sans-serif; font-size: 13px; margin-bottom: 10px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.15s;
         }
         #new-project-modal input:focus, #new-project-modal select:focus, #new-project-modal textarea:focus {
             border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-dim);
@@ -333,14 +327,13 @@
         /* Already handled in JS */
 
         #custom-dialog-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
-            z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
             display: flex; align-items: center; justify-content: center;
         }
         #custom-dialog-overlay.active { opacity: 1; pointer-events: auto; }
         #custom-dialog-box {
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 18px;
-            padding: 22px 20px 16px; width: 82%; max-width: 340px; box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            padding: 22px 20px 16px; width: 82%; max-width: 340px; box-shadow: none;
             transform: scale(0.9) translateY(10px); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
             font-family: 'Poppins', sans-serif;
         }
@@ -364,7 +357,7 @@
             background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
             color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
             cursor: pointer; display: flex; align-items: center; justify-content: space-between;
-            transition: border-color 0.2s, box-shadow 0.2s; user-select: none;
+            transition: border-color 0.15s; user-select: none;
         }
         .gh-custom-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
         .gh-custom-trigger .gh-trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
@@ -374,7 +367,7 @@
         .gh-custom-list {
             position: absolute; left: 0; right: 0; top: calc(100% + 4px);
             background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px;
-            box-shadow: 0 10px 35px rgba(0,0,0,0.7); z-index: 200; max-height: 200px; overflow-y: auto;
+            box-shadow: none; z-index: 200; max-height: 200px; overflow-y: auto;
             opacity: 0; transform: translateY(-6px) scale(0.97); pointer-events: none;
             transition: opacity 0.2s ease, transform 0.2s ease;
         }
@@ -382,7 +375,7 @@
         .gh-custom-list.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
         .gh-custom-option {
             padding: 11px 14px; font-family: 'Poppins', sans-serif; font-size: 12px;
-            color: var(--text-color); cursor: pointer; transition: background 0.15s;
+            color: var(--text-color); cursor: pointer; 
             display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--glass-border);
         }
         .gh-custom-option:last-child { border-bottom: none; }
@@ -391,19 +384,17 @@
 
         /* ===== AGENT MODAL ===== */
         #agent-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
-            z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
         }
         #agent-overlay.active { opacity: 1; pointer-events: auto; }
         #agent-modal {
             position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0.88);
             width: 88%; max-width: 400px;
-            background: var(--glass-bg); backdrop-filter: blur(40px);
-            border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px;
-            z-index: 210; box-shadow: 0 20px 70px rgba(0,0,0,0.9);
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px;
+            z-index: 210; box-shadow: none;
             opacity: 0; pointer-events: none;
-            transition: opacity 0.35s cubic-bezier(0.34,1.56,0.64,1), transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            transition: opacity 0.2s ease, transform 0.2s ease;
             font-family: 'Poppins', sans-serif;
         }
         #agent-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
@@ -422,19 +413,18 @@
         /* ===== AI AGENT BAR (bottom, above panel) ===== */
         #agent-bar {
             position: absolute; bottom: 0; left: 0; right: 0; z-index: 35;
-            background: var(--glass-bg); backdrop-filter: blur(25px);
-            border-top: 1px solid var(--glass-border);
+            background: var(--glass-bg); border-top: 1px solid var(--glass-border);
             border-radius: var(--panel-round) var(--panel-round) 0 0;
             padding: 10px 12px 12px; padding-bottom: env(safe-area-inset-bottom);
             display: none; flex-direction: column; gap: 8px;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.3);
-            animation: agentBarIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            box-shadow: none;
+            
         }
-        @keyframes agentBarIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+         to { transform: translateY(0); opacity: 1; } }
         #agent-bar.visible { display: flex; }
         .agent-bar-header { display: flex; align-items: center; justify-content: space-between; }
-        .agent-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; flex-shrink: 0; }
-        @keyframes pulse { 0%,100%{ opacity:1; transform:scale(1); } 50%{ opacity:0.4; transform:scale(0.8); } }
+        .agent-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent);  flex-shrink: 0; }
+         50%{ opacity:0.4; transform:scale(0.8); } }
         .agent-input-row { display: flex; gap: 8px; align-items: flex-end; }
         #agent-prompt {
             flex: 1; padding: 10px 12px; border-radius: 12px;
@@ -460,11 +450,11 @@
         #agent-thinking.visible { display: flex; }
         .agent-dots span {
             display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
-            animation: dotBounce 1.2s infinite; margin-right: 2px;
+             margin-right: 2px;
         }
         .agent-dots span:nth-child(2) { animation-delay: 0.2s; }
         .agent-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes dotBounce { 0%,80%,100%{ transform:translateY(0); opacity:0.4; } 40%{ transform:translateY(-4px); opacity:1; } }
+         40%{ transform:translateY(-4px); opacity:1; } }
         #agent-file-input { display: none; }
     </style>
 </head>
@@ -805,7 +795,7 @@
                 Mistral 7B <span class="provider-tag">OpenRouter • Free</span>
             </div>
         </div>
-        <input type="text" id="agent-api-key" placeholder="Paste API Key here..." style="width:100%; padding:11px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); color:var(--text-color); font-family:'Poppins',sans-serif; font-size:13px; margin-bottom:10px; user-select:text; -webkit-user-select:text; transition:border-color 0.2s, box-shadow 0.2s;">
+        <input type="text" id="agent-api-key" placeholder="Paste API Key here..." style="width:100%; padding:11px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); color:var(--text-color); font-family:'Poppins',sans-serif; font-size:13px; margin-bottom:10px; user-select:text; -webkit-user-select:text; transition: border-color 0.15s;">
         <div style="font-size:10px; opacity:0.4; margin-bottom:10px; font-family:'Poppins',sans-serif; line-height:1.4;">
             Free models: Get Gemini key at <b>aistudio.google.com</b> · Groq key at <b>console.groq.com</b> · OpenRouter key at <b>openrouter.ai</b>
         </div>
@@ -814,7 +804,7 @@
     <div id="agent-connected-section" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div style="display:flex; align-items:center; gap:6px;">
-                <div style="width:8px; height:8px; border-radius:50%; background:var(--accent); animation:pulse 1.5s infinite;"></div>
+                <div style="width:8px; height:8px; border-radius:50%; background:var(--accent); "></div>
                 <span style="font-size:12px; color:var(--accent); font-weight:600;" id="agent-connected-label">Connected</span>
             </div>
             <span style="font-size:11px; opacity:0.5; cursor:pointer; display:flex; align-items:center; gap:3px;" onclick="disconnectAgent()">
@@ -969,10 +959,7 @@
         fixedWidthGutter: true,
     });
 
-    // These must be set via setOption individually — they come from ext-language_tools
-    editor.setOption('enableBasicAutocompletion', false);
-    editor.setOption('enableLiveAutocompletion', false);
-    editor.setOption('enableSnippets', false);
+    // Autocomplete is off by default in ACE when ext-language_tools is not loaded.
 
     // ── STEP 2: Renderer micro-tuning ──
     editor.renderer.setScrollMargin(0, 0, 0, 0);
@@ -1129,8 +1116,7 @@
     padding: 40px 32px;
     max-width: 360px; width: 90%;
     text-align: center;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+    box-shadow: none;
     animation: cardIn 0.9s cubic-bezier(0.34,1.3,0.64,1) both;
   }
   @keyframes cardIn {
@@ -1145,8 +1131,8 @@
     text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
     margin-bottom: 22px; animation: cardIn 0.7s 0.2s both;
   }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 1.4s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981;  }
+   50%{opacity:0.4;transform:scale(0.7)} }
 
   h1 {
     font-size: 38px; font-weight: 900; line-height: 1.1;
@@ -1181,11 +1167,11 @@
     border: none; border-radius: 14px;
     color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
     cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 8px 24px rgba(16,185,129,0.35);
+    box-shadow: none;
     animation: cardIn 0.7s 0.6s both;
     font-family: 'Inter', sans-serif;
   }
-  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(16,185,129,0.45); }
+  .btn:hover { transform: translateY(-2px); box-shadow: none; }
   .btn:active { transform: scale(0.97); }
 
   /* Stars */
@@ -2140,7 +2126,7 @@ RULES (STRICT):
         if(old) old.remove();
         const toast = document.createElement('div');
         toast.id = 'agent-undo-toast';
-        toast.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:11px;font-family:Poppins,sans-serif;animation:ghSlideIn 0.3s ease;';
+        toast.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:11px;font-family:Poppins,sans-serif;';
         toast.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ Applied ${count} edit${count>1?'s':''}</span>`;
         const undoBtn = document.createElement('span');
         undoBtn.textContent = 'Undo';
