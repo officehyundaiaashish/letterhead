@@ -637,6 +637,21 @@
                     </button>
                 </div>
                 <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
+                
+                <!-- Usage Progress Bar -->
+                <div id="agent-usage-bar" style="display:none;padding:6px 10px 8px;border-top:1px solid var(--glass-border);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <span style="font-size:9px;font-weight:600;color:var(--text-color);opacity:0.6;">API Usage</span>
+                        <span id="agent-usage-reset" style="font-size:8px;color:var(--text-color);opacity:0.4;"></span>
+                    </div>
+                    <div style="width:100%;height:4px;background:rgba(0,0,0,0.3);border-radius:2px;overflow:hidden;">
+                        <div id="agent-usage-fill" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s ease,background 0.3s;border-radius:2px;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:2px;">
+                        <span id="agent-usage-text" style="font-size:8px;color:var(--text-color);opacity:0.5;">0%</span>
+                        <span id="agent-usage-count" style="font-size:8px;color:var(--text-color);opacity:0.5;">0 / 6000</span>
+                    </div>
+                </div>
             </div>
 
             <div class="drag-handle-area"><div class="drag-pill"></div></div>
@@ -1395,8 +1410,8 @@
         _expandNav();
     }
 
-    // Start collapsed on launch
-    _collapseNav();
+    // Start collapsed on launch - defer to prevent scroll jump
+    setTimeout(() => _collapseNav(), 100);
 
     // Swipe down to collapse
     let startY = 0, startX = 0, isSwipingDown = false;
@@ -1552,6 +1567,210 @@
     const AGENT_UNDO_LIMIT = 20;
     let _agentTargetTabId = null; // null = active tab, 'all' = all tabs
     let _agentHistory = {}; // per-tab undo: {tabId:[{request,before,ts}]}
+
+    // ===== RATE LIMITING SYSTEM =====
+    /* Provider-specific limits with 80% safety threshold */
+    const RATE_LIMITS = {
+        groq: {
+            tokensPerMinute: 6000,
+            tokensPerDay: 500000,
+            requestsPerMinute: 30,
+            safetyThreshold: 0.8 // 80% of limit triggers warning
+        },
+        gemini: {
+            tokensPerMinute: 32000, // Gemini 2.0 Flash free tier
+            tokensPerDay: 1500000,  // 1.5M per day
+            requestsPerMinute: 15,
+            safetyThreshold: 0.8
+        },
+        // Default for other providers (OpenAI-compatible)
+        default: {
+            tokensPerMinute: 90000,
+            tokensPerDay: 2000000,
+            requestsPerMinute: 60,
+            safetyThreshold: 0.8
+        }
+    };
+
+    // Usage tracking
+    let _usageTracker = {
+        groq: { minute: [], day: [], requests: [] },
+        gemini: { minute: [], day: [], requests: [] },
+        default: { minute: [], day: [], requests: [] }
+    };
+
+    // Clean old entries
+    function _cleanUsageData(provider) {
+        const now = Date.now();
+        const data = _usageTracker[provider];
+        
+        // Remove entries older than 1 minute
+        data.minute = data.minute.filter(e => now - e.timestamp < 60000);
+        data.requests = data.requests.filter(e => now - e.timestamp < 60000);
+        
+        // Remove entries older than 1 day
+        data.day = data.day.filter(e => now - e.timestamp < 86400000);
+    }
+
+    // Check if request will exceed limits
+    function _checkRateLimit(provider, estimatedTokens) {
+        _cleanUsageData(provider);
+        
+        const limits = RATE_LIMITS[provider] || RATE_LIMITS.default;
+        const data = _usageTracker[provider];
+        const threshold = limits.safetyThreshold;
+        
+        // Calculate current usage
+        const tokensThisMinute = data.minute.reduce((sum, e) => sum + e.tokens, 0);
+        const tokensToday = data.day.reduce((sum, e) => sum + e.tokens, 0);
+        const requestsThisMinute = data.requests.length;
+        
+        // Check limits with threshold
+        const minuteLimit = limits.tokensPerMinute * threshold;
+        const dayLimit = limits.tokensPerDay * threshold;
+        const requestLimit = limits.requestsPerMinute * threshold;
+        
+        // Will this request exceed limits?
+        if (tokensThisMinute + estimatedTokens > minuteLimit) {
+            return { 
+                allowed: false, 
+                reason: 'minute_tokens',
+                current: tokensThisMinute,
+                limit: limits.tokensPerMinute,
+                threshold: minuteLimit,
+                waitTime: 60 // seconds
+            };
+        }
+        
+        if (tokensToday + estimatedTokens > dayLimit) {
+            return { 
+                allowed: false, 
+                reason: 'day_tokens',
+                current: tokensToday,
+                limit: limits.tokensPerDay,
+                threshold: dayLimit,
+                waitTime: 3600 // 1 hour suggested wait
+            };
+        }
+        
+        if (requestsThisMinute + 1 > requestLimit) {
+            return { 
+                allowed: false, 
+                reason: 'requests',
+                current: requestsThisMinute,
+                limit: limits.requestsPerMinute,
+                threshold: requestLimit,
+                waitTime: 60
+            };
+        }
+        
+        // Warning if approaching limit (90% of threshold = 72% of actual limit)
+        const warningLevel = threshold * 0.9;
+        let warnings = [];
+        
+        if (tokensThisMinute + estimatedTokens > limits.tokensPerMinute * warningLevel) {
+            warnings.push(`Approaching per-minute limit: ${Math.round((tokensThisMinute/limits.tokensPerMinute)*100)}% used`);
+        }
+        if (tokensToday + estimatedTokens > limits.tokensPerDay * warningLevel) {
+            warnings.push(`Approaching daily limit: ${Math.round((tokensToday/limits.tokensPerDay)*100)}% used`);
+        }
+        
+        return { 
+            allowed: true, 
+            warnings,
+            usage: {
+                minute: Math.round((tokensThisMinute/limits.tokensPerMinute)*100),
+                day: Math.round((tokensToday/limits.tokensPerDay)*100),
+                requests: Math.round((requestsThisMinute/limits.requestsPerMinute)*100)
+            }
+        };
+    }
+
+    // Record usage
+    function _recordUsage(provider, tokens) {
+        const now = Date.now();
+        const data = _usageTracker[provider];
+        
+        data.minute.push({ tokens, timestamp: now });
+        data.day.push({ tokens, timestamp: now });
+        data.requests.push({ timestamp: now });
+        
+        // Save to localStorage for persistence
+        try {
+            localStorage.setItem('agent_usage_' + provider, JSON.stringify(data));
+        } catch(e) {}
+        
+        // Update usage bar UI
+        _updateUsageBar(provider);
+    }
+
+    // Update usage progress bar
+    function _updateUsageBar(provider) {
+        const usageBar = document.getElementById('agent-usage-bar');
+        const usageFill = document.getElementById('agent-usage-fill');
+        const usageText = document.getElementById('agent-usage-text');
+        const usageCount = document.getElementById('agent-usage-count');
+        const usageReset = document.getElementById('agent-usage-reset');
+        
+        if(!usageBar || !_activeAgent()) return;
+        
+        _cleanUsageData(provider);
+        const limits = RATE_LIMITS[provider] || RATE_LIMITS.default;
+        const data = _usageTracker[provider];
+        
+        const tokensThisMinute = data.minute.reduce((sum, e) => sum + e.tokens, 0);
+        const percentage = Math.round((tokensThisMinute / limits.tokensPerMinute) * 100);
+        
+        // Show usage bar when agent is connected
+        usageBar.style.display = 'block';
+        
+        // Update progress bar
+        usageFill.style.width = Math.min(percentage, 100) + '%';
+        usageText.textContent = percentage + '%';
+        usageCount.textContent = `${tokensThisMinute} / ${limits.tokensPerMinute}`;
+        
+        // Change color based on usage
+        if(percentage >= 80) {
+            usageFill.style.background = '#ef4444'; // Red
+        } else if(percentage >= 60) {
+            usageFill.style.background = '#f59e0b'; // Orange
+        } else {
+            usageFill.style.background = 'var(--accent)'; // Green
+        }
+        
+        // Show reset time (60 seconds from oldest entry)
+        if(data.minute.length > 0) {
+            const oldestTimestamp = Math.min(...data.minute.map(e => e.timestamp));
+            const resetIn = Math.ceil((60000 - (Date.now() - oldestTimestamp)) / 1000);
+            if(resetIn > 0 && resetIn < 60) {
+                usageReset.textContent = `Resets in ${resetIn}s`;
+            } else {
+                usageReset.textContent = 'Per minute limit';
+            }
+        } else {
+            usageReset.textContent = 'No usage yet';
+        }
+    }
+
+    // Hide usage bar when agent disconnected
+    function _hideUsageBar() {
+        const usageBar = document.getElementById('agent-usage-bar');
+        if(usageBar) usageBar.style.display = 'none';
+    }
+
+    // Restore usage data from localStorage
+    function _restoreUsageData() {
+        ['groq', 'gemini', 'default'].forEach(provider => {
+            try {
+                const saved = localStorage.getItem('agent_usage_' + provider);
+                if(saved) {
+                    _usageTracker[provider] = JSON.parse(saved);
+                    _cleanUsageData(provider);
+                }
+            } catch(e) {}
+        });
+    }
+    _restoreUsageData();
 
     function _saveAgentList() {
         localStorage.setItem('agent_list', JSON.stringify(agentList));
@@ -2592,6 +2811,14 @@
         _updateAgentFileSelector();
         _addAgentNavTab();
         _pingAgentModel();
+        
+        // Determine provider and update usage bar
+        const cfg = _activeAgent();
+        let provider = 'default';
+        if(cfg.provider === 'groq') provider = 'groq';
+        else if(cfg.provider === 'gemini') provider = 'gemini';
+        _updateUsageBar(provider);
+        
         setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
     }
 
@@ -2605,10 +2832,24 @@
         document.getElementById('agent-bar').classList.remove('connected');
         _cancelPendingEdits();
         _removeAgentNavTab();
+        _hideUsageBar();
     }
 
     // Auto-show agent bar if already connected from previous session
     if(_activeAgent()) { openAgentBar(); }
+
+    // Auto-update usage bar every second to show countdown
+    setInterval(() => {
+        if(document.getElementById('agent-bar').classList.contains('connected')) {
+            const cfg = _activeAgent();
+            if(cfg) {
+                let provider = 'default';
+                if(cfg.provider === 'groq') provider = 'groq';
+                else if(cfg.provider === 'gemini') provider = 'gemini';
+                _updateUsageBar(provider);
+            }
+        }
+    }, 1000);
 
     // ── IMPROVED AGENT SYSTEM PROMPTS ──
     // Enhanced prompt following Claude's rules: surgical edits, deep analysis, root cause fixes
@@ -2899,6 +3140,47 @@ OUTPUT:
     async function _callAgentAPI(systemPrompt, userMsg) {
         const cfg = _activeAgent();
         if(!cfg) throw new Error('No agent connected.');
+        
+        // Estimate tokens (rough: 1 token ≈ 4 chars)
+        const estimatedTokens = Math.ceil((systemPrompt.length + userMsg.length) / 4) + 3000; // +3000 for max output
+        
+        // Determine provider for rate limiting
+        let rateLimitProvider = 'default';
+        if(cfg.provider === 'groq') rateLimitProvider = 'groq';
+        else if(cfg.provider === 'gemini') rateLimitProvider = 'gemini';
+        
+        // Check rate limits
+        const limitCheck = _checkRateLimit(rateLimitProvider, estimatedTokens);
+        
+        if(!limitCheck.allowed) {
+            // Rate limit exceeded - show detailed error
+            let msg = '';
+            let waitMin = Math.ceil(limitCheck.waitTime / 60);
+            
+            if(limitCheck.reason === 'minute_tokens') {
+                msg = `Rate limit reached!\n\nYou've used ${limitCheck.current} of ${limitCheck.limit} tokens this minute.\n\nWait ${limitCheck.waitTime} seconds and try again.`;
+            } else if(limitCheck.reason === 'day_tokens') {
+                msg = `Daily limit reached!\n\nYou've used ${limitCheck.current} of ${limitCheck.limit} tokens today.\n\nTry again after ${waitMin} minute(s) or use a different provider.`;
+            } else if(limitCheck.reason === 'requests') {
+                msg = `Too many requests!\n\nYou've made ${limitCheck.current} requests this minute (limit: ${limitCheck.limit}).\n\nWait ${limitCheck.waitTime} seconds before trying again.`;
+            }
+            
+            throw new Error(msg);
+        }
+        
+        // Show warnings if approaching limits
+        if(limitCheck.warnings && limitCheck.warnings.length > 0) {
+            const usage = limitCheck.usage;
+            const warnMsg = `⚠️ Usage Alert:\n\n` + 
+                `Per-minute: ${usage.minute}%\n` +
+                `Daily: ${usage.day}%\n` +
+                `Requests: ${usage.requests}%\n\n` +
+                limitCheck.warnings.join('\n');
+            
+            // Show warning toast (non-blocking)
+            _showRateLimitWarning(warnMsg);
+        }
+        
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 45000);
         try {
@@ -2909,6 +3191,7 @@ OUTPUT:
                     body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] }) });
                 d = await res.json();
                 if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
+                _recordUsage(rateLimitProvider, estimatedTokens); // Record successful usage
                 return d.content[0].text.trim();
             } else if(cfg.provider === 'gemini') {
                 res = await fetch(cfg.url+'?key='+cfg.key, { method:'POST', signal:controller.signal,
@@ -2917,6 +3200,7 @@ OUTPUT:
                 d = await res.json();
                 if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
                 if(!d.candidates?.[0]) throw new Error('Gemini returned no candidates.');
+                _recordUsage(rateLimitProvider, estimatedTokens);
                 return (d.candidates[0].content?.parts?.[0]?.text||'').trim();
             } else {
                 // OpenAI-compatible: Groq, OpenRouter, OpenAI
@@ -2926,12 +3210,29 @@ OUTPUT:
                     body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] }) });
                 d = await res.json();
                 if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
+                _recordUsage(rateLimitProvider, estimatedTokens);
                 return d.choices[0].message.content.trim();
             }
         } catch(e) {
             if(e.name==='AbortError') throw new Error('Request timed out. Check internet.');
             throw e;
         } finally { clearTimeout(timeoutId); }
+    }
+
+    // Show rate limit warning (non-blocking toast)
+    function _showRateLimitWarning(msg) {
+        const bar = document.getElementById('agent-bar');
+        const existing = bar.querySelector('.rate-limit-warning');
+        if(existing) existing.remove();
+        
+        const warn = document.createElement('div');
+        warn.className = 'rate-limit-warning';
+        warn.style.cssText = 'margin:4px 8px;padding:8px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;font-size:10px;line-height:1.5;color:#f59e0b;animation:agentBubbleIn 0.2s ease;';
+        warn.innerHTML = msg.replace(/\n/g, '<br>') + `<div style="margin-top:4px;font-size:9px;opacity:0.7;cursor:pointer;" onclick="this.closest('.rate-limit-warning').remove()">Tap to dismiss</div>`;
+        bar.insertBefore(warn, document.getElementById('agent-compact-row'));
+        
+        // Auto-dismiss after 10 seconds
+        setTimeout(() => { if(warn.parentElement) warn.remove(); }, 10000);
     }
 
     function _showAgentChatReply(question, reply) {
