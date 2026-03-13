@@ -2110,6 +2110,15 @@
     let _agentUndoStack = [];
     const AGENT_UNDO_LIMIT = 20;
 
+    function _saveAgentList() {
+        localStorage.setItem('agent_list', JSON.stringify(agentList));
+        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
+    }
+
+    function _activeAgent() {
+        return agentList[activeAgentIdx] || null;
+    }
+
     // Backwards compat: load old single agent_config OR new agent_list
     (function() {
         try {
@@ -2123,15 +2132,6 @@
             if(activeAgentIdx >= agentList.length) activeAgentIdx = 0;
         } catch(e){}
     })();
-
-    function _saveAgentList() {
-        localStorage.setItem('agent_list', JSON.stringify(agentList));
-        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
-    }
-
-    function _activeAgent() {
-        return agentList[activeAgentIdx] || null;
-    }
 
     // Legacy compat shim
     Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
@@ -3320,7 +3320,6 @@ No markdown.`;
     }, true);
     window.addEventListener('beforeinstallprompt', () => { window._logApkEvent('INFO', 'beforeinstallprompt fired — PWA installable'); });
     window.addEventListener('appinstalled', () => { window._logApkEvent('SUCCESS', 'appinstalled event fired'); });
-
 </script>
 </body>
 </html>
