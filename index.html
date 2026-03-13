@@ -527,8 +527,8 @@
 <div class="app-layout">
     <div class="app-header" id="header">
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('editor')">Code</div>
-            <div class="tab" onclick="switchTab('preview')">Preview</div>
+            <div class="tab" id="tab-code" onclick="switchTab('editor')">Code</div>
+            <div class="tab active" id="tab-preview" onclick="switchTab('preview')">Preview</div>
         </div>
         
         <div style="display:flex; align-items:center;">
@@ -546,6 +546,31 @@
     <div class="main-container" id="editor-wrapper">
         <div id="editor"></div>
         <iframe id="preview" sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"></iframe>
+        <!-- Preview welcome overlay — shown when no project is loaded -->
+        <div id="preview-welcome" style="
+            position:absolute;top:0;left:0;right:0;bottom:0;
+            background:#10b981;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            z-index:25;padding:28px;
+        ">
+            <div style="font-size:38px;font-weight:900;color:white;font-family:monospace;margin-bottom:8px;">&lt;/&gt;</div>
+            <div style="font-size:20px;font-weight:700;color:white;margin-bottom:6px;">CodX Editor</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:32px;text-align:center;line-height:1.6;">Write, preview &amp; sync code<br>from your phone.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:260px;">
+                <button onclick="dismissPreviewWelcome();openNewProjectModal();" style="
+                    padding:15px;border:none;border-radius:14px;
+                    background:white;color:#10b981;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">add_box</span>New Project</button>
+                <button onclick="dismissPreviewWelcome();document.getElementById('file-input').click();" style="
+                    padding:15px;border:1.5px solid rgba(255,255,255,0.5);border-radius:14px;
+                    background:transparent;color:white;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">folder_open</span>Open Project</button>
+            </div>
+        </div>
         
         <div class="scroll-jumpers no-select" id="jumpers">
             <div class="jumper-btn" onclick="customFastScroll('up')"><span class="material-icons-round">keyboard_double_arrow_up</span></div>
@@ -777,52 +802,23 @@
         <span class="material-icons-round" onclick="closeAgentModal()" style="opacity:0.5; cursor:pointer; font-size:20px; pointer-events:auto;">close</span>
     </div>
     <div id="agent-setup-section">
-        <div style="font-size:11px; opacity:0.5; margin-bottom:10px; font-family:'Poppins',sans-serif;">Choose AI Provider & Model</div>
-        <div class="agent-provider-grid" id="agent-provider-grid">
-            <div class="agent-provider-btn" data-provider="gemini" data-url="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" data-model="gemini-2.0-flash" onclick="selectProvider(this)">
-                Gemini 2.0 Flash <span class="provider-tag">Google • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="gemini" data-url="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent" data-model="gemini-1.5-pro" onclick="selectProvider(this)">
-                Gemini 1.5 Pro <span class="provider-tag">Google • Free tier</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="gemini" data-url="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent" data-model="gemini-1.5-flash" onclick="selectProvider(this)">
-                Gemini 1.5 Flash <span class="provider-tag">Google • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="gemini" data-url="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent" data-model="gemini-1.5-flash-8b" onclick="selectProvider(this)">
-                Gemini Flash 8B <span class="provider-tag">Google • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="groq" data-url="https://api.groq.com/openai/v1/chat/completions" data-model="llama-3.3-70b-versatile" onclick="selectProvider(this)">
-                Llama 3.3 70B <span class="provider-tag">Groq • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="groq" data-url="https://api.groq.com/openai/v1/chat/completions" data-model="llama3-8b-8192" onclick="selectProvider(this)">
-                Llama 3 8B <span class="provider-tag">Groq • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="groq" data-url="https://api.groq.com/openai/v1/chat/completions" data-model="mixtral-8x7b-32768" onclick="selectProvider(this)">
-                Mixtral 8x7B <span class="provider-tag">Groq • Free</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="openai" data-url="https://api.openai.com/v1/chat/completions" data-model="gpt-4o-mini" onclick="selectProvider(this)">
-                GPT-4o mini <span class="provider-tag">OpenAI • Paid</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="openai" data-url="https://api.openai.com/v1/chat/completions" data-model="gpt-4o" onclick="selectProvider(this)">
-                GPT-4o <span class="provider-tag">OpenAI • Paid</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="anthropic" data-url="https://api.anthropic.com/v1/messages" data-model="claude-3-haiku-20240307" onclick="selectProvider(this)">
-                Claude Haiku <span class="provider-tag">Anthropic • Paid</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="anthropic" data-url="https://api.anthropic.com/v1/messages" data-model="claude-3-5-sonnet-20241022" onclick="selectProvider(this)">
-                Claude Sonnet <span class="provider-tag">Anthropic • Paid</span>
-            </div>
-            <div class="agent-provider-btn" data-provider="openrouter" data-url="https://openrouter.ai/api/v1/chat/completions" data-model="mistralai/mistral-7b-instruct:free" onclick="selectProvider(this)">
-                Mistral 7B <span class="provider-tag">OpenRouter • Free</span>
-            </div>
+        <div style="font-size:13px; font-weight:700; color:var(--text-color); margin-bottom:4px;">Paste your API Key</div>
+        <div style="font-size:10px; opacity:0.5; margin-bottom:12px; font-family:'Poppins',sans-serif; line-height:1.6;">
+            Provider &amp; model auto-detected from key format.<br>
+            Gemini (free): <b>aistudio.google.com</b><br>
+            Groq (free): <b>console.groq.com</b><br>
+            OpenRouter (free): <b>openrouter.ai</b>
         </div>
-        <input type="text" id="agent-api-key" placeholder="Paste API Key here..." style="width:100%; padding:11px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); color:var(--text-color); font-family:'Poppins',sans-serif; font-size:13px; margin-bottom:10px; user-select:text; -webkit-user-select:text; transition: border-color 0.15s;">
-        <div style="font-size:10px; opacity:0.4; margin-bottom:10px; font-family:'Poppins',sans-serif; line-height:1.4;">
-            Free models: Get Gemini key at <b>aistudio.google.com</b> · Groq key at <b>console.groq.com</b> · OpenRouter key at <b>openrouter.ai</b>
+        <input type="text" id="agent-api-key" placeholder="AIza... / gsk_... / sk-..."
+            style="width:100%; padding:11px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); color:var(--text-color); font-family:'Poppins',sans-serif; font-size:13px; margin-bottom:8px; user-select:text; -webkit-user-select:text; transition:border-color 0.15s;"
+            oninput="agentKeyPreview(this.value)">
+        <div id="agent-detect-badge" style="display:none; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:8px; padding:9px 12px; margin-bottom:10px; font-size:11px; font-weight:600; color:var(--accent);">
+            <span class="material-icons-round" style="font-size:15px;pointer-events:none;">auto_awesome</span>
+            <span id="agent-detect-text">Detected: —</span>
         </div>
-        <button class="modal-btn" onclick="connectAgent()" style="width:100%;">Connect Agent</button>
+        <button class="modal-btn" onclick="connectAgent()" style="width:100%;">Connect &amp; Start</button>
     </div>
-    <div id="agent-connected-section" style="display:none;">
+        <div id="agent-connected-section" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <div style="display:flex; align-items:center; gap:6px;">
                 <div style="width:8px; height:8px; border-radius:50%; background:var(--accent); "></div>
@@ -846,6 +842,16 @@
             <span style="font-size:11px; font-weight:600; color:var(--accent);" id="agent-bar-label">Agent</span>
         </div>
         <span class="material-icons-round" onclick="closeAgentBar()" style="font-size:18px; opacity:0.5; cursor:pointer; pointer-events:auto;">close</span>
+    </div>
+    <!-- File selector — shown only when multiple tabs are open -->
+    <div id="agent-file-selector" style="display:none; margin-bottom:6px;">
+        <select id="agent-file-select" style="
+            width:100%; padding:7px 10px; border-radius:8px;
+            background:rgba(0,0,0,0.25); border:1px solid var(--glass-border);
+            color:var(--text-color); font-family:Poppins,sans-serif; font-size:11px;
+            font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;
+        " onchange="agentSelectFile(this.value)">
+        </select>
     </div>
     <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
     <div class="agent-input-row">
@@ -951,6 +957,76 @@
             // If dismissed, keep deferredPrompt so user can try again
         }
     });
+
+    // ════════════════════════════════════════════════
+    //  CodXStore — ALL user data saved to local device
+    //  EXCEPT: gh_token, agent_config (stay in localStorage for quick access)
+    //  Everything else persists via IndexedDB (local device only, never sent anywhere)
+    // ════════════════════════════════════════════════
+    const CodXStore = (() => {
+        const DB_NAME = 'CodXData', DB_VER = 1, STORE = 'userdata';
+        let _db = null;
+
+        function _open() {
+            return new Promise((resolve, reject) => {
+                if (_db) { resolve(_db); return; }
+                const req = indexedDB.open(DB_NAME, DB_VER);
+                req.onupgradeneeded = e => {
+                    e.target.result.createObjectStore(STORE);
+                };
+                req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function set(key, value) {
+            try {
+                const db = await _open();
+                return new Promise((res, rej) => {
+                    const tx = db.transaction(STORE, 'readwrite');
+                    tx.objectStore(STORE).put(value, key);
+                    tx.oncomplete = () => res(true);
+                    tx.onerror = () => rej(tx.error);
+                });
+            } catch(e) {
+                // Fallback to localStorage
+                try { localStorage.setItem('codx_idb_' + key, JSON.stringify(value)); return true; } catch(ee) { return false; }
+            }
+        }
+
+        async function get(key, defaultVal = null) {
+            try {
+                const db = await _open();
+                return new Promise((res) => {
+                    const tx = db.transaction(STORE, 'readonly');
+                    const req = tx.objectStore(STORE).get(key);
+                    req.onsuccess = () => res(req.result !== undefined ? req.result : defaultVal);
+                    req.onerror = () => res(defaultVal);
+                });
+            } catch(e) {
+                try {
+                    const v = localStorage.getItem('codx_idb_' + key);
+                    return v !== null ? JSON.parse(v) : defaultVal;
+                } catch(ee) { return defaultVal; }
+            }
+        }
+
+        async function remove(key) {
+            try {
+                const db = await _open();
+                return new Promise((res) => {
+                    const tx = db.transaction(STORE, 'readwrite');
+                    tx.objectStore(STORE).delete(key);
+                    tx.oncomplete = () => res(true);
+                    tx.onerror = () => res(false);
+                });
+            } catch(e) {
+                localStorage.removeItem('codx_idb_' + key); return true;
+            }
+        }
+
+        return { set, get, remove };
+    })();
 
     // ════════════════════════════════════════════════
     //  EDITOR — GAME ENGINE VIEWPORT APPROACH
@@ -1099,163 +1175,72 @@
         _changeDebounce = setTimeout(() => { checkScrollable(); _changeDebounce = null; }, 250);
     });
 
-    // ── STEP 9: Initial content — beautiful demo ──
+    // ── STEP 9: Initial content — minimal green demo ──
     _setEditorValueFast(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CodX Demo</title>
+<title>CodX</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    min-height: 100vh; font-family: 'Inter', sans-serif;
-    background: #050510;
-    display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
+    min-height: 100vh;
+    background: #10b981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, sans-serif;
   }
-
-  /* Animated gradient background */
-  .bg {
-    position: fixed; inset: 0; z-index: 0;
-    background: radial-gradient(ellipse at 20% 50%, #1a0533 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, #0a1a40 0%, transparent 55%),
-                radial-gradient(ellipse at 60% 80%, #001a20 0%, transparent 50%),
-                #050510;
-  }
-
-  /* Floating orbs */
-  .orb {
-    position: fixed; border-radius: 50%; filter: blur(60px);
-    animation: float 8s ease-in-out infinite;
-    z-index: 0;
-  }
-  .orb1 { width: 300px; height: 300px; background: rgba(139, 92, 246, 0.25); top: -80px; left: -60px; animation-delay: 0s; }
-  .orb2 { width: 250px; height: 250px; background: rgba(16, 185, 129, 0.2); bottom: -60px; right: -40px; animation-delay: -3s; }
-  .orb3 { width: 200px; height: 200px; background: rgba(59, 130, 246, 0.2); top: 40%; left: 50%; animation-delay: -5s; }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-30px) scale(1.1); }
-  }
-
-  /* Card */
   .card {
-    position: relative; z-index: 1;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 28px;
-    padding: 40px 32px;
-    max-width: 360px; width: 90%;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 36px 28px;
     text-align: center;
-    box-shadow: none;
-    animation: cardIn 0.9s cubic-bezier(0.34,1.3,0.64,1) both;
+    max-width: 320px;
+    width: 88%;
   }
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(40px) scale(0.92); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+  .logo {
+    font-size: 32px;
+    font-weight: 900;
+    color: white;
+    font-family: monospace;
+    margin-bottom: 12px;
   }
-
-  .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35);
-    color: #10b981; font-size: 11px; font-weight: 700; letter-spacing: 1px;
-    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
-    margin-bottom: 22px; animation: cardIn 0.7s 0.2s both;
-  }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981;  }
-   50%{opacity:0.4;transform:scale(0.7)} }
-
   h1 {
-    font-size: 38px; font-weight: 900; line-height: 1.1;
-    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    margin-bottom: 14px; animation: cardIn 0.7s 0.3s both;
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 8px;
   }
-  h1 span {
-    background: linear-gradient(135deg, #10b981, #3b82f6);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-
   p {
-    color: rgba(255,255,255,0.5); font-size: 14px; line-height: 1.7;
-    margin-bottom: 32px; animation: cardIn 0.7s 0.4s both;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.6;
+    margin-bottom: 24px;
   }
-
-  .stats {
-    display: flex; gap: 12px; margin-bottom: 32px;
-    animation: cardIn 0.7s 0.5s both;
-  }
-  .stat {
-    flex: 1; background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 8px;
-  }
-  .stat-num { font-size: 22px; font-weight: 900; color: #fff; }
-  .stat-label { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
-
   .btn {
-    display: block; width: 100%; padding: 15px;
-    background: linear-gradient(135deg, #10b981, #059669);
-    border: none; border-radius: 14px;
-    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
-    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: none;
-    animation: cardIn 0.7s 0.6s both;
-    font-family: 'Inter', sans-serif;
-  }
-  .btn:hover { transform: translateY(-2px); box-shadow: none; }
-  .btn:active { transform: scale(0.97); }
-
-  /* Stars */
-  .stars { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
-  .star {
-    position: absolute; background: white; border-radius: 50%;
-    animation: twinkle linear infinite;
-  }
-  @keyframes twinkle {
-    0%,100% { opacity: 0; transform: scale(0); }
-    50% { opacity: 1; transform: scale(1); }
+    display: inline-block;
+    padding: 12px 28px;
+    background: white;
+    color: #10b981;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: system-ui, sans-serif;
   }
 </style>
 </head>
 <body>
-<div class="bg"></div>
-<div class="stars" id="stars"></div>
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-<div class="orb orb3"></div>
-
 <div class="card">
-  <div class="badge"><div class="dot"></div> Live Preview</div>
-  <h1>Code with <span>CodX</span></h1>
-  <p>A powerful mobile code editor. Write, preview and sync your projects to GitHub — right from your phone.</p>
-  <div class="stats">
-    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Undo</div></div>
-    <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Agent</div></div>
-    <div class="stat"><div class="stat-num">GH</div><div class="stat-label">Sync</div></div>
-  </div>
-  <button class="btn" onclick="this.textContent='🚀 Launched!'">Start Building →</button>
+  <div class="logo">&lt;/&gt;</div>
+  <h1>CodX Editor</h1>
+  <p>Write code, preview instantly,<br>sync with GitHub.</p>
+  <button class="btn" onclick="this.textContent='Ready!'">Get Started</button>
 </div>
-
-<script>
-  // Generate stars
-  const container = document.getElementById('stars');
-  for(let i = 0; i < 80; i++) {
-    const s = document.createElement('div');
-    s.className = 'star';
-    const size = Math.random() * 2.5 + 0.5;
-    s.style.cssText = \`
-      width:\${size}px; height:\${size}px;
-      left:\${Math.random()*100}%;
-      top:\${Math.random()*100}%;
-      animation-duration:\${Math.random()*4+2}s;
-      animation-delay:\${Math.random()*5}s;
-    \`;
-    container.appendChild(s);
-  }
-<\/script>
 </body>
 </html>`);
     _setEditorMode('index.html');
@@ -1319,7 +1304,7 @@
     // ── NAV PANEL STATE MANAGER ──
     // Rule: restoreBtn is ALWAYS visible when panel is collapsed AND we are NOT in preview.
     // On launch: panel starts collapsed, restoreBtn visible.
-    let _inPreview = false;
+    let _inPreview = true; // starts in preview by default
 
     function _collapseNav() {
         bottomPanel.classList.add('collapsed');
@@ -1382,6 +1367,11 @@
     }
 
     let _previewBlobUrl = null;
+    function dismissPreviewWelcome() {
+        const pw = document.getElementById('preview-welcome');
+        if(pw) pw.style.display = 'none';
+    }
+
     function _refreshPreview() {
         let code = editor.getValue();
         if(!code.includes('viewport')) code = code.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">');
@@ -1390,9 +1380,14 @@
         document.getElementById('preview').src = _previewBlobUrl;
     }
 
-    function switchTab(tabName) {
+    function switchTab(tabName, fromBtn) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.currentTarget.classList.add('active');
+        if(fromBtn) fromBtn.classList.add('active');
+        else if(event && event.currentTarget) event.currentTarget.classList.add('active');
+        else {
+            const tgt = document.getElementById(tabName === 'preview' ? 'tab-preview' : 'tab-code');
+            if(tgt) tgt.classList.add('active');
+        }
 
         // Always keep header visible
         const header = document.getElementById('header');
@@ -1457,6 +1452,21 @@
             currentFileName = tab.name;
         }
         renderFileTabs();
+    // Start in preview mode — matches default active tab
+    (function() {
+        document.getElementById('editor').style.opacity = '0';
+        document.getElementById('editor').style.pointerEvents = 'none';
+        const bp = document.getElementById('bottom-panel');
+        if(bp) bp.style.display = 'none';
+        const rb = document.getElementById('restore-btn');
+        if(rb) rb.classList.add('hidden-btn');
+        document.getElementById('preview').classList.add('active-pane');
+        // Load the initial preview
+        setTimeout(() => {
+            dismissPreviewWelcome(); // hide welcome after first real load
+        }, 50);
+        _refreshPreview();
+    })();
         // If currently in preview, auto-refresh with new tab's content
         if(_inPreview) { _refreshPreview(); }
     }
@@ -1738,9 +1748,9 @@
                 }
 
                 // Save project name to localStorage
-                let projects = JSON.parse(localStorage.getItem('codx_projects') || '{}');
+                let projects = await CodXStore.get('codx_projects', {});
                 projects[projectName] = { repo: ghCurrentRepo, loadedAt: Date.now(), fileCount: loaded };
-                localStorage.setItem('codx_projects', JSON.stringify(projects));
+                await CodXStore.set('codx_projects', projects);
 
                 _hideRepoProgress();
                 _showPerfBadge(`✓ "${projectName}" — ${loaded} files loaded`);
@@ -1867,10 +1877,63 @@
         this.style.height = Math.min(this.scrollHeight, 100) + 'px';
     });
 
-    function selectProvider(el) {
-        document.querySelectorAll('.agent-provider-btn').forEach(b => b.classList.remove('selected'));
-        el.classList.add('selected');
+    // ── API KEY AUTO-DETECT ──
+    function _detectProviderFromKey(key) {
+        key = (key || '').trim();
+        if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))
+            return { provider:'gemini', providerName:'Gemini 2.0 Flash',
+                url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+                model:'gemini-2.0-flash', label:'Google Gemini 2.0 Flash · Free' };
+        if (/^gsk_[A-Za-z0-9]{20,}/.test(key))
+            return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
+                url:'https://api.groq.com/openai/v1/chat/completions',
+                model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free' };
+        if (/^sk-or-[A-Za-z0-9]{10,}/.test(key))
+            return { provider:'openrouter', providerName:'OpenRouter – Mistral 7B',
+                url:'https://openrouter.ai/api/v1/chat/completions',
+                model:'mistralai/mistral-7b-instruct:free', label:'OpenRouter – Mistral 7B · Free' };
+        if (/^sk-ant-[A-Za-z0-9]{10,}/.test(key))
+            return { provider:'anthropic', providerName:'Claude Haiku',
+                url:'https://api.anthropic.com/v1/messages',
+                model:'claude-3-haiku-20240307', label:'Anthropic – Claude Haiku' };
+        if (/^sk-[A-Za-z0-9]{20,}/.test(key))
+            return { provider:'openai', providerName:'GPT-4o mini',
+                url:'https://api.openai.com/v1/chat/completions',
+                model:'gpt-4o-mini', label:'OpenAI – GPT-4o mini' };
+        return null;
     }
+
+    function agentKeyPreview(val) {
+        const badge = document.getElementById('agent-detect-badge');
+        const text  = document.getElementById('agent-detect-text');
+        const inp   = document.getElementById('agent-api-key');
+        const d = _detectProviderFromKey(val);
+        if (d) { badge.style.display='flex'; text.textContent=d.label; inp.style.borderColor='var(--accent)'; }
+        else   { badge.style.display='none'; inp.style.borderColor=''; }
+    }
+
+    function selectProvider(el) { /* legacy no-op */ }
+
+    function connectAgent() {
+        const key = document.getElementById('agent-api-key').value.trim();
+        if (!key) { cdAlert('Agent','Please paste your API key first.','warn'); return; }
+        const d = _detectProviderFromKey(key);
+        if (!d) {
+            cdAlert('Agent',
+                'Key format not recognised.\n\n' +
+                'Gemini key starts with: AIza\n' +
+                'Groq key starts with: gsk_\n' +
+                'OpenRouter key starts with: sk-or-\n' +
+                'OpenAI key starts with: sk-\n' +
+                'Anthropic key starts with: sk-ant-', 'warn');
+            return;
+        }
+        agentConfig = { ...d, key };
+        localStorage.setItem('agent_config', JSON.stringify(agentConfig));
+        closeAgentModal();
+        openAgentBar();
+    }
+
 
     function openAgentModal() {
         closeGithubModal();
@@ -1908,12 +1971,36 @@
         document.getElementById('agent-connected-section').style.display = 'none';
     }
 
+    let _agentTargetTabId = null; // which tab agent works on
+
+    function agentSelectFile(tabId) {
+        _agentTargetTabId = parseInt(tabId) || null;
+    }
+
+    function _updateAgentFileSelector() {
+        const sel = document.getElementById('agent-file-select');
+        const wrap = document.getElementById('agent-file-selector');
+        if(!sel || !wrap) return;
+        if(fileTabs.length <= 1) { wrap.style.display = 'none'; _agentTargetTabId = null; return; }
+        wrap.style.display = 'block';
+        sel.innerHTML = '';
+        fileTabs.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            if(t.id === activeTabId) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        _agentTargetTabId = activeTabId;
+    }
+
     function openAgentBar() {
         closeAgentModal();
         if(!agentConfig) { openAgentModal(); return; }
         const bar = document.getElementById('agent-bar');
         bar.classList.add('visible');
         document.getElementById('agent-bar-label').textContent = agentConfig.providerName;
+        _updateAgentFileSelector();
         if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform=''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); }
         setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
     }
@@ -1924,21 +2011,57 @@
 
     async function _callAgentAPI(systemPrompt, userMsg) {
         const cfg = agentConfig;
-        if(cfg.provider === 'anthropic') {
-            const res = await fetch(cfg.url, { method:'POST', headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'}, body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] }) });
-            const d = await res.json(); if(!res.ok) throw new Error(d.error?.message||'API Error');
-            return d.content[0].text.trim();
-        } else if(cfg.provider === 'gemini') {
-            const res = await fetch(cfg.url+'?key='+cfg.key, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ contents:[{parts:[{text:systemPrompt+'\n\n'+userMsg}]}], generationConfig:{maxOutputTokens:3000} }) });
-            const d = await res.json(); if(!res.ok) throw new Error(d.error?.message||'API Error');
-            return d.candidates[0].content.parts[0].text.trim();
-        } else {
-            // OpenAI-compatible: OpenAI, Groq, OpenRouter
-            const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
-            if(cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX Editor'; }
-            const res = await fetch(cfg.url, { method:'POST', headers, body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] }) });
-            const d = await res.json(); if(!res.ok) throw new Error(d.error?.message||'API Error');
-            return d.choices[0].message.content.trim();
+        // 30s timeout — prevents silent hang on slow networks
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        try {
+            let res, d;
+
+            if(cfg.provider === 'anthropic') {
+                res = await fetch(cfg.url, {
+                    method:'POST', signal: controller.signal,
+                    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
+                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                return d.content[0].text.trim();
+
+            } else if(cfg.provider === 'gemini') {
+                res = await fetch(cfg.url + '?key=' + cfg.key, {
+                    method:'POST', signal: controller.signal,
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        contents:[{parts:[{text: systemPrompt + '\n\n' + userMsg}]}],
+                        generationConfig:{ maxOutputTokens:3000, temperature:0.2 }
+                    })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
+                if(!d.candidates || !d.candidates[0]) throw new Error('Gemini returned no candidates. Prompt may have been blocked.');
+                const part = d.candidates[0].content?.parts?.[0]?.text;
+                if(!part) throw new Error('Gemini response empty. Try again.');
+                return part.trim();
+
+            } else {
+                // OpenAI-compatible: OpenAI, Groq, OpenRouter
+                const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
+                if(cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
+                res = await fetch(cfg.url, {
+                    method:'POST', signal: controller.signal,
+                    headers,
+                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                return d.choices[0].message.content.trim();
+            }
+        } catch(e) {
+            if(e.name === 'AbortError') throw new Error('Request timed out (30s). Check your internet connection.');
+            throw e;
+        } finally {
+            clearTimeout(timeoutId);
         }
     }
 
@@ -1952,7 +2075,16 @@
         const sendBtn = document.getElementById('agent-send-btn');
         thinking.classList.add('visible'); sendBtn.disabled = true;
 
-        const code = editor.getValue();
+        // Use selected file from agent file selector if set
+        let _agentWorkTab = null;
+        if(_agentTargetTabId) {
+            _agentWorkTab = fileTabs.find(t => t.id === _agentTargetTabId);
+        }
+        if(!_agentWorkTab) _agentWorkTab = fileTabs.find(t => t.id === activeTabId);
+        // Save current editor content to active tab first
+        const curTab = fileTabs.find(t => t.id === activeTabId);
+        if(curTab) curTab.content = editor.getValue();
+        const code = _agentWorkTab ? _agentWorkTab.content : editor.getValue();
         _agentOriginalCode = code;
 
         // Detect split intent
@@ -2029,9 +2161,21 @@ RULES (STRICT):
             document.getElementById('agent-attach-btn').style.background = '';
             document.getElementById('agent-attach-btn').style.color = '';
         } catch(err) {
-            cdAlert('Agent Error', err.message || 'Something went wrong. Check API key.', 'error');
+            // Show error inline in agent bar so user sees exactly what failed
+            const errMsg = err.message || 'Something went wrong.';
+            const bar = document.getElementById('agent-bar');
+            const oldErr = document.getElementById('agent-inline-error');
+            if(oldErr) oldErr.remove();
+            const errEl = document.createElement('div');
+            errEl.id = 'agent-inline-error';
+            errEl.style.cssText = 'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:8px 10px;font-size:11px;color:#ef4444;font-weight:600;margin-bottom:4px;word-break:break-word;';
+            errEl.textContent = '⚠ ' + errMsg;
+            const inputRow = bar.querySelector('.agent-input-row');
+            bar.insertBefore(errEl, inputRow);
+            setTimeout(() => { if(errEl.parentElement) errEl.remove(); }, 8000);
+        } finally {
+            thinking.classList.remove('visible'); sendBtn.disabled = false;
         }
-        thinking.classList.remove('visible'); sendBtn.disabled = false;
     }
 
     // Show split file review panel — each file with open-in-tab + download
@@ -2168,11 +2312,19 @@ RULES (STRICT):
         _agentUndoStack.push(editor.getValue());
         if(_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
 
-        let code = editor.getValue();
+        // Apply edits to the agent's target tab
+        const targetId = _agentTargetTabId || activeTabId;
+        const targetTab = fileTabs.find(t => t.id === targetId);
+        let code = targetTab ? targetTab.content : editor.getValue();
         let applied = 0;
         _agentPendingEdits.forEach(edit => {
             if(code.includes(edit.find)) { code = code.split(edit.find).join(edit.replace); applied++; }
         });
+        // Switch to that tab and apply
+        if(targetTab) {
+            targetTab.content = code;
+            if(targetId !== activeTabId) switchFileTab(targetId);
+        }
         _setEditorValueFast(code);
         const cur = fileTabs.find(t => t.id === activeTabId);
         if(cur) cur.content = code;
@@ -2219,18 +2371,18 @@ RULES (STRICT):
     }
 
     // ===== WELCOME SCREEN (first-launch only) =====
-    (function() {
-        const seen = localStorage.getItem('codx_welcomed');
+    (async function() {
+        const seen = await CodXStore.get('codx_welcomed', null);
         if (!seen) {
             const ws = document.getElementById('welcome-screen');
             ws.classList.remove('hidden');
         }
     })();
-    function dismissWelcome() {
+    async function dismissWelcome() {
         const ws = document.getElementById('welcome-screen');
         ws.classList.add('hiding');
         setTimeout(() => { ws.classList.add('hidden'); }, 650);
-        localStorage.setItem('codx_welcomed', '1');
+        await CodXStore.set('codx_welcomed', '1');
     }
 
     // ===== UNLIMITED UNDO / REDO (no limit) =====
@@ -2336,13 +2488,17 @@ RULES (STRICT):
             });
         } catch(e) {}
     }
-    function createNewProject() {
+    async function createNewProject() {
         const fname = (document.getElementById('np-filename').value || '').trim();
         if (!fname) { cdAlert('New Project', 'Please enter a file name.', 'warn'); return; }
         const blankContent = _getBlankContentForFile(fname);
         closeNewProjectModal();
-        // Open blank file in new tab
-        openFileInTab(fname, blankContent, true);
+        // Ask user: new tab or current tab
+        cdConfirm('Open In', 'Open "' + fname + '" in a new tab or replace current tab?', 'New Tab', 'Current Tab', (useNew) => {
+            openFileInTab(fname, blankContent, useNew);
+            // Switch to Code tab to start editing
+            switchTab('editor', document.getElementById('tab-code'));
+        });
         if (_npSaveDest === 'github') {
             const repoSel = document.getElementById('np-gh-repo-select');
             const repo = repoSel ? repoSel.value : '';
