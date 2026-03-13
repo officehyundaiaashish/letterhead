@@ -92,9 +92,9 @@
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* will-change: transform → own GPU layer, no repaint on slide */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease; }
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease;   }
         .bottom-wrapper { will-change: transform; }
-        .bottom-wrapper.collapsed { transform: translateY(calc(100% + 10px)); } /* Extra 10px to fully hide */
+        .bottom-wrapper.collapsed { transform: translateY(100%); }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
@@ -145,9 +145,7 @@
         }
         .modal.active { bottom: 20px; opacity: 1; pointer-events: auto; transform: scale(1); }
         
-        .modal textarea, .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px; }
-        /* Find modal textareas should use monospace like the editor */
-        #find-input, #replace-input { font-family: 'Courier New', Courier, monospace !important; font-size: 12px; line-height: 1.5; }
+        .modal textarea, .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Courier New', Courier, monospace; font-size: 13px; }
         .modal-actions { display: flex; gap: 8px; }
         .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 13px; cursor: pointer; transition: opacity 0.2s, transform 0.15s; }
         .modal-btn:active { opacity: 0.8; transform: scale(0.97); }
@@ -462,7 +460,7 @@
             border-bottom: 1px solid var(--glass-border);
             background: var(--glass-bg);
         }
-        #agent-bar.connected { display: flex; }
+        #agent-bar.visible { display: flex; }
         #agent-compact-row {
             display: flex; align-items: center; gap: 6px;
             padding: 6px 10px;
@@ -497,42 +495,13 @@
         .agent-dots span:nth-child(2) { animation-delay: 0.2s; }
         .agent-dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes agentBounce { 0%,80%,100%{ transform:translateY(0); opacity:0.6; } 40%{ transform:translateY(-4px); opacity:1; } }
-        @keyframes agentBubbleIn { from { opacity:0; transform:translateY(6px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
-        #agent-file-selector { border-bottom: 1px solid var(--glass-border); }
-        #agent-tab-picker::-webkit-scrollbar { display: none; }
-        .atp-pill {
-            display: flex; align-items: center; gap: 4px;
-            padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600;
-            white-space: nowrap; cursor: pointer; flex-shrink: 0; pointer-events: auto;
-            border: 1px solid var(--glass-border); background: rgba(128,128,128,0.08);
-            color: var(--text-color); opacity: 0.6; transition: all 0.15s;
-            -webkit-tap-highlight-color: transparent;
+        #agent-file-selector { padding: 0 10px 5px; }
+        #agent-file-select {
+            width:100%; padding:5px 8px; border-radius:7px;
+            background:rgba(0,0,0,0.25); border:1px solid var(--glass-border);
+            color:var(--text-color); font-family:Poppins,sans-serif; font-size:10px;
+            font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;
         }
-        .atp-pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); opacity: 1; }
-        .atp-pill:active { transform: scale(0.95); }
-        .atp-pill .material-icons-round { font-size: 11px; pointer-events: none; }
-        .atp-pill-close { font-size: 11px; opacity: 0.4; pointer-events: auto; margin-left: 1px; transition: opacity 0.15s; }
-        .atp-pill-close:active { opacity: 1; }
-        /* Custom dropdown list */
-        #agent-tab-dropdown {
-            position: fixed; z-index: 500;
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            border-radius: 14px; padding: 6px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            min-width: 200px; max-width: 280px;
-            animation: agentBubbleIn 0.18s cubic-bezier(0.34,1.2,0.64,1) both;
-        }
-        .atd-item {
-            display: flex; align-items: center; gap: 8px;
-            padding: 9px 12px; border-radius: 9px; cursor: pointer;
-            font-size: 12px; font-weight: 600; color: var(--text-color);
-            transition: background 0.12s; pointer-events: auto;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .atd-item:active { background: var(--accent-dim); color: var(--accent); }
-        .atd-item.active { background: var(--accent-dim); color: var(--accent); }
-        .atd-item .material-icons-round { font-size: 15px; pointer-events: none; flex-shrink: 0; }
-        .atd-sep { height: 1px; background: var(--glass-border); margin: 4px 0; }
     </style>
 </head>
 <body class="dark-theme no-select">
@@ -583,8 +552,8 @@
 <div class="app-layout">
     <div class="app-header" id="header">
         <div class="tabs">
-            <div class="tab active" id="tab-code">Code</div>
-            <div class="tab" id="tab-preview">Preview</div>
+            <div class="tab active" id="tab-code" onclick="switchTab('editor')">Code</div>
+            <div class="tab" id="tab-preview" onclick="switchTab('preview')">Preview</div>
         </div>
         
         <div style="display:flex; align-items:center;">
@@ -601,6 +570,31 @@
 
     <div class="main-container" id="editor-wrapper">
         <div id="editor"></div>
+        <iframe id="preview" allow="geolocation; microphone; camera; fullscreen; payment; clipboard-read; clipboard-write"></iframe>
+        <!-- Preview welcome overlay — shown when no project is loaded -->
+        <div id="preview-welcome" style="
+            position:absolute;top:0;left:0;right:0;bottom:0;
+            background:#10b981;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            z-index:25;padding:28px;
+        ">
+            <div style="font-size:38px;font-weight:900;color:white;font-family:monospace;margin-bottom:8px;">&lt;/&gt;</div>
+            <div style="font-size:20px;font-weight:700;color:white;margin-bottom:6px;">CodX Editor</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:32px;text-align:center;line-height:1.6;">Write, preview &amp; sync code<br>from your phone.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:260px;">
+                <button onclick="dismissPreviewWelcome();openNewProjectModal();" style="
+                    padding:15px;border:none;border-radius:14px;
+                    background:white;color:#10b981;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">add_box</span>New Project</button>
+                <button onclick="dismissPreviewWelcome();document.getElementById('file-input').click();" style="
+                    padding:15px;border:1.5px solid rgba(255,255,255,0.5);border-radius:14px;
+                    background:transparent;color:white;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">folder_open</span>Open Project</button>
+            </div>
         </div>
         
         <div class="scroll-jumpers no-select" id="jumpers">
@@ -618,12 +612,7 @@
             <!-- AGENT BAR — compact strip, sits at top of nav panel -->
             <div id="agent-bar">
                 <div id="agent-file-selector" style="display:none;">
-                    <div style="display:flex;align-items:center;gap:0;">
-                        <div id="agent-tab-picker" style="flex:1;min-width:0;overflow-x:auto;display:flex;align-items:center;gap:4px;padding:4px 10px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;"></div>
-                        <button id="agent-restore-btn" onclick="showAgentRestoreMenu()" title="Restore" style="width:30px;height:30px;border-radius:8px;border:none;background:rgba(128,128,128,0.1);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;pointer-events:auto;margin-right:8px;">
-                            <span class="material-icons-round" style="font-size:15px;pointer-events:none;">history</span>
-                        </button>
-                    </div>
+                    <select id="agent-file-select" onchange="agentSelectFile(this.value)"></select>
                 </div>
                 <div id="agent-compact-row">
                     <div class="agent-status-dot"></div>
@@ -635,23 +624,9 @@
                     <button id="agent-send-btn" onclick="sendAgentPrompt()">
                         <span class="material-icons-round">send</span>
                     </button>
+                    <span class="material-icons-round" id="agent-close-btn" onclick="closeAgentBar()">close</span>
                 </div>
                 <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
-                
-                <!-- Usage Progress Bar -->
-                <div id="agent-usage-bar" style="display:none;padding:6px 10px 8px;border-top:1px solid var(--glass-border);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-                        <span style="font-size:9px;font-weight:600;color:var(--text-color);opacity:0.6;">API Usage</span>
-                        <span id="agent-usage-reset" style="font-size:8px;color:var(--text-color);opacity:0.4;"></span>
-                    </div>
-                    <div style="width:100%;height:4px;background:rgba(0,0,0,0.3);border-radius:2px;overflow:hidden;">
-                        <div id="agent-usage-fill" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s ease,background 0.3s;border-radius:2px;"></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;margin-top:2px;">
-                        <span id="agent-usage-text" style="font-size:8px;color:var(--text-color);opacity:0.5;">0%</span>
-                        <span id="agent-usage-count" style="font-size:8px;color:var(--text-color);opacity:0.5;">0 / 6000</span>
-                    </div>
-                </div>
             </div>
 
             <div class="drag-handle-area"><div class="drag-pill"></div></div>
@@ -1387,31 +1362,23 @@
     let _inPreview = false; // starts in code view
 
     function _collapseNav() {
-        // Clear any inline transform first
-        bottomPanel.style.transform = '';
-        // Force reflow
-        void bottomPanel.offsetHeight;
-        // Add collapsed class which applies translateY(100%)
         bottomPanel.classList.add('collapsed');
-        // Show restore button
+        bottomPanel.style.transform = '';
         if (!_inPreview) {
             restoreBtn.classList.remove('hidden-btn');
         }
     }
     function _expandNav() {
-        // Remove collapsed class
         bottomPanel.classList.remove('collapsed');
-        // Clear inline transform
         bottomPanel.style.transform = '';
-        // Hide restore button
         restoreBtn.classList.add('hidden-btn');
     }
     function restoreBottomPanel() {
         _expandNav();
     }
 
-    // Start collapsed on launch - defer to prevent scroll jump
-    setTimeout(() => _collapseNav(), 100);
+    // Start collapsed on launch
+    _collapseNav();
 
     // Swipe down to collapse
     let startY = 0, startX = 0, isSwipingDown = false;
@@ -1521,528 +1488,21 @@
         }
     }
 
-    // ===== AGENT SYSTEM (moved before fileTabs to avoid TDZ errors) =====
-    /* AGENT IMPROVEMENTS - Claude-like behavior with optimized token usage:
-     * 
-     * 1. ENHANCED SYSTEM PROMPTS:
-     *    - Added "Analysis First" rules: understand code structure, find root causes
-     *    - Stricter editing rules: surgical edits only, no scope creep
-     *    - Better output format guidelines: cleaner JSON, no extra tokens
-     *    - Concise chat responses: limit verbosity, focus on key concepts
-     * 
-     * 2. SMARTER CODE TRIMMING (_trimCodeForEdit):
-     *    - Increased threshold: 4000 chars (was 3000) for full code
-     *    - Better keyword matching: lower threshold (2 chars vs 3)
-     *    - Context expansion: ±15 lines (was ±10) for better understanding
-     *    - Function boundary detection: includes complete functions/classes
-     *    - Smart fallback: sends first 100 + last 50 lines when no matches
-     *    - Reduces tokens while preserving critical context
-     * 
-     * 3. OPTIMIZED PROMPT CONSTRUCTION:
-     *    - More concise file info (line count, relevance note)
-     *    - Clearer task framing: "analyze → identify → return"
-     *    - Removed redundant instructions from user messages
-     *    - Better retry prompts with explicit failure context
-     * 
-     * 4. TOKEN USAGE IMPROVEMENTS:
-     *    - Chat mode: reduced code context limit (3000 vs 4000)
-     *    - Split mode: increased to 10000 (was 8000) for better results
-     *    - Retry logic: 12000 chars (was 9000) for second attempt
-     *    - Removed verbose "affects" field from edit objects
-     * 
-     * 5. PROFESSIONAL BEHAVIOR:
-     *    - Follows strict coding agent rules (like original instructions)
-     *    - Deep analysis before changes (no band-aid fixes)
-     *    - Edit only what's requested (no extra features)
-     *    - Clean, error-free output (no syntax errors)
-     * 
-     * RESULT: ~30-40% token reduction while maintaining or improving quality
-     */
-    let agentList = [];
-    let activeAgentIdx = 0;
-    let agentAttachment = null;
-    let _agentPendingEdits = [];
-    let _agentOriginalCode = '';
-    let _agentUndoStack = [];
-    const AGENT_UNDO_LIMIT = 20;
-    let _agentTargetTabId = null; // null = active tab, 'all' = all tabs
-    let _agentHistory = {}; // per-tab undo: {tabId:[{request,before,ts}]}
-
-    // ===== RATE LIMITING SYSTEM =====
-    /* Provider-specific limits with 80% safety threshold */
-    const RATE_LIMITS = {
-        groq: {
-            tokensPerMinute: 6000,
-            tokensPerDay: 500000,
-            requestsPerMinute: 30,
-            safetyThreshold: 0.8 // 80% of limit triggers warning
-        },
-        gemini: {
-            tokensPerMinute: 32000, // Gemini 2.0 Flash free tier
-            tokensPerDay: 1500000,  // 1.5M per day
-            requestsPerMinute: 15,
-            safetyThreshold: 0.8
-        },
-        // Default for other providers (OpenAI-compatible)
-        default: {
-            tokensPerMinute: 90000,
-            tokensPerDay: 2000000,
-            requestsPerMinute: 60,
-            safetyThreshold: 0.8
-        }
-    };
-
-    // Usage tracking
-    let _usageTracker = {
-        groq: { minute: [], day: [], requests: [] },
-        gemini: { minute: [], day: [], requests: [] },
-        default: { minute: [], day: [], requests: [] }
-    };
-
-    // Clean old entries
-    function _cleanUsageData(provider) {
-        const now = Date.now();
-        const data = _usageTracker[provider];
-        
-        // Remove entries older than 1 minute
-        data.minute = data.minute.filter(e => now - e.timestamp < 60000);
-        data.requests = data.requests.filter(e => now - e.timestamp < 60000);
-        
-        // Remove entries older than 1 day
-        data.day = data.day.filter(e => now - e.timestamp < 86400000);
-    }
-
-    // Check if request will exceed limits
-    function _checkRateLimit(provider, estimatedTokens) {
-        _cleanUsageData(provider);
-        
-        const limits = RATE_LIMITS[provider] || RATE_LIMITS.default;
-        const data = _usageTracker[provider];
-        const threshold = limits.safetyThreshold;
-        
-        // Calculate current usage
-        const tokensThisMinute = data.minute.reduce((sum, e) => sum + e.tokens, 0);
-        const tokensToday = data.day.reduce((sum, e) => sum + e.tokens, 0);
-        const requestsThisMinute = data.requests.length;
-        
-        // Check limits with threshold
-        const minuteLimit = limits.tokensPerMinute * threshold;
-        const dayLimit = limits.tokensPerDay * threshold;
-        const requestLimit = limits.requestsPerMinute * threshold;
-        
-        // Will this request exceed limits?
-        if (tokensThisMinute + estimatedTokens > minuteLimit) {
-            return { 
-                allowed: false, 
-                reason: 'minute_tokens',
-                current: tokensThisMinute,
-                limit: limits.tokensPerMinute,
-                threshold: minuteLimit,
-                waitTime: 60 // seconds
-            };
-        }
-        
-        if (tokensToday + estimatedTokens > dayLimit) {
-            return { 
-                allowed: false, 
-                reason: 'day_tokens',
-                current: tokensToday,
-                limit: limits.tokensPerDay,
-                threshold: dayLimit,
-                waitTime: 3600 // 1 hour suggested wait
-            };
-        }
-        
-        if (requestsThisMinute + 1 > requestLimit) {
-            return { 
-                allowed: false, 
-                reason: 'requests',
-                current: requestsThisMinute,
-                limit: limits.requestsPerMinute,
-                threshold: requestLimit,
-                waitTime: 60
-            };
-        }
-        
-        // Warning if approaching limit (90% of threshold = 72% of actual limit)
-        const warningLevel = threshold * 0.9;
-        let warnings = [];
-        
-        if (tokensThisMinute + estimatedTokens > limits.tokensPerMinute * warningLevel) {
-            warnings.push(`Approaching per-minute limit: ${Math.round((tokensThisMinute/limits.tokensPerMinute)*100)}% used`);
-        }
-        if (tokensToday + estimatedTokens > limits.tokensPerDay * warningLevel) {
-            warnings.push(`Approaching daily limit: ${Math.round((tokensToday/limits.tokensPerDay)*100)}% used`);
-        }
-        
-        return { 
-            allowed: true, 
-            warnings,
-            usage: {
-                minute: Math.round((tokensThisMinute/limits.tokensPerMinute)*100),
-                day: Math.round((tokensToday/limits.tokensPerDay)*100),
-                requests: Math.round((requestsThisMinute/limits.requestsPerMinute)*100)
-            }
-        };
-    }
-
-    // Record usage
-    function _recordUsage(provider, tokens) {
-        const now = Date.now();
-        const data = _usageTracker[provider];
-        
-        data.minute.push({ tokens, timestamp: now });
-        data.day.push({ tokens, timestamp: now });
-        data.requests.push({ timestamp: now });
-        
-        // Save to localStorage for persistence
-        try {
-            localStorage.setItem('agent_usage_' + provider, JSON.stringify(data));
-        } catch(e) {}
-        
-        // Update usage bar UI
-        _updateUsageBar(provider);
-    }
-
-    // Update usage progress bar
-    function _updateUsageBar(provider) {
-        const usageBar = document.getElementById('agent-usage-bar');
-        const usageFill = document.getElementById('agent-usage-fill');
-        const usageText = document.getElementById('agent-usage-text');
-        const usageCount = document.getElementById('agent-usage-count');
-        const usageReset = document.getElementById('agent-usage-reset');
-        
-        if(!usageBar || !_activeAgent()) return;
-        
-        _cleanUsageData(provider);
-        const limits = RATE_LIMITS[provider] || RATE_LIMITS.default;
-        const data = _usageTracker[provider];
-        
-        const tokensThisMinute = data.minute.reduce((sum, e) => sum + e.tokens, 0);
-        const percentage = Math.round((tokensThisMinute / limits.tokensPerMinute) * 100);
-        
-        // Show usage bar when agent is connected
-        usageBar.style.display = 'block';
-        
-        // Update progress bar
-        usageFill.style.width = Math.min(percentage, 100) + '%';
-        usageText.textContent = percentage + '%';
-        usageCount.textContent = `${tokensThisMinute} / ${limits.tokensPerMinute}`;
-        
-        // Change color based on usage
-        if(percentage >= 80) {
-            usageFill.style.background = '#ef4444'; // Red
-        } else if(percentage >= 60) {
-            usageFill.style.background = '#f59e0b'; // Orange
-        } else {
-            usageFill.style.background = 'var(--accent)'; // Green
-        }
-        
-        // Show reset time (60 seconds from oldest entry)
-        if(data.minute.length > 0) {
-            const oldestTimestamp = Math.min(...data.minute.map(e => e.timestamp));
-            const resetIn = Math.ceil((60000 - (Date.now() - oldestTimestamp)) / 1000);
-            if(resetIn > 0 && resetIn < 60) {
-                usageReset.textContent = `Resets in ${resetIn}s`;
-            } else {
-                usageReset.textContent = 'Per minute limit';
-            }
-        } else {
-            usageReset.textContent = 'No usage yet';
-        }
-    }
-
-    // Hide usage bar when agent disconnected
-    function _hideUsageBar() {
-        const usageBar = document.getElementById('agent-usage-bar');
-        if(usageBar) usageBar.style.display = 'none';
-    }
-
-    // Restore usage data from localStorage
-    function _restoreUsageData() {
-        ['groq', 'gemini', 'default'].forEach(provider => {
-            try {
-                const saved = localStorage.getItem('agent_usage_' + provider);
-                if(saved) {
-                    _usageTracker[provider] = JSON.parse(saved);
-                    _cleanUsageData(provider);
-                }
-            } catch(e) {}
-        });
-    }
-    _restoreUsageData();
-
-    function _saveAgentList() {
-        localStorage.setItem('agent_list', JSON.stringify(agentList));
-        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
-    }
-
-    function _activeAgent() {
-        return agentList[activeAgentIdx] || null;
-    }
-
-    // Backwards compat: load old single agent_config OR new agent_list
-    (function() {
-        try {
-            const list = localStorage.getItem('agent_list');
-            if(list) { agentList = JSON.parse(list); }
-            else {
-                const old = localStorage.getItem('agent_config');
-                if(old) { agentList = [JSON.parse(old)]; _saveAgentList(); }
-            }
-            activeAgentIdx = parseInt(localStorage.getItem('agent_active_idx') || '0') || 0;
-            if(activeAgentIdx >= agentList.length) activeAgentIdx = 0;
-        } catch(e){}
-    })();
-
-    // Legacy compat shim
-    Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
-
-    function _addAgentNavTab() {
-        // Removed - no separate agent tab needed
-    }
-
-    function _removeAgentNavTab() { 
-        // Removed - no separate agent tab needed
-    }
-
-    // --- MULTI-TAB SYSTEM WITH AUTO-SAVE/RESTORE ---
-    let fileTabs = [{ id: 1, name: 'untitled.txt', content: '' }];
+    // --- MULTI-TAB SYSTEM ---
+    let fileTabs = [{ id: 1, name: 'index.html', content: editor.getValue() }];
     let activeTabId = 1;
     let tabIdCounter = 2;
-
-    // Auto-save all tabs to IndexedDB
-    async function _saveAllTabs() {
-        try {
-            const currentTab = fileTabs.find(t => t.id === activeTabId);
-            if(currentTab) currentTab.content = editor.getValue();
-            
-            await CodXStore.set('project_tabs', fileTabs);
-            await CodXStore.set('project_active_tab', activeTabId);
-            await CodXStore.set('project_tab_counter', tabIdCounter);
-        } catch(e) {
-            console.warn('Auto-save failed:', e);
-        }
-    }
-
-    // Auto-restore tabs from IndexedDB on launch
-    async function _restoreAllTabs() {
-        try {
-            const savedTabs = await CodXStore.get('project_tabs');
-            const savedActiveId = await CodXStore.get('project_active_tab');
-            const savedCounter = await CodXStore.get('project_tab_counter');
-            
-            if(savedTabs && Array.isArray(savedTabs) && savedTabs.length > 0) {
-                fileTabs = savedTabs;
-                activeTabId = savedActiveId || savedTabs[0].id;
-                tabIdCounter = savedCounter || (Math.max(...savedTabs.map(t => t.id)) + 1);
-                
-                // Load active tab content into editor
-                const activeTab = fileTabs.find(t => t.id === activeTabId) || fileTabs[0];
-                _setEditorValueFast(activeTab.content);
-                _setEditorMode(activeTab.name, activeTab.content);
-                currentFileName = activeTab.name;
-                
-                renderFileTabs();
-            }
-        } catch(e) {
-            console.warn('Auto-restore failed:', e);
-        }
-    }
-
-    // Auto-save on editor change (debounced)
-    let _autoSaveTimeout = null;
-    editor.session.on('change', function() {
-        clearTimeout(_autoSaveTimeout);
-        _autoSaveTimeout = setTimeout(() => {
-            const currentTab = fileTabs.find(t => t.id === activeTabId);
-            if(currentTab) {
-                currentTab.content = editor.getValue();
-                _saveAllTabs();
-            }
-        }, 2000); // Save 2 seconds after last change
-    });
-
-    // Auto-save before page unload
-    window.addEventListener('beforeunload', () => {
-        const currentTab = fileTabs.find(t => t.id === activeTabId);
-        if(currentTab) currentTab.content = editor.getValue();
-        _saveAllTabs();
-    });
-
-    // Auto-save on visibility change (app backgrounded)
-    document.addEventListener('visibilitychange', () => {
-        if(document.hidden) {
-            const currentTab = fileTabs.find(t => t.id === activeTabId);
-            if(currentTab) currentTab.content = editor.getValue();
-            _saveAllTabs();
-        }
-    });
-
-    function _getBlankContentForFile(fname) {
-        const ext = fname.split('.').pop().toLowerCase();
-        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n  \n</body>\n</html>`;
-        if (ext === 'css') return `/* ${fname} */\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n`;
-        if (ext === 'js') return `// ${fname}\n\n`;
-        if (ext === 'json') return `{\n  \n}\n`;
-        if (ext === 'md') return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
-        return '';
-    }
-
-    function _closeTabDropdown() {
-        document.getElementById('agent-tab-dropdown')?.remove();
-        document.removeEventListener('click', _closeTabDropdown);
-    }
-
-    function _updateAgentFileSelector() {
-        const wrap = document.getElementById('agent-file-selector');
-        if(!wrap) return;
-        wrap.style.display = 'block';
-        // Default to active tab
-        if(!_agentTargetTabId || (_agentTargetTabId !== 'all' && !fileTabs.find(t => t.id === _agentTargetTabId))) {
-            _agentTargetTabId = activeTabId;
-        }
-        _renderAgentPills();
-    }
-
-    function _showAddTabDropdown(anchor) {
-        // Close if already open
-        document.getElementById('agent-tab-dropdown')?.remove();
-        document.removeEventListener('click', _closeTabDropdown);
-
-        const dropdown = document.createElement('div');
-        dropdown.id = 'agent-tab-dropdown';
-
-        const rect = anchor.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 6) + 'px';
-        dropdown.style.left = Math.max(8, rect.left - 40) + 'px';
-
-        // New blank file options
-        const templates = [
-            { icon: 'html', label: 'HTML file', name: 'untitled.html' },
-            { icon: 'palette', label: 'CSS file', name: 'untitled.css' },
-            { icon: 'javascript', label: 'JS file', name: 'untitled.js' },
-            { icon: 'data_object', label: 'JSON file', name: 'untitled.json' },
-            { icon: 'description', label: 'Markdown file', name: 'untitled.md' },
-            { icon: 'text_snippet', label: 'Text file', name: 'untitled.txt' },
-        ];
-
-        const header = document.createElement('div');
-        header.style.cssText = 'font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;padding:4px 12px 2px;opacity:0.8;';
-        header.textContent = 'Add Tab';
-        dropdown.appendChild(header);
-
-        templates.forEach(tmpl => {
-            const item = document.createElement('div');
-            item.className = 'atd-item';
-            item.innerHTML = `<span class="material-icons-round">${tmpl.icon}</span>${tmpl.label}`;
-            item.onclick = (e) => {
-                e.stopPropagation();
-                dropdown.remove();
-                document.removeEventListener('click', _closeTabDropdown);
-                // Ask for name then create
-                cdPrompt('New Tab', 'File name:', tmpl.name, (name) => {
-                    if(!name) return;
-                    const content = _getBlankContentForFile(name);
-                    openFileInTab(name, content, true);
-                    _updateAgentFileSelector();
-                    // Auto-select the new tab
-                    const newTab = fileTabs[fileTabs.length - 1];
-                    if(newTab) agentSelectFile(newTab.id);
-                });
-            };
-            dropdown.appendChild(item);
-        });
-
-        // Separator + custom name option
-        const sep = document.createElement('div'); sep.className = 'atd-sep';
-        dropdown.appendChild(sep);
-
-        const custom = document.createElement('div');
-        custom.className = 'atd-item';
-        custom.innerHTML = `<span class="material-icons-round">edit</span>Custom name...`;
-        custom.onclick = (e) => {
-            e.stopPropagation();
-            dropdown.remove();
-            document.removeEventListener('click', _closeTabDropdown);
-            cdPrompt('New Tab', 'File name (e.g. app.js):', 'untitled.html', (name) => {
-                if(!name) return;
-                openFileInTab(name, _getBlankContentForFile(name), true);
-                _updateAgentFileSelector();
-                const newTab = fileTabs[fileTabs.length - 1];
-                if(newTab) agentSelectFile(newTab.id);
-            });
-        };
-        dropdown.appendChild(custom);
-
-        document.body.appendChild(dropdown);
-        setTimeout(() => document.addEventListener('click', _closeTabDropdown), 10);
-    }
-
-    function agentSelectFile(val) {
-        _agentTargetTabId = val === 'all' ? 'all' : (parseInt(val) || null);
-        _renderAgentPills();
-    }
-
-    function _renderAgentPills() {
-        const picker = document.getElementById('agent-tab-picker');
-        if(!picker) return;
-        picker.innerHTML = '';
-
-        // Custom tab pills — all open tabs
-        fileTabs.forEach(t => {
-            const pill = document.createElement('div');
-            pill.className = 'atp-pill' + (_agentTargetTabId === t.id ? ' active' : '');
-            const ext = t.name.split('.').pop().toLowerCase();
-            const iconMap = { html:'html', js:'javascript', css:'palette', json:'data_object', md:'description', ts:'code' };
-            const icon = iconMap[ext] || 'insert_drive_file';
-            pill.innerHTML = `<span class="material-icons-round">${icon}</span>${t.name}`;
-            pill.onclick = () => { agentSelectFile(t.id); };
-            picker.appendChild(pill);
-        });
-
-        // All Files pill
-        if(fileTabs.length > 1) {
-            const allPill = document.createElement('div');
-            allPill.className = 'atp-pill' + (_agentTargetTabId === 'all' ? ' active' : '');
-            allPill.innerHTML = `<span class="material-icons-round">bolt</span>All Files`;
-            allPill.onclick = () => { agentSelectFile('all'); };
-            picker.appendChild(allPill);
-        }
-
-        // + Add Tab button — opens dropdown
-        const addBtn = document.createElement('div');
-        addBtn.className = 'atp-pill';
-        addBtn.style.cssText += 'border-style:dashed;';
-        addBtn.innerHTML = `<span class="material-icons-round">add</span>New Tab`;
-        addBtn.onclick = (e) => { e.stopPropagation(); _showAddTabDropdown(addBtn); };
-        picker.appendChild(addBtn);
-
-        // Scroll active pill into view
-        const active = picker.querySelector('.atp-pill.active');
-        if(active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    }
 
     function renderFileTabs() {
         const bar = document.getElementById('file-tabs-bar');
         bar.innerHTML = '';
-        // Re-add agent nav tab first if connected
-        if(_activeAgent()) _addAgentNavTab();
         fileTabs.forEach(tab => {
             const el = document.createElement('div');
             el.className = 'file-tab' + (tab.id === activeTabId ? ' active' : '');
             el.innerHTML = `<span style="pointer-events:none">${tab.name}</span><span class="material-icons-round ft-close" onclick="closeFileTab(${tab.id},event)">close</span>`;
-            el.onclick = (e) => { 
-                if(!e.target.classList.contains('ft-close')) {
-                    // Toggle: if already active, do nothing (tabs always need one active)
-                    // Just switch to clicked tab
-                    switchFileTab(tab.id); 
-                }
-            };
+            el.onclick = (e) => { if(!e.target.classList.contains('ft-close')) switchFileTab(tab.id); };
             bar.appendChild(el);
         });
-        // Sync agent pills
-        if(typeof _renderAgentPills === 'function' && document.getElementById('agent-tab-picker')) _renderAgentPills();
     }
 
     function switchFileTab(id) {
@@ -2056,8 +1516,6 @@
             currentFileName = tab.name;
         }
         renderFileTabs();
-        // Auto-save tabs to IndexedDB
-        _saveAllTabs();
         // If currently in preview, auto-refresh with new tab's content
         if(_inPreview) { _refreshPreview(); }
     }
@@ -2066,12 +1524,12 @@
         e.stopPropagation();
         const tab = fileTabs.find(t => t.id === id);
         const name = tab ? tab.name : 'this file';
-        cdConfirm('Close Tab', `Close "${name}"?`, 'Close', 'Cancel', (ok) => {
+        cdConfirm('Close Tab', `Close "${name}"? Unsaved changes will be lost.`, 'Close', 'Cancel', (ok) => {
             if(!ok) return;
             let idx = fileTabs.findIndex(t => t.id === id);
             fileTabs.splice(idx, 1);
             if(fileTabs.length === 0) {
-                const blank = { id: tabIdCounter++, name: 'untitled.txt', content: '' };
+                const blank = { id: tabIdCounter++, name: 'index.html', content: '' };
                 fileTabs.push(blank);
                 activeTabId = blank.id;
                 _setEditorValueFast(blank.content);
@@ -2085,7 +1543,6 @@
                 currentFileName = newTab.name;
             }
             renderFileTabs();
-            _saveAllTabs(); // Auto-save after closing tab
         });
     }
 
@@ -2103,13 +1560,10 @@
         _setEditorMode(name, content);
         currentFileName = name;
         renderFileTabs();
-        _saveAllTabs(); // Auto-save after opening file
     }
 
-    // Restore project state on app launch
-    _restoreAllTabs();
-    
-    let currentFileName = "untitled.txt";
+    renderFileTabs();
+    let currentFileName = "index.html";
     function loadFile(event) {
         const file = event.target.files[0]; if (!file) return;
         const reader = new FileReader();
@@ -2463,11 +1917,7 @@
                     let contentB64 = encodeB64(editor.getValue());
                     await ghApi(`/repos/${ghCurrentRepo}/contents/${ghCurrentFile}`, 'PUT', { message: msg, content: contentB64, sha: ghCurrentSha });
                     cdAlert('Success', 'Committed to GitHub!', 'success');
-                    document.getElementById('gh-commit-btn').disabled = false;
-                    // Auto-refresh file list after commit
-                    _ghTree = [];
-                    await fetchGhFiles();
-                    closeGithubModal();
+                    document.getElementById('gh-commit-btn').disabled = false; closeGithubModal();
                 } catch(e) { cdAlert('Error', 'Commit failed.', 'error'); document.getElementById('gh-commit-btn').disabled = false; }
             });
         });
@@ -2610,7 +2060,42 @@
     // Init GitHub selects when modal opens (called from openGithubModal -> checkGhLogin -> fetchGhRepos)
     // The select wrappers in HTML will be used as containers
 
-    // ===== AGENT SYSTEM (continued from before fileTabs) =====
+    // ===== AGENT SYSTEM =====
+    // ── MULTI-AGENT SYSTEM ──
+    // agentList = array of connected agents, activeAgentIdx = which one is active
+    let agentList = [];
+    let activeAgentIdx = 0;
+    let agentAttachment = null;
+    let _agentPendingEdits = [];
+    let _agentOriginalCode = '';
+    let _agentUndoStack = [];
+    const AGENT_UNDO_LIMIT = 20;
+
+    // Backwards compat: load old single agent_config OR new agent_list
+    (function() {
+        try {
+            const list = localStorage.getItem('agent_list');
+            if(list) { agentList = JSON.parse(list); }
+            else {
+                const old = localStorage.getItem('agent_config');
+                if(old) { agentList = [JSON.parse(old)]; _saveAgentList(); }
+            }
+            activeAgentIdx = parseInt(localStorage.getItem('agent_active_idx') || '0') || 0;
+            if(activeAgentIdx >= agentList.length) activeAgentIdx = 0;
+        } catch(e){}
+    })();
+
+    function _saveAgentList() {
+        localStorage.setItem('agent_list', JSON.stringify(agentList));
+        localStorage.setItem('agent_active_idx', String(activeAgentIdx));
+    }
+
+    function _activeAgent() {
+        return agentList[activeAgentIdx] || null;
+    }
+
+    // Legacy compat shim
+    Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
 
     document.getElementById('agent-file-input').addEventListener('change', (e) => {
         const file = e.target.files[0]; if(!file) return;
@@ -2685,8 +2170,6 @@
         document.getElementById('agent-detect-badge').style.display = 'none';
         document.getElementById('agent-api-key').style.borderColor = '';
         _renderConnectedAgents();
-        closeAgentModal();
-        openAgentBar();
     }
 
     function _renderConnectedAgents() {
@@ -2763,522 +2246,259 @@
         });
     }
 
-    function _pushAgentHistory(tabId, request, before) {
-        if(!_agentHistory[tabId]) _agentHistory[tabId] = [];
-        _agentHistory[tabId].push({ request, before, ts: Date.now() });
-        if(_agentHistory[tabId].length > 10) _agentHistory[tabId].shift();
+    let _agentTargetTabId = null; // which tab agent works on
+
+    function agentSelectFile(tabId) {
+        _agentTargetTabId = parseInt(tabId) || null;
     }
 
-    function showAgentRestoreMenu() {
-        const tabId = (_agentTargetTabId && _agentTargetTabId !== 'all') ? _agentTargetTabId : activeTabId;
-        const hist = _agentHistory[tabId] || [];
-        if(hist.length === 0) { cdAlert('History', 'No agent history for this file yet.', 'info'); return; }
-        const bar = document.getElementById('agent-bar');
-        const inputRow = document.getElementById('agent-compact-row');
-        const old = document.getElementById('agent-restore-panel');
-        if(old) { old.remove(); return; }
-        const panel = document.createElement('div');
-        panel.id = 'agent-restore-panel';
-        panel.style.cssText = 'margin:5px 10px;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--glass-border);overflow:hidden;animation:agentBubbleIn 0.18s ease both;';
-        const header = document.createElement('div');
-        header.style.cssText = 'padding:8px 10px;font-size:10px;font-weight:700;color:var(--accent);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--glass-border);';
-        header.innerHTML = `<span>Restore History (${hist.length})</span><span class="material-icons-round" style="font-size:14px;opacity:0.4;cursor:pointer;pointer-events:auto;" onclick="document.getElementById('agent-restore-panel').remove()">close</span>`;
-        panel.appendChild(header);
-        [...hist].reverse().forEach((h, i) => {
-            const row = document.createElement('div');
-            row.style.cssText = 'padding:8px 10px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;gap:8px;';
-            const age = Math.round((Date.now()-h.ts)/60000);
-            row.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.request.slice(0,50)}${h.request.length>50?'…':''}</div><div style="font-size:10px;opacity:0.4;margin-top:1px;">${age < 1 ? 'just now' : age + 'm ago'}</div></div><button style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;pointer-events:auto;flex-shrink:0;" onclick="event.stopPropagation();_restoreAgentHistory(${tabId},${hist.length-1-i})">Restore</button>`;
-            panel.appendChild(row);
+    function _updateAgentFileSelector() {
+        const sel = document.getElementById('agent-file-select');
+        const wrap = document.getElementById('agent-file-selector');
+        if(!sel || !wrap) return;
+        if(fileTabs.length <= 1) { wrap.style.display = 'none'; _agentTargetTabId = null; return; }
+        wrap.style.display = 'block';
+        sel.innerHTML = '';
+        fileTabs.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.name;
+            if(t.id === activeTabId) opt.selected = true;
+            sel.appendChild(opt);
         });
-        bar.insertBefore(panel, inputRow);
-    }
-
-    function _restoreAgentHistory(tabId, idx) {
-        const hist = _agentHistory[tabId];
-        if(!hist || !hist[idx]) return;
-        const tab = fileTabs.find(t => t.id === tabId);
-        if(!tab) return;
-        cdConfirm('Restore', `Restore "${tab.name}" to before: "${hist[idx].request.slice(0,40)}"?`, 'Restore', 'Cancel', (ok) => {
-            if(!ok) return;
-            tab.content = hist[idx].before;
-            if(activeTabId === tabId) { _setEditorValueFast(tab.content); _setEditorMode(tab.name, tab.content); }
-            document.getElementById('agent-restore-panel')?.remove();
-            cdAlert('Restored', `"${tab.name}" restored.`, 'success');
-        });
+        _agentTargetTabId = activeTabId;
     }
 
     function openAgentBar() {
+        closeAgentModal();
         if(!_activeAgent()) { openAgentModal(); return; }
-        document.getElementById('agent-bar').classList.add('connected');
+        const bar = document.getElementById('agent-bar');
+        bar.classList.add('visible');
         _updateAgentBarLabel();
         _updateAgentFileSelector();
+        _expandNav();
         _addAgentNavTab();
-        _pingAgentModel();
-        
-        // Determine provider and update usage bar
-        const cfg = _activeAgent();
-        let provider = 'default';
-        if(cfg.provider === 'groq') provider = 'groq';
-        else if(cfg.provider === 'gemini') provider = 'gemini';
-        _updateUsageBar(provider);
-        
         setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
+    }
+
+    function _addAgentNavTab() {
+        const bar = document.getElementById('file-tabs-bar');
+        if(document.getElementById('agent-nav-tab')) return; // already added
+        const tab = document.createElement('div');
+        tab.id = 'agent-nav-tab';
+        tab.className = 'file-tab';
+        tab.style.cssText = 'color:var(--accent);border-bottom-color:var(--accent);opacity:1;gap:4px;';
+        tab.innerHTML = `<span class="material-icons-round" style="font-size:14px;pointer-events:none">smart_toy</span><span style="pointer-events:none">${_activeAgent()?.providerName||'AI'}</span><span id="agent-nav-status" style="width:7px;height:7px;border-radius:50%;background:#6b7280;display:inline-block;margin-left:2px;flex-shrink:0;" title="Checking..."></span><span class="material-icons-round ft-close" onclick="closeAgentBar();_removeAgentNavTab();" style="font-size:13px;opacity:0.5;pointer-events:auto;">close</span>`;
+        tab.onclick = (e) => { if(!e.target.classList.contains('ft-close')) openAgentBar(); };
+        bar.appendChild(tab);
+    }
+
+    function _removeAgentNavTab() {
+        const t = document.getElementById('agent-nav-tab');
+        if(t) t.remove();
     }
 
     async function _pingAgentModel() {
         const dot = document.getElementById('agent-nav-status');
         const barDot = document.querySelector('.agent-status-dot');
-        if(dot) { dot.style.background = '#10b981'; dot.title = 'Connected · ' + (_activeAgent()?.providerName||'AI'); }
+        // Key already validated by connectAgent() — if we got here, it's connected
+        // Just show green immediately; no need to burn tokens on a test call
+        if(dot) { dot.style.background = '#10b981'; dot.title = 'Connected · ' + (_activeAgent()?.providerName||'AI' || ''); }
         if(barDot) barDot.style.background = '#10b981';
     }
     function closeAgentBar() {
-        document.getElementById('agent-bar').classList.remove('connected');
+        document.getElementById('agent-bar').classList.remove('visible');
         _cancelPendingEdits();
         _removeAgentNavTab();
-        _hideUsageBar();
     }
 
-    // Auto-show agent bar if already connected from previous session
-    if(_activeAgent()) { openAgentBar(); }
+    async function _callAgentAPI(systemPrompt, userMsg) {
+        const cfg = _activeAgent();
+        // 30s timeout — prevents silent hang on slow networks
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    // Auto-update usage bar every second to show countdown
-    setInterval(() => {
-        if(document.getElementById('agent-bar').classList.contains('connected')) {
-            const cfg = _activeAgent();
-            if(cfg) {
-                let provider = 'default';
-                if(cfg.provider === 'groq') provider = 'groq';
-                else if(cfg.provider === 'gemini') provider = 'gemini';
-                _updateUsageBar(provider);
+        try {
+            let res, d;
+
+            if(cfg.provider === 'anthropic') {
+                res = await fetch(cfg.url, {
+                    method:'POST', signal: controller.signal,
+                    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
+                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                return d.content[0].text.trim();
+
+            } else if(cfg.provider === 'gemini') {
+                res = await fetch(cfg.url + '?key=' + cfg.key, {
+                    method:'POST', signal: controller.signal,
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        contents:[{parts:[{text: systemPrompt + '\n\n' + userMsg}]}],
+                        generationConfig:{ maxOutputTokens:3000, temperature:0.2 }
+                    })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
+                if(!d.candidates || !d.candidates[0]) throw new Error('Gemini returned no candidates. Prompt may have been blocked.');
+                const part = d.candidates[0].content?.parts?.[0]?.text;
+                if(!part) throw new Error('Gemini response empty. Try again.');
+                return part.trim();
+
+            } else {
+                // OpenAI-compatible: OpenAI, Groq, OpenRouter
+                const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
+                if(cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
+                res = await fetch(cfg.url, {
+                    method:'POST', signal: controller.signal,
+                    headers,
+                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] })
+                });
+                d = await res.json();
+                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                return d.choices[0].message.content.trim();
             }
+        } catch(e) {
+            if(e.name === 'AbortError') throw new Error('Request timed out (30s). Check your internet connection.');
+            throw e;
+        } finally {
+            clearTimeout(timeoutId);
         }
-    }, 1000);
-
-    // ── IMPROVED AGENT SYSTEM PROMPTS ──
-    // Enhanced prompt following Claude's rules: surgical edits, deep analysis, root cause fixes
-    const _AGENT_SYS = `You are CodX Agent — a professional surgical code editor following strict coding agent rules.
-
-ANALYSIS FIRST:
-1. Read and understand the ENTIRE code structure before making changes
-2. Identify the ROOT CAUSE of any issue - never apply temporary fixes
-3. Consider dependencies and side effects
-
-EDITING RULES:
-- Edit ONLY what the user requested - no scope creep, no refactoring unless asked
-- Return a JSON array of edit objects: [{"find":"exact string","replace":"new string","reason":"brief"}]
-- "find" must be EXACT verbatim match from code (same whitespace, newlines)
-- Add enough context lines to make each "find" unique (match exactly once)
-- Minimum edits only - never touch unrelated code
-- If a change affects other functions, add separate edit objects to fix them
-- Return [] if no changes needed
-
-OUTPUT FORMAT:
-- Return ONLY the JSON array - no markdown, no backticks, no explanations
-- Each edit reason should be 1 line max
-- Never include line numbers or comments in find/replace strings
-
-QUALITY:
-- No syntax errors, no broken logic, no missing brackets
-- Clean, professional code structure
-- Preserve existing code style and formatting`;
-
-    // Concise chat prompt for questions/explanations
-    const _CHAT_SYS = `You are CodX AI — a direct, professional coding assistant.
-
-RULES:
-- Answer concisely in plain text - no markdown headers, no filler
-- Be accurate and helpful, assume the user is competent
-- For code explanations: focus on key concepts, not line-by-line walkthroughs
-- Keep responses under 200 words unless complexity requires more`;
-
-    // Multi-file coordination prompt
-    const _SPLIT_SYS = `You are CodX Agent. Split code into logical, well-organized files.
-
-RULES:
-- Create meaningful file names (e.g., auth.js, utils.js, not file1.js)
-- Each file should have a clear, single responsibility
-- Preserve all functionality - no code should be lost
-- Add brief file-level comments explaining purpose
-
-OUTPUT:
-- Return ONLY: [{"filename":"name.ext","content":"full content","reason":"why this file"}]
-- No markdown, no backticks`;
-
-    function _classifyRequest(req) {
-        const split = /\b(split|divide|separate|extract|break.?up|break.?into|multiple.?files?|alag|tod)\b/i;
-        const chat = /^(what |how |why |when |who |where |is |are |can |could |should |explain|tell me|describe|does |do |did |will |would |kya|kaise|kyun|bata|samjha|matlab|difference|vs )/i;
-        if(split.test(req)) return 'split';
-        if(chat.test(req)) return 'chat';
-        return 'edit';
-    }
-
-    // IMPROVED: Smarter code trimming with better context preservation
-    function _trimCodeForEdit(code, request) {
-        // Small files: send full code
-        if(code.length <= 4000) return { trimmed: code, wasTrimmed: false };
-        
-        // Extract keywords from request
-        const words = request.toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .split(/\s+/)
-            .filter(w => w.length > 2); // Lower threshold for better matching
-        
-        const lines = code.split('\n');
-        const relevant = new Set();
-        
-        // Pass 1: Find lines matching keywords
-        lines.forEach((line, i) => {
-            const lineLower = line.toLowerCase();
-            if(words.some(w => lineLower.includes(w))) {
-                // Include more context: ±15 lines instead of ±10
-                for(let j = Math.max(0, i-15); j <= Math.min(lines.length-1, i+15); j++) {
-                    relevant.add(j);
-                }
-            }
-        });
-        
-        // Pass 2: Include function/class boundaries
-        lines.forEach((line, i) => {
-            const trimmed = line.trim();
-            // If we have a relevant line, include the whole function/class
-            if(relevant.has(i)) {
-                // Look backward for function/class start
-                for(let j = i; j >= 0; j--) {
-                    const l = lines[j].trim();
-                    if(/^(function|class|const|let|var)\s+\w+/.test(l) || /^\w+\s*[:=]\s*(function|async|\()/.test(l)) {
-                        for(let k = j; k <= i; k++) relevant.add(k);
-                        break;
-                    }
-                    if(j < i - 30) break; // Don't go too far back
-                }
-                // Look forward for closing brace
-                let braceCount = 0;
-                for(let j = i; j < lines.length && j < i + 100; j++) {
-                    const l = lines[j];
-                    braceCount += (l.match(/{/g) || []).length;
-                    braceCount -= (l.match(/}/g) || []).length;
-                    relevant.add(j);
-                    if(braceCount <= 0 && j > i) break;
-                }
-            }
-        });
-        
-        // If no matches or too much matched, use smart truncation
-        if(relevant.size === 0 || relevant.size > lines.length * 0.8) {
-            // Take first 100 lines + last 50 lines to preserve structure
-            const head = lines.slice(0, 100).join('\n');
-            const tail = lines.slice(-50).join('\n');
-            return { 
-                trimmed: head + '\n\n// ... [' + (lines.length - 150) + ' lines omitted] ...\n\n' + tail,
-                wasTrimmed: true 
-            };
-        }
-        
-        // Build trimmed code with omission markers
-        const sections = [];
-        let prev = -1;
-        [...relevant].sort((a,b) => a-b).forEach(i => {
-            const gap = prev !== -1 ? i - prev - 1 : 0;
-            if(gap > 0) {
-                sections.push(`\n// ... [${gap} lines omitted] ...\n`);
-            }
-            sections.push(lines[i]);
-            prev = i;
-        });
-        
-        return { trimmed: sections.join('\n'), wasTrimmed: true };
     }
 
     async function sendAgentPrompt() {
         if(!_activeAgent()) { openAgentModal(); return; }
         const userRequest = document.getElementById('agent-prompt').value.trim();
         if(!userRequest) return;
-        if(_agentPendingEdits.length > 0) { cdAlert('Agent', 'Accept or reject current edits first.', 'warn'); return; }
+        if(_agentPendingEdits.length > 0) { cdAlert('Agent', 'Please accept or reject the current edits first.', 'warn'); return; }
 
         const thinking = document.getElementById('agent-thinking');
         const sendBtn = document.getElementById('agent-send-btn');
         thinking.classList.add('visible'); sendBtn.disabled = true;
 
+        // Use selected file from agent file selector if set
+        let _agentWorkTab = null;
+        if(_agentTargetTabId) {
+            _agentWorkTab = fileTabs.find(t => t.id === _agentTargetTabId);
+        }
+        if(!_agentWorkTab) _agentWorkTab = fileTabs.find(t => t.id === activeTabId);
+        // Save current editor content to active tab first
         const curTab = fileTabs.find(t => t.id === activeTabId);
         if(curTab) curTab.content = editor.getValue();
+        const code = _agentWorkTab ? _agentWorkTab.content : editor.getValue();
+        _agentOriginalCode = code;
 
-        const mode = _classifyRequest(userRequest);
-        const attachCtx = agentAttachment ? `\n\n[Attached: ${agentAttachment.name}]\n${agentAttachment.content.slice(0,2000)}` : '';
-        const isAllTabs = _agentTargetTabId === 'all';
+        // Detect split intent
+        const splitKeywords = /\b(split|divide|separate|extract|break\s*up|break\s*into|multiple\s*files?|alag|vibhajit|tod|tod\s*do|file\s*mein|files\s*mein|parts?)\b/i;
+        const isSplitIntent = splitKeywords.test(userRequest);
+
+        let attachCtx = agentAttachment ? `\n\nAttached file (${agentAttachment.name}):\n${agentAttachment.content.slice(0,3000)}` : '';
 
         try {
-            if(mode === 'chat') {
-                const code = curTab?.content || '';
-                // Only include code context if it's small and relevant
-                const codeCtx = code.length > 0 && code.length < 3000 ? `\n\nCurrent file (${curTab?.name}):\n\`\`\`\n${code}\n\`\`\`` : '';
-                const reply = await _callAgentAPI(_CHAT_SYS, `${userRequest}${attachCtx}${codeCtx}`);
-                _showAgentChatReply(userRequest, reply);
+            if(isSplitIntent) {
+                // SPLIT MODE — agent returns multiple files
+                const splitSystemPrompt = `You are CodX AI Agent. The user wants to split their code into multiple separate files.
 
-            } else if(mode === 'split') {
-                const code = curTab?.content || '';
-                // Use the improved _SPLIT_SYS constant
-                let raw = await _callAgentAPI(_SPLIT_SYS, `${userRequest}\n\nCode (${curTab?.name}):\n\`\`\`\n${code.slice(0,10000)}\n\`\`\``);
-                raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+Analyse the code and split it logically into separate files (e.g. HTML, CSS, JS — or by component/module).
+
+Return ONLY a JSON array of file objects. Each object:
+{"filename": "name.ext", "content": "full file content here", "reason": "brief reason"}
+
+Rules:
+- filename must have a correct extension (.html, .css, .js, .json, etc.)
+- content must be the COMPLETE file content — nothing truncated
+- Split by type/concern: CSS into .css, JS into .js, HTML into .html, etc.
+- Link them correctly (e.g. <link rel="stylesheet"> in HTML, <script src="..."> in HTML)
+- Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
+
+                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+
+                let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
+                raw = raw.replace(/```json|```/g,'').trim();
                 const files = JSON.parse(raw);
-                if(!Array.isArray(files)||files.length===0) throw new Error('Agent could not split the code.');
-                _showSplitFileReview(files);
 
-            } else {
-                if(isAllTabs) {
-                    await _runAgentAllTabs(userRequest, attachCtx);
+                if(!Array.isArray(files) || files.length === 0) {
+                    cdAlert('Agent', 'Agent could not split the code. Try a more specific request.', 'warn');
                 } else {
-                    const target = (_agentTargetTabId && _agentTargetTabId !== 'all')
-                        ? fileTabs.find(t => t.id === _agentTargetTabId) || curTab
-                        : curTab;
-                    await _runAgentSingleTab(userRequest, attachCtx, target);
+                    _showSplitFileReview(files);
+                }
+            } else {
+                // EDIT MODE — surgical edits
+                const systemPrompt = `You are CodX AI Agent — a precise surgical code editor. You receive code and a user request.
+
+RULES (STRICT):
+1. Analyse the ENTIRE code first before making any changes.
+2. Make ONLY the minimal, targeted edits to satisfy the request. Never rewrite the whole file.
+3. Return a JSON array of edit objects. Each object: {"find": "exact string", "replace": "new string", "reason": "brief explanation"}
+4. "find" MUST be an exact verbatim substring from the code — copy-paste accurate, including whitespace and newlines.
+5. Each "find" must be unique enough to identify exactly one location. Include surrounding context if needed.
+6. If nothing needs changing: return [].
+7. Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
+
+                const userMsg = `Code:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+
+                let raw = await _callAgentAPI(systemPrompt, userMsg);
+                raw = raw.replace(/```json|```/g,'').trim();
+                const edits = JSON.parse(raw);
+
+                if(!Array.isArray(edits) || edits.length === 0) {
+                    cdAlert('Agent', 'No changes needed for this request.', 'info');
+                } else {
+                    const valid = edits.filter(e => e.find && code.includes(e.find));
+                    const invalid = edits.length - valid.length;
+                    if(valid.length === 0) {
+                        cdAlert('Agent', 'Could not locate the code sections to edit. Try a more specific request.', 'warn');
+                    } else {
+                        _agentPendingEdits = valid;
+                        _showAgentDiffReview(valid, invalid);
+                    }
                 }
             }
 
+            // Clear input
             document.getElementById('agent-prompt').value = '';
             document.getElementById('agent-prompt').style.height = 'auto';
             agentAttachment = null;
             document.getElementById('agent-attach-btn').style.background = '';
             document.getElementById('agent-attach-btn').style.color = '';
-
         } catch(err) {
-            _showAgentError(err.message||'Unknown error');
+            const raw = err.message || 'Something went wrong.';
+            // Smart error classification — show short friendly message
+            let errMsg, errHint;
+            if(/quota|rate.?limit|limit.*0|exceeded/i.test(raw)) {
+                errMsg = 'Quota exceeded';
+                errHint = 'Free tier limit hit. Wait a bit or use a different API key.';
+            } else if(/timeout|abort|timed out/i.test(raw)) {
+                errMsg = 'Request timed out';
+                errHint = 'Check your internet and try again.';
+            } else if(/401|403|invalid.*key|api.?key/i.test(raw)) {
+                errMsg = 'Invalid API key';
+                errHint = 'Reconnect agent with a valid key.';
+            } else if(/network|fetch|failed to fetch/i.test(raw)) {
+                errMsg = 'Network error';
+                errHint = 'Check your internet connection.';
+            } else {
+                errMsg = 'Agent error';
+                errHint = raw.slice(0, 80) + (raw.length > 80 ? '…' : '');
+            }
+            const bar = document.getElementById('agent-bar');
+            const oldErr = document.getElementById('agent-inline-error');
+            if(oldErr) oldErr.remove();
+            const errEl = document.createElement('div');
+            errEl.id = 'agent-inline-error';
+            errEl.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:7px 10px;margin:4px 10px;';
+            errEl.innerHTML = `<div style="min-width:0;"><div style="font-size:11px;font-weight:700;color:#ef4444;">${errMsg}</div><div style="font-size:10px;color:#ef4444;opacity:0.75;margin-top:2px;word-break:break-word;">${errHint}</div></div><span class="material-icons-round" style="font-size:15px;color:#ef4444;opacity:0.6;cursor:pointer;flex-shrink:0;pointer-events:auto;" onclick="this.parentElement.remove()">close</span>`;
+            const inputRow = document.getElementById('agent-compact-row');
+            bar.insertBefore(errEl, inputRow);
+            setTimeout(() => { if(errEl.parentElement) errEl.remove(); }, 12000);
         } finally {
             thinking.classList.remove('visible'); sendBtn.disabled = false;
         }
     }
 
-    async function _runAgentSingleTab(request, attachCtx, tab) {
-        if(!tab) return;
-        const code = tab.content || '';
-        const { trimmed, wasTrimmed } = _trimCodeForEdit(code, request);
-        
-        // Build concise but informative prompt
-        const fileInfo = `File: ${tab.name} (${code.split('\n').length} lines${wasTrimmed ? ', showing relevant sections' : ''})`;
-        const userMsg = `${fileInfo}\n\`\`\`\n${trimmed}\n\`\`\`${attachCtx}\n\nTask: ${request}\n\nAnalyze the code, identify what needs to change, and return precise edit objects.`;
-        
-        let raw = await _callAgentAPI(_AGENT_SYS, userMsg);
-        raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
-
-        let edits;
-        try { edits = JSON.parse(raw); } catch(e) { throw new Error('Agent returned invalid JSON. Try rephrasing.'); }
-
-        if(!Array.isArray(edits)||edits.length===0) {
-            // No edits needed - provide explanation
-            const reply = await _callAgentAPI(_CHAT_SYS, `The user asked: "${request}" about file "${tab.name}". No code changes are needed. Explain why briefly (2-3 sentences).`);
-            _showAgentChatReply(request, reply); return;
-        }
-
-        const valid = edits.filter(e => e.find && code.includes(e.find));
-        const missed = edits.length - valid.length;
-
-        // Retry logic: if edits don't match and code was trimmed, try with more context
-        if(valid.length === 0 && wasTrimmed) {
-            const fullMsg = `File: ${tab.name} (${code.split('\n').length} lines, full file)\n\`\`\`\n${code.slice(0,12000)}\n\`\`\`${attachCtx}\n\nTask: ${request}\n\nPrevious attempt failed to find matches. Return precise edit objects with exact strings from the code.`;
-            let raw2 = await _callAgentAPI(_AGENT_SYS, fullMsg);
-            raw2 = raw2.replace(/\`\`\`json|\`\`\`/g,'').trim();
-            try {
-                const edits2 = JSON.parse(raw2);
-                const valid2 = edits2.filter(e => e.find && code.includes(e.find));
-                if(valid2.length > 0) {
-                    _pushAgentHistory(tab.id, request, code);
-                    _agentPendingEdits = valid2;
-                    _showAgentDiffReview(valid2, 0, tab.id);
-                    return;
-                }
-            } catch(e) {}
-            throw new Error('Could not locate code to edit. Be more specific.');
-        }
-        if(valid.length === 0) throw new Error('Could not locate code sections. Be more specific.');
-
-        _pushAgentHistory(tab.id, request, code);
-        _agentOriginalCode = code;
-        _agentPendingEdits = valid;
-        _showAgentDiffReview(valid, missed, tab.id);
-    }
-
-    async function _runAgentAllTabs(request, attachCtx) {
-        const projectMap = fileTabs.map(t => `${t.name} (${t.content.split('\n').length} lines)`).join('\n');
-        const allResults = [];
-
-        for(const tab of fileTabs) {
-            if(!tab.content.trim()) continue;
-            const { trimmed } = _trimCodeForEdit(tab.content, request);
-            const userMsg = `Project:\n${projectMap}\n\nEditing: ${tab.name}\n\`\`\`\n${trimmed}\n\`\`\`${attachCtx}\n\nRequest: ${request}\n(Return [] if this file needs no changes)`;
-            try {
-                let raw = await _callAgentAPI(_AGENT_SYS, userMsg);
-                raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
-                const edits = JSON.parse(raw);
-                const valid = edits.filter(e => e.find && tab.content.includes(e.find));
-                if(valid.length > 0) allResults.push({ tab, edits: valid });
-            } catch(e) {}
-        }
-
-        if(allResults.length === 0) {
-            const reply = await _callAgentAPI(_CHAT_SYS, `User asked: "${request}". No changes needed in any file. Explain briefly.`);
-            _showAgentChatReply(request, reply); return;
-        }
-
-        allResults.forEach(r => _pushAgentHistory(r.tab.id, request, r.tab.content));
-        _showMultiFileDiffReview(allResults, request);
-    }
-
-    function _showAgentError(raw) {
-        let errMsg, errHint;
-        if(/quota|rate.?limit|exceeded/i.test(raw)) { errMsg='Quota exceeded'; errHint='Free tier limit hit. Wait or use a different key.'; }
-        else if(/timeout|abort|timed out/i.test(raw)) { errMsg='Timed out'; errHint='Check internet and retry.'; }
-        else if(/401|403|invalid.*key|api.?key/i.test(raw)) { errMsg='Invalid API key'; errHint='Reconnect agent.'; }
-        else if(/network|fetch|failed to fetch/i.test(raw)) { errMsg='Network error'; errHint='Check internet.'; }
-        else if(/invalid json|parse/i.test(raw)) { errMsg='Parse error'; errHint=raw.slice(0,80); }
-        else { errMsg='Agent error'; errHint=raw.slice(0,80)+(raw.length>80?'…':''); }
-        document.getElementById('agent-inline-error')?.remove();
-        const errEl = document.createElement('div');
-        errEl.id = 'agent-inline-error';
-        errEl.style.cssText = 'display:flex;align-items:flex-start;gap:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:7px 10px;margin:4px 10px;';
-        errEl.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:11px;font-weight:700;color:#ef4444;">${errMsg}</div><div style="font-size:10px;color:#ef4444;opacity:0.75;margin-top:2px;word-break:break-word;">${errHint}</div></div><span class="material-icons-round" style="font-size:15px;color:#ef4444;cursor:pointer;flex-shrink:0;pointer-events:auto;" onclick="this.parentElement.remove()">close</span>`;
-        document.getElementById('agent-bar').insertBefore(errEl, document.getElementById('agent-compact-row'));
-        setTimeout(()=>{ if(errEl.parentElement) errEl.remove(); }, 12000);
-    }
-
     // Show split file review panel — each file with open-in-tab + download
-    async function _callAgentAPI(systemPrompt, userMsg) {
-        const cfg = _activeAgent();
-        if(!cfg) throw new Error('No agent connected.');
-        
-        // Estimate tokens (rough: 1 token ≈ 4 chars)
-        const estimatedTokens = Math.ceil((systemPrompt.length + userMsg.length) / 4) + 3000; // +3000 for max output
-        
-        // Determine provider for rate limiting
-        let rateLimitProvider = 'default';
-        if(cfg.provider === 'groq') rateLimitProvider = 'groq';
-        else if(cfg.provider === 'gemini') rateLimitProvider = 'gemini';
-        
-        // Check rate limits
-        const limitCheck = _checkRateLimit(rateLimitProvider, estimatedTokens);
-        
-        if(!limitCheck.allowed) {
-            // Rate limit exceeded - show detailed error
-            let msg = '';
-            let waitMin = Math.ceil(limitCheck.waitTime / 60);
-            
-            if(limitCheck.reason === 'minute_tokens') {
-                msg = `Rate limit reached!\n\nYou've used ${limitCheck.current} of ${limitCheck.limit} tokens this minute.\n\nWait ${limitCheck.waitTime} seconds and try again.`;
-            } else if(limitCheck.reason === 'day_tokens') {
-                msg = `Daily limit reached!\n\nYou've used ${limitCheck.current} of ${limitCheck.limit} tokens today.\n\nTry again after ${waitMin} minute(s) or use a different provider.`;
-            } else if(limitCheck.reason === 'requests') {
-                msg = `Too many requests!\n\nYou've made ${limitCheck.current} requests this minute (limit: ${limitCheck.limit}).\n\nWait ${limitCheck.waitTime} seconds before trying again.`;
-            }
-            
-            throw new Error(msg);
-        }
-        
-        // Show warnings if approaching limits
-        if(limitCheck.warnings && limitCheck.warnings.length > 0) {
-            const usage = limitCheck.usage;
-            const warnMsg = `⚠️ Usage Alert:\n\n` + 
-                `Per-minute: ${usage.minute}%\n` +
-                `Daily: ${usage.day}%\n` +
-                `Requests: ${usage.requests}%\n\n` +
-                limitCheck.warnings.join('\n');
-            
-            // Show warning toast (non-blocking)
-            _showRateLimitWarning(warnMsg);
-        }
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
-        try {
-            let res, d;
-            if(cfg.provider === 'anthropic') {
-                res = await fetch(cfg.url, { method:'POST', signal:controller.signal,
-                    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] }) });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
-                _recordUsage(rateLimitProvider, estimatedTokens); // Record successful usage
-                return d.content[0].text.trim();
-            } else if(cfg.provider === 'gemini') {
-                res = await fetch(cfg.url+'?key='+cfg.key, { method:'POST', signal:controller.signal,
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({ contents:[{parts:[{text:systemPrompt+'\n\n'+userMsg}]}], generationConfig:{maxOutputTokens:3000,temperature:0.2} }) });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
-                if(!d.candidates?.[0]) throw new Error('Gemini returned no candidates.');
-                _recordUsage(rateLimitProvider, estimatedTokens);
-                return (d.candidates[0].content?.parts?.[0]?.text||'').trim();
-            } else {
-                // OpenAI-compatible: Groq, OpenRouter, OpenAI
-                const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
-                if(cfg.provider==='openrouter') { headers['HTTP-Referer']='https://codx.app'; headers['X-Title']='CodX'; }
-                res = await fetch(cfg.url, { method:'POST', signal:controller.signal, headers,
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] }) });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message||`HTTP ${res.status}`);
-                _recordUsage(rateLimitProvider, estimatedTokens);
-                return d.choices[0].message.content.trim();
-            }
-        } catch(e) {
-            if(e.name==='AbortError') throw new Error('Request timed out. Check internet.');
-            throw e;
-        } finally { clearTimeout(timeoutId); }
-    }
-
-    // Show rate limit warning (non-blocking toast)
-    function _showRateLimitWarning(msg) {
-        const bar = document.getElementById('agent-bar');
-        const existing = bar.querySelector('.rate-limit-warning');
-        if(existing) existing.remove();
-        
-        const warn = document.createElement('div');
-        warn.className = 'rate-limit-warning';
-        warn.style.cssText = 'margin:4px 8px;padding:8px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:8px;font-size:10px;line-height:1.5;color:#f59e0b;animation:agentBubbleIn 0.2s ease;';
-        warn.innerHTML = msg.replace(/\n/g, '<br>') + `<div style="margin-top:4px;font-size:9px;opacity:0.7;cursor:pointer;" onclick="this.closest('.rate-limit-warning').remove()">Tap to dismiss</div>`;
-        bar.insertBefore(warn, document.getElementById('agent-compact-row'));
-        
-        // Auto-dismiss after 10 seconds
-        setTimeout(() => { if(warn.parentElement) warn.remove(); }, 10000);
-    }
-
-    function _showAgentChatReply(question, reply) {
-        const bar = document.getElementById('agent-bar');
-        const inputRow = document.getElementById('agent-compact-row');
-        // Keep max 4 chat bubbles
-        const existing = bar.querySelectorAll('.agent-chat-bubble');
-        if(existing.length >= 4) existing[0].remove();
-
-        const wrap = document.createElement('div');
-        wrap.className = 'agent-chat-bubble';
-        wrap.style.cssText = 'margin:4px 8px 0;animation:agentBubbleIn 0.22s cubic-bezier(0.34,1.2,0.64,1) both;';
-
-        // User message
-        const userBubble = document.createElement('div');
-        userBubble.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:4px;';
-        userBubble.innerHTML = `<div style="max-width:80%;background:var(--accent);color:white;border-radius:14px 14px 4px 14px;padding:7px 11px;font-size:11px;font-weight:500;line-height:1.5;word-break:break-word;">${question.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
-
-        // AI reply
-        const aiBubble = document.createElement('div');
-        aiBubble.style.cssText = 'display:flex;align-items:flex-end;gap:6px;margin-bottom:2px;';
-        const avatar = `<div style="width:22px;height:22px;border-radius:50%;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:2px;"><span class="material-icons-round" style="font-size:12px;color:var(--accent);pointer-events:none;">smart_toy</span></div>`;
-        // Format reply: code blocks, line breaks
-        const formatted = reply
-            .replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/`([^`]+)`/g,'<code style="background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 5px;font-family:monospace;font-size:10px;">$1</code>')
-            .replace(/\n/g,'<br>');
-        aiBubble.innerHTML = `${avatar}<div style="max-width:calc(100% - 30px);background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);border-radius:4px 14px 14px 14px;padding:7px 11px;font-size:11px;line-height:1.6;word-break:break-word;color:var(--text-color);">${formatted}</div>`;
-
-        // Dismiss button
-        const dismiss = document.createElement('div');
-        dismiss.style.cssText = 'display:flex;justify-content:flex-end;margin-bottom:6px;';
-        dismiss.innerHTML = `<span style="font-size:9px;opacity:0.3;cursor:pointer;pointer-events:auto;padding:2px 4px;" onclick="this.closest('.agent-chat-bubble').remove()">dismiss</span>`;
-
-        wrap.appendChild(userBubble);
-        wrap.appendChild(aiBubble);
-        wrap.appendChild(dismiss);
-        bar.insertBefore(wrap, inputRow);
-        // Scroll bar into view
-        wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
     function _showSplitFileReview(files) {
         const bar = document.getElementById('agent-bar');
         const oldReview = document.getElementById('agent-diff-review');
@@ -3360,41 +2580,40 @@ OUTPUT:
     }
 
     // Show accept/reject diff review inside agent bar
-    let _agentDiffTabId = null; // which tab the current diff is for
-
-    function _showAgentDiffReview(edits, skipped, tabId) {
-        _agentDiffTabId = tabId || activeTabId;
+    function _showAgentDiffReview(edits, skipped) {
         const bar = document.getElementById('agent-bar');
-        document.getElementById('agent-diff-review')?.remove();
+        // Remove old review if any
+        const oldReview = document.getElementById('agent-diff-review');
+        if(oldReview) oldReview.remove();
 
         const review = document.createElement('div');
         review.id = 'agent-diff-review';
         review.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;font-family:Poppins,sans-serif;';
 
-        const tabName = fileTabs.find(t => t.id === _agentDiffTabId)?.name || '';
         const header = document.createElement('div');
         header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
-        header.innerHTML = `<span style="font-size:11px;font-weight:600;color:var(--accent)">${edits.length} edit${edits.length>1?'s':''}${tabName?' · '+tabName:''}${skipped>0?' ('+skipped+' skipped)':''}</span>`;
+        header.innerHTML = `<span style="font-size:11px;font-weight:600;color:var(--accent)">${edits.length} edit${edits.length>1?'s':''} ready${skipped>0?' ('+skipped+' skipped)':''}</span>`;
         review.appendChild(header);
 
-        edits.forEach((edit) => {
+        edits.forEach((edit, i) => {
             const card = document.createElement('div');
             card.style.cssText = 'background:rgba(0,0,0,0.15);border:1px solid var(--glass-border);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px;';
-            const affects = edit.affects ? `<div style="font-size:9px;color:#f59e0b;margin-top:4px;opacity:0.8;">⚡ Affects: ${edit.affects}</div>` : '';
+            const reason = edit.reason || 'Edit';
             const findPreview = edit.find.slice(0,60).replace(/\n/g,'↵') + (edit.find.length>60?'…':'');
             const replacePreview = edit.replace.slice(0,60).replace(/\n/g,'↵') + (edit.replace.length>60?'…':'');
             card.innerHTML = `
-                <div style="font-weight:600;color:var(--text-color);margin-bottom:6px;opacity:0.9;font-size:11px;">${edit.reason||'Edit'}</div>
+                <div style="font-weight:600;color:var(--text-color);margin-bottom:6px;opacity:0.9;font-size:11px;">${reason}</div>
                 <div style="display:flex;gap:6px;">
                     <div style="flex:1;min-width:0;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:5px 7px;">
-                        <div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:3px;">REMOVE</div>
-                        <div style="color:#ef4444;font-family:monospace;font-size:10px;word-break:break-all;">${findPreview}</div>
+                        <div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:3px;letter-spacing:0.4px;">REMOVE</div>
+                        <div style="color:#ef4444;font-family:monospace;font-size:10px;opacity:0.9;word-break:break-all;">${findPreview}</div>
                     </div>
                     <div style="flex:1;min-width:0;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:5px 7px;">
-                        <div style="font-size:9px;color:#10b981;font-weight:700;margin-bottom:3px;">INSERT</div>
-                        <div style="color:#10b981;font-family:monospace;font-size:10px;word-break:break-all;">${replacePreview}</div>
+                        <div style="font-size:9px;color:#10b981;font-weight:700;margin-bottom:3px;letter-spacing:0.4px;">INSERT</div>
+                        <div style="color:#10b981;font-family:monospace;font-size:10px;opacity:0.9;word-break:break-all;">${replacePreview}</div>
                     </div>
-                </div>${affects}`;
+                </div>
+            `;
             review.appendChild(card);
         });
 
@@ -3402,74 +2621,34 @@ OUTPUT:
         actions.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
         const rejectBtn = document.createElement('button');
         rejectBtn.className = 'modal-btn secondary'; rejectBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        rejectBtn.innerHTML = '✕ Reject'; rejectBtn.onclick = _cancelPendingEdits;
-        const acceptBtn = document.createElement('button');
-        acceptBtn.className = 'modal-btn'; acceptBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        acceptBtn.innerHTML = '✓ Apply'; acceptBtn.onclick = _acceptPendingEdits;
-        actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
-        review.appendChild(actions);
-        bar.insertBefore(review, document.getElementById('agent-compact-row'));
-    }
-
-    function _showMultiFileDiffReview(allResults, request) {
-        const bar = document.getElementById('agent-bar');
-        document.getElementById('agent-diff-review')?.remove();
-        const review = document.createElement('div');
-        review.id = 'agent-diff-review';
-        review.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;font-family:Poppins,sans-serif;max-height:280px;overflow-y:auto;';
-        const totalEdits = allResults.reduce((s,r) => s+r.edits.length, 0);
-        const header = document.createElement('div');
-        header.style.cssText = 'font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;';
-        header.textContent = `Project edit — ${allResults.length} files · ${totalEdits} changes`;
-        review.appendChild(header);
-        allResults.forEach(({ tab, edits }) => {
-            const fileHeader = document.createElement('div');
-            fileHeader.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-color);opacity:0.6;margin:6px 0 3px;text-transform:uppercase;letter-spacing:0.5px;';
-            fileHeader.textContent = `${tab.name} (${edits.length})`;
-            review.appendChild(fileHeader);
-            edits.forEach(edit => {
-                const card = document.createElement('div');
-                card.style.cssText = 'background:rgba(0,0,0,0.15);border:1px solid var(--glass-border);border-radius:7px;padding:6px 8px;margin-bottom:4px;font-size:10px;';
-                const fp = edit.find.slice(0,40).replace(/\n/g,'↵')+(edit.find.length>40?'…':'');
-                const rp = edit.replace.slice(0,40).replace(/\n/g,'↵')+(edit.replace.length>40?'…':'');
-                card.innerHTML = `<div style="font-weight:600;margin-bottom:4px;opacity:0.85;">${edit.reason||'Edit'}</div><div style="display:flex;gap:4px;"><div style="flex:1;background:rgba(239,68,68,0.08);border-radius:4px;padding:3px 5px;color:#ef4444;font-family:monospace;font-size:9px;word-break:break-all;">${fp}</div><div style="flex:1;background:rgba(16,185,129,0.08);border-radius:4px;padding:3px 5px;color:#10b981;font-family:monospace;font-size:9px;word-break:break-all;">${rp}</div></div>`;
-                review.appendChild(card);
-            });
-        });
-        const actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:8px;margin-top:10px;position:sticky;bottom:0;background:var(--glass-bg);padding-top:6px;';
-        const rejectBtn = document.createElement('button');
-        rejectBtn.className = 'modal-btn secondary'; rejectBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
         rejectBtn.innerHTML = '✕ Reject All';
-        rejectBtn.onclick = () => { document.getElementById('agent-diff-review')?.remove(); };
+        rejectBtn.onclick = _cancelPendingEdits;
         const acceptBtn = document.createElement('button');
         acceptBtn.className = 'modal-btn'; acceptBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        acceptBtn.innerHTML = '✓ Apply All';
-        acceptBtn.onclick = () => {
-            let applied = 0;
-            allResults.forEach(({ tab, edits }) => {
-                let code = tab.content;
-                edits.forEach(e => { if(code.includes(e.find)) { code = code.split(e.find).join(e.replace); applied++; } });
-                tab.content = code;
-                if(tab.id === activeTabId) { _setEditorValueFast(code); }
-            });
-            document.getElementById('agent-diff-review')?.remove();
-            _showAgentUndoToast(applied);
-        };
+        acceptBtn.innerHTML = '✓ Accept All';
+        acceptBtn.onclick = _acceptPendingEdits;
         actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
         review.appendChild(actions);
-        bar.insertBefore(review, document.getElementById('agent-compact-row'));
+
+        // Insert before input row
+        const inputRow = document.getElementById('agent-compact-row');
+        bar.insertBefore(review, inputRow);
     }
 
     function _acceptPendingEdits() {
         if(_agentPendingEdits.length === 0) return;
-        const targetId = _agentDiffTabId || _agentTargetTabId || activeTabId;
+        _agentUndoStack.push(editor.getValue());
+        if(_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
+
+        // Apply edits to the agent's target tab
+        const targetId = _agentTargetTabId || activeTabId;
         const targetTab = fileTabs.find(t => t.id === targetId);
         let code = targetTab ? targetTab.content : editor.getValue();
         let applied = 0;
         _agentPendingEdits.forEach(edit => {
             if(code.includes(edit.find)) { code = code.split(edit.find).join(edit.replace); applied++; }
         });
+        // Switch to that tab and apply
         if(targetTab) {
             targetTab.content = code;
             if(targetId !== activeTabId) switchFileTab(targetId);
@@ -3477,8 +2656,10 @@ OUTPUT:
         _setEditorValueFast(code);
         const cur = fileTabs.find(t => t.id === activeTabId);
         if(cur) cur.content = code;
+
         _agentPendingEdits = [];
-        document.getElementById('agent-diff-review')?.remove();
+        const rev = document.getElementById('agent-diff-review');
+        if(rev) rev.remove();
         _showAgentUndoToast(applied);
     }
 
@@ -3668,6 +2849,15 @@ OUTPUT:
             });
         }
     }
+    function _getBlankContentForFile(fname) {
+        const ext = fname.split('.').pop().toLowerCase();
+        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n  \n</body>\n</html>`;
+        if (ext === 'css') return `/* ${fname} */\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n`;
+        if (ext === 'js') return `// ${fname}\n\n`;
+        if (ext === 'json') return `{\n  \n}\n`;
+        if (ext === 'md') return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
+        return '';
+    }
 
     // ===== CREATE GITHUB REPO =====
     async function createGithubRepo() {
@@ -3687,9 +2877,8 @@ OUTPUT:
             if (addLicense) payload.license_template = 'mit';
             const result = await ghApi('/user/repos', 'POST', payload);
             closeNewProjectModal();
-            // Invalidate repo cache and refresh repo list
+            // Invalidate repo cache so GitSync reloads
             _ghReposLoaded = false;
-            await fetchGhRepos(); // Auto-refresh dropdown
             // Show repo link with copy button
             _showRepoCreatedLink(result.full_name, result.html_url);
         } catch (e) {
@@ -3807,6 +2996,7 @@ OUTPUT:
     }, true);
     window.addEventListener('beforeinstallprompt', () => { window._logApkEvent('INFO', 'beforeinstallprompt fired — PWA installable'); });
     window.addEventListener('appinstalled', () => { window._logApkEvent('SUCCESS', 'appinstalled event fired'); });
+
 </script>
 </body>
 </html>
