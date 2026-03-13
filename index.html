@@ -103,9 +103,18 @@
         .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
         .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
 
-        .restore-btn { position: absolute; bottom: 20px; right: 20px; background: var(--accent); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px var(--accent-dim); border: none; z-index: 30; opacity: 0; pointer-events: none; transform: scale(0.8); transition: var(--transition); }
-        .restore-btn.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
-        .restore-btn .material-icons-round { font-size: 18px; pointer-events: none; }
+        .restore-btn { 
+            position: absolute; bottom: 12px; right: 16px; 
+            background: var(--accent); color: white; 
+            width: 38px; height: 38px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 14px rgba(16,185,129,0.45); 
+            border: none; z-index: 30; 
+            opacity: 1; pointer-events: auto; transform: scale(1); 
+            transition: var(--transition); 
+        }
+        .restore-btn.hidden-btn { opacity: 0 !important; pointer-events: none !important; transform: scale(0.7) !important; }
+        .restore-btn .material-icons-round { font-size: 20px; pointer-events: none; }
 
         /* Shared Modal CSS */
         .modal { 
@@ -540,42 +549,41 @@
     <div class="bottom-wrapper no-select" id="bottom-panel">
         <div class="bottom-area">
             <div class="drag-handle-area"><div class="drag-pill"></div></div>
+
+            <!-- ROW 0: Cursor Navigation (scroll row) -->
             <div class="cursor-nav">
                 <button class="icon-btn" onclick="editor.gotoLine(1)"><span class="material-icons-round">vertical_align_top</span></button>
                 <button class="icon-btn" onclick="editor.gotoLine(editor.session.getLength())"><span class="material-icons-round">vertical_align_bottom</span></button>
-                <div style="width:1px; background:var(--glass-border); margin: 4px 2px;"></div>
+                <div style="width:1px;background:var(--glass-border);margin:4px 3px;flex-shrink:0;"></div>
                 <button class="icon-btn" onclick="editor.navigateLineStart()"><span class="material-icons-round">first_page</span></button>
                 <button class="icon-btn" onclick="editor.navigateLineEnd()"><span class="material-icons-round">last_page</span></button>
-                <button class="icon-btn" onclick="editor.navigateLeft()"><span class="material-icons-round">arrow_back</span></button>
-                <button class="icon-btn" onclick="editor.navigateRight()"><span class="material-icons-round">arrow_forward</span></button>
-                <button class="icon-btn" onclick="editor.navigateUp()"><span class="material-icons-round">arrow_upward</span></button>
-                <button class="icon-btn" onclick="editor.navigateDown()"><span class="material-icons-round">arrow_downward</span></button>
+                <button class="icon-btn" onclick="editor.navigateLeft()"><span class="material-icons-round">chevron_left</span></button>
+                <button class="icon-btn" onclick="editor.navigateRight()"><span class="material-icons-round">chevron_right</span></button>
+                <button class="icon-btn" onclick="editor.navigateUp()"><span class="material-icons-round">keyboard_arrow_up</span></button>
+                <button class="icon-btn" onclick="editor.navigateDown()"><span class="material-icons-round">keyboard_arrow_down</span></button>
+                <div style="width:1px;background:var(--glass-border);margin:4px 3px;flex-shrink:0;"></div>
+                <button class="icon-btn" onclick="editorUndo()"><span class="material-icons-round">undo</span></button>
+                <button class="icon-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span></button>
             </div>
-            
+
             <div class="toolbar-rows">
-                <!-- Row 1: File operations -->
+                <!-- ROW 1: File & Project -->
                 <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_box</span>New</button>
                     <button class="toolbar-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round">folder_open</span>Open</button>
-                    <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_circle</span>New</button>
                     <button class="toolbar-btn" onclick="saveFile()"><span class="material-icons-round">save</span>Save</button>
                     <button class="toolbar-btn" onclick="saveFileToRepo()"><span class="material-icons-round">cloud_upload</span>Commit</button>
-                    <button class="toolbar-btn" onclick="closeAllTabs()"><span class="material-icons-round">tab_close</span>Close All</button>
+                    <button class="toolbar-btn" onclick="closeAllTabs()"><span class="material-icons-round">playlist_remove</span>Close All</button>
+                    <button class="toolbar-btn" onclick="openGithubModal()"><span class="material-icons-round">hub</span>GitHub</button>
                 </div>
-                <!-- Row 2: Edit operations -->
+                <!-- ROW 2: Edit -->
                 <div class="toolbar-row">
-                    <button class="toolbar-btn" onclick="editorUndo()"><span class="material-icons-round">undo</span>Undo</button>
-                    <button class="toolbar-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span>Redo</button>
-                    <button class="toolbar-btn" onclick="editor.selectAll()"><span class="material-icons-round">select_all</span>All</button>
+                    <button class="toolbar-btn" onclick="editor.selectAll()"><span class="material-icons-round">select_all</span>Select All</button>
                     <button class="toolbar-btn" onclick="copyClipboard()"><span class="material-icons-round">content_copy</span>Copy</button>
                     <button class="toolbar-btn" onclick="cutClipboard()"><span class="material-icons-round">content_cut</span>Cut</button>
-                </div>
-                <!-- Row 3: Tools -->
-                <div class="toolbar-row">
                     <button class="toolbar-btn" onclick="pasteClipboard()"><span class="material-icons-round">content_paste</span>Paste</button>
-                    <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">search</span>Find</button>
-                    <button class="toolbar-btn" onclick="openGithubModal()"><span class="material-icons-round">cloud_sync</span>GitSync</button>
-                    <button class="toolbar-btn" onclick="openAgentModal()"><span class="material-icons-round">smart_toy</span>Agent</button>
-                    <button class="toolbar-btn" onclick="toggleTheme()"><span class="material-icons-round" id="theme-icon-tb">light_mode</span>Theme</button>
+                    <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">find_replace</span>Find</button>
+                    <button class="toolbar-btn" onclick="openAgentModal()"><span class="material-icons-round">smart_toy</span>AI Agent</button>
                 </div>
             </div>
         </div>
@@ -862,16 +870,23 @@
     function _makePwaIconPng(size) {
         const c = document.createElement('canvas'); c.width = size; c.height = size;
         const ctx = c.getContext('2d');
+        // Full green background (for maskable/adaptive icons)
+        ctx.fillStyle = '#10b981';
+        ctx.fillRect(0, 0, size, size);
+        // Rounded rect (slightly inset for safe zone padding)
+        const pad = size * 0.08;
         const r = size * 0.18;
-        ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
-        ctx.quadraticCurveTo(size, 0, size, r); ctx.lineTo(size, size - r);
-        ctx.quadraticCurveTo(size, size, size - r, size); ctx.lineTo(r, size);
-        ctx.quadraticCurveTo(0, size, 0, size - r); ctx.lineTo(0, r);
-        ctx.quadraticCurveTo(0, 0, r, 0); ctx.closePath();
-        ctx.fillStyle = '#10b981'; ctx.fill();
-        ctx.fillStyle = 'white'; ctx.font = `bold ${size*0.38}px monospace`;
+        const x = pad, y = pad, w = size - pad*2, h = size - pad*2;
+        ctx.beginPath(); ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+        ctx.fillStyle = '#059669'; ctx.fill();
+        ctx.fillStyle = 'white'; ctx.font = `bold ${size*0.36}px monospace`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText('</>', size / 2, size * 0.54);
+        ctx.fillText('</>', size / 2, size * 0.53);
         return c.toDataURL('image/png');
     }
     const _icon192 = _makePwaIconPng(192);
@@ -880,7 +895,7 @@
     const manifestData = {
         "name": "CodX Editor", "short_name": "CodX",
         "start_url": "./", "display": "standalone",
-        "background_color": "#0a0a0c", "theme_color": "#0a0a0c",
+        "background_color": "#10b981", "theme_color": "#10b981",
         "icons": [
             {"src": _icon192, "sizes": "192x192", "type": "image/png"},
             {"src": _icon512, "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
@@ -1063,8 +1078,166 @@
         _changeDebounce = setTimeout(() => { checkScrollable(); _changeDebounce = null; }, 400);
     });
 
-    // ── STEP 9: Initial content ──
-    _setEditorValueFast("\n<!DOCTYPE html>\n<html>\n<head>\n  <title>CodX</title>\n</head>\n<body>\n  <h1>Welcome to CodX!</h1>\n</body>\n</html>");
+    // ── STEP 9: Initial content — beautiful demo ──
+    _setEditorValueFast(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodX Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh; font-family: 'Inter', sans-serif;
+    background: #050510;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Animated gradient background */
+  .bg {
+    position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(ellipse at 20% 50%, #1a0533 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, #0a1a40 0%, transparent 55%),
+                radial-gradient(ellipse at 60% 80%, #001a20 0%, transparent 50%),
+                #050510;
+  }
+
+  /* Floating orbs */
+  .orb {
+    position: fixed; border-radius: 50%; filter: blur(60px);
+    animation: float 8s ease-in-out infinite;
+    z-index: 0;
+  }
+  .orb1 { width: 300px; height: 300px; background: rgba(139, 92, 246, 0.25); top: -80px; left: -60px; animation-delay: 0s; }
+  .orb2 { width: 250px; height: 250px; background: rgba(16, 185, 129, 0.2); bottom: -60px; right: -40px; animation-delay: -3s; }
+  .orb3 { width: 200px; height: 200px; background: rgba(59, 130, 246, 0.2); top: 40%; left: 50%; animation-delay: -5s; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-30px) scale(1.1); }
+  }
+
+  /* Card */
+  .card {
+    position: relative; z-index: 1;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px;
+    padding: 40px 32px;
+    max-width: 360px; width: 90%;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+    animation: cardIn 0.9s cubic-bezier(0.34,1.3,0.64,1) both;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(40px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.35);
+    color: #10b981; font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 5px 12px; border-radius: 20px;
+    margin-bottom: 22px; animation: cardIn 0.7s 0.2s both;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+  h1 {
+    font-size: 38px; font-weight: 900; line-height: 1.1;
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 14px; animation: cardIn 0.7s 0.3s both;
+  }
+  h1 span {
+    background: linear-gradient(135deg, #10b981, #3b82f6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  p {
+    color: rgba(255,255,255,0.5); font-size: 14px; line-height: 1.7;
+    margin-bottom: 32px; animation: cardIn 0.7s 0.4s both;
+  }
+
+  .stats {
+    display: flex; gap: 12px; margin-bottom: 32px;
+    animation: cardIn 0.7s 0.5s both;
+  }
+  .stat {
+    flex: 1; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 8px;
+  }
+  .stat-num { font-size: 22px; font-weight: 900; color: #fff; }
+  .stat-label { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .btn {
+    display: block; width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none; border-radius: 14px;
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
+    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 24px rgba(16,185,129,0.35);
+    animation: cardIn 0.7s 0.6s both;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(16,185,129,0.45); }
+  .btn:active { transform: scale(0.97); }
+
+  /* Stars */
+  .stars { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+  .star {
+    position: absolute; background: white; border-radius: 50%;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="stars" id="stars"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<div class="card">
+  <div class="badge"><div class="dot"></div> Live Preview</div>
+  <h1>Code with <span>CodX</span></h1>
+  <p>A powerful mobile code editor. Write, preview and sync your projects to GitHub — right from your phone.</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Undo</div></div>
+    <div class="stat"><div class="stat-num">AI</div><div class="stat-label">Agent</div></div>
+    <div class="stat"><div class="stat-num">GH</div><div class="stat-label">Sync</div></div>
+  </div>
+  <button class="btn" onclick="this.textContent='🚀 Launched!'">Start Building →</button>
+</div>
+
+<script>
+  // Generate stars
+  const container = document.getElementById('stars');
+  for(let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = \`
+      width:\${size}px; height:\${size}px;
+      left:\${Math.random()*100}%;
+      top:\${Math.random()*100}%;
+      animation-duration:\${Math.random()*4+2}s;
+      animation-delay:\${Math.random()*5}s;
+    \`;
+    container.appendChild(s);
+  }
+<\/script>
+</body>
+</html>`);
     _setEditorMode('index.html');
 
     function customFastScroll(direction) {
@@ -1106,15 +1279,40 @@
     editorWrapper.addEventListener('touchend', (e) => { if (e.touches.length < 2) initialDistance = null; });
 
     const bottomPanel = document.getElementById('bottom-panel'), restoreBtn = document.getElementById('restore-btn');
+
+    // ── NAV PANEL STATE MANAGER ──
+    // Rule: restoreBtn is ALWAYS visible when panel is collapsed AND we are NOT in preview.
+    // On launch: panel starts collapsed, restoreBtn visible.
+    let _inPreview = false;
+
+    function _collapseNav() {
+        bottomPanel.classList.add('collapsed');
+        bottomPanel.style.transform = '';
+        if (!_inPreview) {
+            restoreBtn.classList.remove('hidden-btn');
+        }
+    }
+    function _expandNav() {
+        bottomPanel.classList.remove('collapsed');
+        bottomPanel.style.transform = '';
+        restoreBtn.classList.add('hidden-btn');
+    }
+    function restoreBottomPanel() {
+        _expandNav();
+    }
+
+    // Start collapsed on launch
+    _collapseNav();
+
+    // Swipe down to collapse
     let startY = 0, startX = 0, isSwipingDown = false;
     bottomPanel.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; startX = e.touches[0].clientX; isSwipingDown = false; bottomPanel.style.transition = 'none'; }, {passive: true});
     bottomPanel.addEventListener('touchmove', (e) => { let deltaY = e.touches[0].clientY - startY, deltaX = e.touches[0].clientX - startX; if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 0) { isSwipingDown = true; bottomPanel.style.transform = `translateY(${deltaY}px)`; } }, {passive: true});
     bottomPanel.addEventListener('touchend', (e) => {
-        bottomPanel.style.transition = ''; 
-        if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; restoreBtn.classList.add('visible'); } 
+        bottomPanel.style.transition = '';
+        if (isSwipingDown && e.changedTouches[0].clientY - startY > 40) { _collapseNav(); }
         else { bottomPanel.style.transform = 'translateY(0)'; }
     });
-    function restoreBottomPanel() { bottomPanel.classList.remove('collapsed'); restoreBtn.classList.remove('visible'); }
 
     // Dynamic Theme Color Updater
     function toggleTheme() {
@@ -1129,33 +1327,49 @@
     }
 
     let _previewBlobUrl = null;
+    function _refreshPreview() {
+        let code = editor.getValue();
+        if(!code.includes('viewport')) code = code.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">');
+        if(_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
+        _previewBlobUrl = URL.createObjectURL(new Blob([code], { type: 'text/html' }));
+        document.getElementById('preview').src = _previewBlobUrl;
+    }
+
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        // Always ensure header/nav is visible
+        event.currentTarget.classList.add('active');
+
+        // Always keep header visible
         const header = document.getElementById('header');
         header.style.display = '';
         header.style.opacity = '1';
         header.style.visibility = 'visible';
+
         if(tabName === 'preview') {
-            event.currentTarget.classList.add('active');
+            _inPreview = true;
             document.getElementById('preview').classList.add('active-pane');
             document.getElementById('editor').style.opacity = '0';
             document.getElementById('editor').style.pointerEvents = 'none';
-            jumpers.style.display = 'none'; bottomPanel.style.display = 'none'; restoreBtn.style.display = 'none';
-            document.getElementById('find-modal').classList.remove('active'); closeGithubModal();
-            let code = editor.getValue();
-            if(!code.includes('viewport')) code = code.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">');
-            // Always revoke and recreate — ensures refresh every time preview is opened
-            if(_previewBlobUrl) URL.revokeObjectURL(_previewBlobUrl);
-            _previewBlobUrl = URL.createObjectURL(new Blob([code], { type: 'text/html' }));
-            document.getElementById('preview').src = _previewBlobUrl;
+            jumpers.style.display = 'none';
+            // Hide nav panel AND up arrow completely in preview
+            bottomPanel.style.display = 'none';
+            restoreBtn.classList.add('hidden-btn');
+            document.getElementById('find-modal').classList.remove('active');
+            closeGithubModal();
+            _refreshPreview();
         } else {
-            event.currentTarget.classList.add('active');
+            _inPreview = false;
             document.getElementById('preview').classList.remove('active-pane');
             document.getElementById('editor').style.opacity = '1';
             document.getElementById('editor').style.pointerEvents = 'auto';
-            checkScrollable(); bottomPanel.style.display = '';
-            if(bottomPanel.classList.contains('collapsed')) { restoreBtn.style.display = ''; }
+            checkScrollable();
+            bottomPanel.style.display = '';
+            // Up arrow always visible when panel is collapsed
+            if(bottomPanel.classList.contains('collapsed')) {
+                restoreBtn.classList.remove('hidden-btn');
+            } else {
+                restoreBtn.classList.add('hidden-btn');
+            }
             editor.blur();
         }
     }
@@ -1188,6 +1402,8 @@
             currentFileName = tab.name;
         }
         renderFileTabs();
+        // If currently in preview, auto-refresh with new tab's content
+        if(_inPreview) { _refreshPreview(); }
     }
 
     function closeFileTab(id, e) {
@@ -1252,7 +1468,7 @@
         closeGithubModal(); 
         let isActive = findModal.classList.toggle('active'); 
         if (isActive) { 
-            bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; restoreBtn.classList.add('visible'); findModal.style.bottom = '20px'; 
+            bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); findModal.style.bottom = '20px'; 
             // Focus find input to push keyboard up smoothly
             requestAnimationFrame(() => { 
                 const fi = document.getElementById('find-input');
@@ -1285,7 +1501,7 @@
         findModal.classList.remove('active'); 
         ghOverlay.classList.add('active');
         ghModal.classList.add('active');
-        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; restoreBtn.classList.add('visible'); }
+        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); }
         checkGhLogin();
     }
     function closeGithubModal() { 
@@ -1643,7 +1859,7 @@
         const bar = document.getElementById('agent-bar');
         bar.classList.add('visible');
         document.getElementById('agent-bar-label').textContent = agentConfig.providerName;
-        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform=''; restoreBtn.classList.add('visible'); }
+        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform=''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); }
         setTimeout(() => document.getElementById('agent-prompt').focus(), 250);
     }
     function closeAgentBar() {
