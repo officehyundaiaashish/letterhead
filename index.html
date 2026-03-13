@@ -1600,8 +1600,6 @@
     }
 
     renderFileTabs();
-    // Auto-show agent bar if already connected from previous session
-    if(_activeAgent()) { openAgentBar(); }
     let currentFileName = "index.html";
     function loadFile(event) {
         const file = event.target.files[0]; if (!file) return;
@@ -2511,6 +2509,9 @@
         _cancelPendingEdits();
         _removeAgentNavTab();
     }
+
+    // Auto-show agent bar if already connected from previous session
+    if(_activeAgent()) { openAgentBar(); }
 
     // ── AGENT SYSTEM PROMPTS ──
     const _AGENT_SYS = `You are CodX Agent — a professional surgical code editor.
