@@ -2125,6 +2125,10 @@
             return { provider:'anthropic', providerName:'Claude Haiku',
                 url:'https://api.anthropic.com/v1/messages',
                 model:'claude-3-haiku-20240307', label:'Anthropic – Claude Haiku' };
+        if (/^sk-[a-f0-9]{32}$/.test(key))
+            return { provider:'deepseek', providerName:'DeepSeek Coder',
+                url:'https://api.deepseek.com/chat/completions',
+                model:'deepseek-coder', label:'DeepSeek Coder' };
         if (/^sk-[A-Za-z0-9]{20,}/.test(key))
             return { provider:'openai', providerName:'GPT-4o mini',
                 url:'https://api.openai.com/v1/chat/completions',
