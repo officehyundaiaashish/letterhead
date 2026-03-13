@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#10b981">
-    <title>Ultra-Fast Afs Editor</title>
+    <title>Afs Ultra Editor</title>
+    
+    <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Afs%20Editor%22%2C%22short_name%22%3A%22Editor%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0a0c%22%2C%22theme_color%22%3A%22%2310b981%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg%3D%3D%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D'>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-searchbox.min.js"></script>
@@ -35,10 +37,15 @@
             --accent-dim: rgba(5, 150, 105, 0.1);
         }
 
-        /* Prevent body from resizing abruptly on keyboard pop */
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; outline: none; }
+        /* Anti-Google Search & Anti-Selection for UI Elements */
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        .no-select {
+            -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+            -webkit-touch-callout: none; /* Prevents Android context menu */
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body, html { width: 100%; height: 100%; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        
         .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
 
         /* Header */
@@ -51,7 +58,6 @@
         .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: var(--transition); cursor: pointer; }
         .tab.active { background: var(--accent); color: white; opacity: 1; }
         
-        /* Main Container */
         .main-container { flex-grow: 1; position: relative; background-color: var(--editor-bg); overflow: hidden; }
 
         /* STRICT MONOSPACE FOR ACCURACY AND SPEED */
@@ -78,29 +84,37 @@
         .cursor-nav::-webkit-scrollbar { display: none; }
         .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 12px; min-width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer;}
         .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
-        .icon-btn .material-icons-round { font-size: 20px; }
+        .icon-btn .material-icons-round { font-size: 20px; pointer-events: none; } /* Stop targetting icon directly */
 
         .toolbar { display: flex; overflow-x: auto; gap: 15px; padding: 5px 15px 10px 15px; scroll-behavior: smooth; }
         .toolbar::-webkit-scrollbar { display: none; }
-        .toolbar-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-color); opacity: 0.8; font-size: 10px; font-weight: 600; gap: 2px; flex-shrink: 0; width: 50px; }
-        .toolbar-btn .material-icons-round { font-size: 24px; padding: 8px; border-radius: 50%; }
+        .toolbar-btn { display: flex; flex-direction: column; align-items: center; background: none; border: none; color: var(--text-color); opacity: 0.8; font-size: 10px; font-weight: 600; gap: 2px; flex-shrink: 0; width: 50px; cursor: pointer;}
+        .toolbar-btn .material-icons-round { font-size: 24px; padding: 8px; border-radius: 50%; pointer-events: none; }
         .toolbar-btn:active .material-icons-round { background: var(--accent-dim); transform: scale(0.9); }
 
         .restore-btn { position: absolute; bottom: 20px; right: 20px; background: var(--accent); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 15px var(--accent-dim); border: none; z-index: 30; opacity: 0; pointer-events: none; transform: scale(0.8); transition: var(--transition); }
         .restore-btn.visible { opacity: 1; pointer-events: auto; transform: scale(1); }
-        .restore-btn .material-icons-round { font-size: 18px; }
+        .restore-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
-        /* Modal - MOVED TO TOP to avoid Keyboard Push */
-        .modal { position: absolute; top: -150%; left: 5%; width: 90%; background: var(--glass-bg); backdrop-filter: blur(35px); border: 1px solid var(--glass-border); border-radius: var(--panel-round); padding: 15px; opacity: 0; z-index: 60; transition: top 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s; box-shadow: 0 10px 50px rgba(0,0,0,0.5); }
-        .modal.active { top: 60px; opacity: 1; }
+        /* Perfectly Smooth GPU Accelerated Modal */
+        .modal { 
+            position: absolute; top: 10px; left: 5%; width: 90%; background: var(--glass-bg); backdrop-filter: blur(35px); 
+            border: 1px solid var(--glass-border); border-radius: var(--panel-round); padding: 15px; z-index: 60; 
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            /* GPU Accelerated Slide & Fade */
+            transform: translateY(-150%); opacity: 0; pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
+        }
+        .modal.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        
         .modal textarea { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Courier New', Courier, monospace; resize: none; height: 45px; font-size: 13px; }
         .modal-actions { display: flex; gap: 8px; }
-        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 13px;}
+        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 13px; cursor: pointer;}
         .modal-btn.secondary { background: rgba(128,128,128,0.2); color: var(--text-color); }
         #file-input { display: none; }
     </style>
 </head>
-<body class="dark-theme">
+<body class="dark-theme no-select">
 
 <div class="app-layout">
     <div class="app-header" id="header">
@@ -108,26 +122,29 @@
             <div class="tab active" onclick="switchTab('editor')">Code</div>
             <div class="tab" onclick="switchTab('preview')">Preview</div>
         </div>
-        <button class="icon-btn" style="width:30px; height:30px; background:none; min-width:30px;" onclick="toggleTheme()">
-            <span class="material-icons-round" id="theme-icon" style="color:var(--accent); font-size:18px;">light_mode</span>
-        </button>
+        
+        <div style="display:flex; align-items:center;">
+            <button class="icon-btn no-select" id="install-btn" style="display:none; width:30px; height:30px; background:var(--accent-dim); min-width:30px; border: 1px solid var(--accent); margin-left: 5px;">
+                <span class="material-icons-round" style="color:var(--accent); font-size:16px;">download</span>
+            </button>
+        </div>
     </div>
 
     <div class="main-container" id="editor-wrapper">
         <div id="editor"></div>
         <iframe id="preview"></iframe>
         
-        <div class="scroll-jumpers" id="jumpers">
-            <div class="jumper-btn" onclick="fastScrollUp()"><span class="material-icons-round">keyboard_double_arrow_up</span></div>
-            <div class="jumper-btn" onclick="fastScrollDown()"><span class="material-icons-round">keyboard_double_arrow_down</span></div>
+        <div class="scroll-jumpers no-select" id="jumpers">
+            <div class="jumper-btn" onclick="customFastScroll('up')"><span class="material-icons-round">keyboard_double_arrow_up</span></div>
+            <div class="jumper-btn" onclick="customFastScroll('down')"><span class="material-icons-round">keyboard_double_arrow_down</span></div>
         </div>
     </div>
 
-    <button class="restore-btn" id="restore-btn" onclick="restoreBottomPanel()">
+    <button class="restore-btn no-select" id="restore-btn" onclick="restoreBottomPanel()">
         <span class="material-icons-round">keyboard_arrow_up</span>
     </button>
 
-    <div class="bottom-wrapper" id="bottom-panel">
+    <div class="bottom-wrapper no-select" id="bottom-panel">
         <div class="bottom-area">
             <div class="drag-handle-area"><div class="drag-pill"></div></div>
             <div class="cursor-nav">
@@ -141,6 +158,7 @@
                 <button class="icon-btn" onclick="editor.navigateUp()"><span class="material-icons-round">arrow_upward</span></button>
                 <button class="icon-btn" onclick="editor.navigateDown()"><span class="material-icons-round">arrow_downward</span></button>
             </div>
+            
             <div class="toolbar">
                 <button class="toolbar-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round">folder_open</span> Open</button>
                 <input type="file" id="file-input" accept=".html,.js,.css,.txt" onchange="loadFile(event)">
@@ -151,17 +169,21 @@
                 <button class="toolbar-btn" onclick="editor.undo()"><span class="material-icons-round">undo</span> Undo</button>
                 <button class="toolbar-btn" onclick="editor.redo()"><span class="material-icons-round">redo</span> Redo</button>
                 <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">search</span> Find</button>
+                
+                <button class="toolbar-btn" onclick="toggleTheme()">
+                    <span class="material-icons-round" id="theme-icon">light_mode</span> Palette
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="modal" id="find-modal">
+<div class="modal no-select" id="find-modal">
     <div style="display:flex; justify-content:space-between; align-items:center; color:var(--accent); font-weight:600; margin-bottom:10px; font-size:14px;">
-        Find & Replace <span class="material-icons-round" onclick="toggleFindReplace()" style="opacity:0.6; cursor:pointer; font-size: 18px;">close</span>
+        Find & Replace <span class="material-icons-round" onclick="toggleFindReplace()" style="opacity:0.6; cursor:pointer; font-size: 18px; pointer-events:auto;">close</span>
     </div>
-    <textarea id="find-input" placeholder="Paste exact code to find..."></textarea>
-    <textarea id="replace-input" placeholder="Paste exact code to replace..."></textarea>
+    <textarea id="find-input" class="no-select" placeholder="Paste exact code to find..." style="user-select:text; -webkit-user-select:text;"></textarea>
+    <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text; -webkit-user-select:text;"></textarea>
     <div class="modal-actions">
         <button class="modal-btn secondary" onclick="clearFind()">Clear</button>
         <button class="modal-btn" onclick="findText(true)">Find Next</button>
@@ -170,55 +192,72 @@
 </div>
 
 <script>
-    // Initialize Ace Editor
+    // --- APP INSTALLATION (PWA) ---
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'flex';
+    });
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+        }
+    });
+
+    // --- EDITOR ---
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/tomorrow_night_eighties"); 
     editor.session.setMode("ace/mode/html");
     
-    // EXTREME PERFORMANCE MODE
+    // EXTREME PERFORMANCE (Rules strictly followed)
     editor.setOptions({
-        fontSize: "14px", 
-        showLineNumbers: true, 
-        showGutter: true,
-        wrap: false,                // No text wrap = max speed
-        displayIndentGuides: false, // Cuts rendering logic
-        showPrintMargin: false,
-        useWorker: false,           // Disables syntax checking thread (crucial for big files)
-        animatedScroll: false,      // Native touch scroll is faster
-        tooltipFollowsMouse: false,
-        highlightActiveLine: false, // Prevents repaint on every cursor move
-        showFoldWidgets: false      // Removes left folding arrows = massive speed boost
+        fontSize: "14px", showLineNumbers: true, showGutter: true,
+        wrap: false, displayIndentGuides: false, showPrintMargin: false,
+        useWorker: false, animatedScroll: false, tooltipFollowsMouse: false,
+        highlightActiveLine: false, showFoldWidgets: false
     });
 
-    editor.setValue("\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Green Theme</title>\n</head>\n<body>\n  <h1>Ready!</h1>\n  <img src='missing_image.png'>\n</body>\n</html>", -1);
+    editor.setValue("\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Green Theme</title>\n</head>\n<body>\n  <h1>Zero Lag Expected</h1>\n</body>\n</html>", -1);
 
-    // FAST SMOOTH JUMP SCROLLING
-    function fastScrollUp() {
-        let currentScroll = editor.renderer.getScrollTop();
-        // Scrolls up 800px smoothly
-        editor.renderer.animateScrolling(Math.max(0, currentScroll - 800));
-    }
-    
-    function fastScrollDown() {
-        let currentScroll = editor.renderer.getScrollTop();
-        let maxScroll = editor.renderer.layerConfig.maxHeight;
-        // Scrolls down 800px smoothly
-        editor.renderer.animateScrolling(Math.min(maxScroll, currentScroll + 800));
+    // CUSTOM 60FPS SMOOTH FAST SCROLL
+    function customFastScroll(direction) {
+        let startPos = editor.renderer.getScrollTop();
+        let distance = direction === 'up' ? -800 : 800;
+        let endPos = Math.max(0, startPos + distance);
+        let duration = 300; 
+        let startTime = null;
+
+        function animation(currentTime) {
+            if (startTime === null) startTime = currentTime;
+            let timeElapsed = currentTime - startTime;
+            let progress = Math.min(timeElapsed / duration, 1);
+            let ease = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+            
+            editor.renderer.scrollToY(startPos + (distance * ease));
+            
+            if (timeElapsed < duration) {
+                requestAnimationFrame(animation);
+            }
+        }
+        requestAnimationFrame(animation);
     }
 
     async function pasteClipboard() {
         try { const text = await navigator.clipboard.readText(); editor.insert(text); } 
-        catch (err) { alert("Please paste using your keyboard's paste button."); }
+        catch (err) { alert("Please paste natively from your keyboard."); }
     }
     async function copyClipboard() {
         try {
             const text = editor.getSelectedText();
             if(text) { await navigator.clipboard.writeText(text); alert("Copied!"); } 
-            else { alert("Please double-tap or select text first."); }
+            else { alert("Double-tap or select text first."); }
         } catch (err) { alert("Copy failed."); }
     }
 
-    // Zero-Flicker Smooth Zoom
+    // Zero-Flicker Zoom
     const editorWrapper = document.getElementById('editor');
     let initialDistance = null, initialFontSize = 14, zoomReq;
     editorWrapper.addEventListener('touchstart', (e) => {
@@ -257,51 +296,48 @@
 
     function toggleTheme() {
         let isDark = document.body.classList.contains('dark-theme');
-        document.body.className = isDark ? 'light-theme' : 'dark-theme';
+        document.body.className = isDark ? 'light-theme no-select' : 'dark-theme no-select';
         editor.setTheme(isDark ? "ace/theme/textmate" : "ace/theme/tomorrow_night_eighties");
         document.getElementById('theme-icon').innerText = isDark ? 'dark_mode' : 'light_mode';
     }
 
-    // Preview Logic with Smart File Catcher
+    // Hide everything in Preview logic
     function switchTab(tabName) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         if(tabName === 'preview') {
             event.currentTarget.classList.add('active'); 
+            
+            // Activate Preview
             document.getElementById('preview').classList.add('active-pane');
-            document.getElementById('editor').style.opacity = '0'; document.getElementById('editor').style.pointerEvents = 'none';
+            document.getElementById('editor').style.opacity = '0'; 
+            document.getElementById('editor').style.pointerEvents = 'none';
             
+            // HIDE ALL EDITING UI
+            document.getElementById('jumpers').style.display = 'none';
+            bottomPanel.style.display = 'none';
+            restoreBtn.style.display = 'none';
+            document.getElementById('find-modal').classList.remove('active');
+
             let code = editor.getValue();
-            
-            // 1. Ensure Viewport for mobile optimization
             if(!code.includes('viewport')) {
                 code = code.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">');
             }
-            
-            // 2. Inject Smart Error Catcher for missing files
-            const errorCatcher = `
-            <script>
-                window.addEventListener('error', function(e) {
-                    let target = e.target;
-                    if(target.tagName === 'IMG' || target.tagName === 'SCRIPT' || target.tagName === 'LINK') {
-                        let url = target.src || target.href;
-                        let div = document.createElement('div');
-                        div.style = 'background:#ef4444; color:white; padding:8px 12px; font-size:12px; margin:5px; border-radius:8px; font-family:sans-serif; font-weight:bold; position:relative; z-index:9999; display:inline-block; box-shadow:0 4px 6px rgba(0,0,0,0.3);';
-                        div.innerHTML = 'File Not Found: ' + url;
-                        document.body.prepend(div);
-                    }
-                }, true);
-            <\/script>`;
-            
-            if(code.includes('<body>')) {
-                code = code.replace('<body>', '<body>' + errorCatcher);
-            } else {
-                code = errorCatcher + code;
-            }
-
             document.getElementById('preview').src = URL.createObjectURL(new Blob([code], { type: 'text/html' }));
+            
         } else {
-            event.currentTarget.classList.add('active'); document.getElementById('preview').classList.remove('active-pane');
-            document.getElementById('editor').style.opacity = '1'; document.getElementById('editor').style.pointerEvents = 'auto';
+            event.currentTarget.classList.add('active'); 
+            
+            // Hide Preview
+            document.getElementById('preview').classList.remove('active-pane');
+            document.getElementById('editor').style.opacity = '1'; 
+            document.getElementById('editor').style.pointerEvents = 'auto';
+            
+            // RESTORE ALL EDITING UI
+            document.getElementById('jumpers').style.display = 'flex';
+            bottomPanel.style.display = 'block';
+            if(bottomPanel.classList.contains('collapsed')) {
+                restoreBtn.style.display = 'flex';
+            }
             editor.focus();
         }
     }
@@ -317,7 +353,7 @@
         const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/html' })); a.download = currentFileName; a.click();
     }
 
-    // Modal at TOP logic
+    // Modal Smooth GPU Logic
     const findModal = document.getElementById('find-modal');
     function toggleFindReplace() { 
         findModal.classList.toggle('active'); 
