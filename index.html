@@ -495,6 +495,7 @@
         .agent-dots span:nth-child(2) { animation-delay: 0.2s; }
         .agent-dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes agentBounce { 0%,80%,100%{ transform:translateY(0); opacity:0.6; } 40%{ transform:translateY(-4px); opacity:1; } }
+        @keyframes agentBubbleIn { from { opacity:0; transform:translateY(6px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
         #agent-file-selector { padding: 0 10px 5px; }
         #agent-file-select {
             width:100%; padding:5px 8px; border-radius:7px;
@@ -2394,6 +2395,10 @@
         const splitKeywords = /\b(split|divide|separate|extract|break\s*up|break\s*into|multiple\s*files?|alag|vibhajit|tod|tod\s*do|file\s*mein|files\s*mein|parts?)\b/i;
         const isSplitIntent = splitKeywords.test(userRequest);
 
+        // Detect chat/question intent — no code, just a reply
+        const chatKeywords = /^(what|how|why|when|who|where|is|are|can|could|should|explain|tell me|describe|does|do|did|will|would|help me understand|kya|kaise|kyun|bata|samjha|matlab|difference|vs\b)/i;
+        const isChatIntent = chatKeywords.test(userRequest) && !isSplitIntent;
+
         let attachCtx = agentAttachment ? `\n\nAttached file (${agentAttachment.name}):\n${agentAttachment.content.slice(0,3000)}` : '';
 
         try {
@@ -2424,6 +2429,16 @@ Rules:
                 } else {
                     _showSplitFileReview(files);
                 }
+            } else if(isChatIntent) {
+                // CHAT MODE — user asked a question, reply inline
+                const chatSystem = `You are CodX AI, a helpful coding assistant embedded in a mobile code editor. 
+Answer clearly and concisely. You can see the user's current code if relevant.
+Keep answers short — this is a mobile chat UI.`;
+                const chatMsg = code.trim()
+                    ? `Current code:\n\`\`\`\n${code.slice(0,4000)}\n\`\`\`\n\nQuestion: ${userRequest}${attachCtx}`
+                    : `Question: ${userRequest}${attachCtx}`;
+                const reply = await _callAgentAPI(chatSystem, chatMsg);
+                _showAgentChatReply(userRequest, reply);
             } else {
                 // EDIT MODE — surgical edits
                 const systemPrompt = `You are CodX AI Agent — a precise surgical code editor. You receive code and a user request.
@@ -2444,7 +2459,11 @@ RULES (STRICT):
                 const edits = JSON.parse(raw);
 
                 if(!Array.isArray(edits) || edits.length === 0) {
-                    cdAlert('Agent', 'No changes needed for this request.', 'info');
+                    // AI said no changes — treat as chat reply
+                    const chatSystem = `You are CodX AI, a helpful coding assistant. The user made a request about their code but no code edits are needed. Explain why, or answer their question directly. Be brief and clear.`;
+                    const chatMsg = `Code:\n\`\`\`\n${code.slice(0,4000)}\n\`\`\`\n\nUser request: ${userRequest}${attachCtx}`;
+                    const reply = await _callAgentAPI(chatSystem, chatMsg);
+                    _showAgentChatReply(userRequest, reply);
                 } else {
                     const valid = edits.filter(e => e.find && code.includes(e.find));
                     const invalid = edits.length - valid.length;
@@ -2499,6 +2518,30 @@ RULES (STRICT):
     }
 
     // Show split file review panel — each file with open-in-tab + download
+    function _showAgentChatReply(question, reply) {
+        const bar = document.getElementById('agent-bar');
+        const inputRow = document.getElementById('agent-compact-row');
+        // Remove old chat replies older than 3 — keep UI clean
+        const old = bar.querySelectorAll('.agent-chat-bubble');
+        if(old.length >= 3) old[0].remove();
+
+        const bubble = document.createElement('div');
+        bubble.className = 'agent-chat-bubble';
+        bubble.style.cssText = 'margin:5px 10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);overflow:hidden;animation:agentBubbleIn 0.2s ease both;';
+        bubble.innerHTML = `
+            <div style="padding:8px 10px 4px;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:10px;font-weight:700;color:var(--accent);display:flex;align-items:center;gap:4px;">
+                    <span class="material-icons-round" style="font-size:12px;">smart_toy</span>${_activeAgent()?.providerName||'AI'}
+                </div>
+                <span class="material-icons-round" style="font-size:14px;opacity:0.3;cursor:pointer;pointer-events:auto;" onclick="this.closest('.agent-chat-bubble').remove()">close</span>
+            </div>
+            <div style="padding:0 10px 4px;font-size:10px;color:var(--text-color);opacity:0.45;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${question.slice(0,60)}${question.length>60?'…':''}</div>
+            <div style="padding:4px 10px 10px;font-size:12px;color:var(--text-color);line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;">${reply.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        `;
+        bar.insertBefore(bubble, inputRow);
+        bubble.querySelector('div:last-child').scrollTop = 0;
+    }
+
     function _showSplitFileReview(files) {
         const bar = document.getElementById('agent-bar');
         const oldReview = document.getElementById('agent-diff-review');
