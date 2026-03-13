@@ -613,7 +613,12 @@
             <!-- AGENT BAR — compact strip, sits at top of nav panel -->
             <div id="agent-bar">
                 <div id="agent-file-selector" style="display:none;">
-                    <select id="agent-file-select" onchange="agentSelectFile(this.value)"></select>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <select id="agent-file-select" onchange="agentSelectFile(this.value)" style="flex:1;"></select>
+                        <button id="agent-restore-btn" onclick="showAgentRestoreMenu()" title="Restore from history" style="width:28px;height:28px;border-radius:7px;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;pointer-events:auto;">
+                            <span class="material-icons-round" style="font-size:15px;pointer-events:none;">history</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="agent-compact-row">
                     <div class="agent-status-dot"></div>
@@ -2247,17 +2252,23 @@
         });
     }
 
-    let _agentTargetTabId = null; // which tab agent works on
+    let _agentTargetTabId = null; // null = active tab, 'all' = all tabs
+    let _agentHistory = {}; // per-tab undo: {tabId:[{request,before,ts}]}
 
-    function agentSelectFile(tabId) {
-        _agentTargetTabId = parseInt(tabId) || null;
+    function _pushAgentHistory(tabId, request, before) {
+        if(!_agentHistory[tabId]) _agentHistory[tabId] = [];
+        _agentHistory[tabId].push({ request, before, ts: Date.now() });
+        if(_agentHistory[tabId].length > 10) _agentHistory[tabId].shift();
+    }
+
+    function agentSelectFile(val) {
+        _agentTargetTabId = val === 'all' ? 'all' : (parseInt(val) || null);
     }
 
     function _updateAgentFileSelector() {
         const sel = document.getElementById('agent-file-select');
         const wrap = document.getElementById('agent-file-selector');
         if(!sel || !wrap) return;
-        if(fileTabs.length <= 1) { wrap.style.display = 'none'; _agentTargetTabId = null; return; }
         wrap.style.display = 'block';
         sel.innerHTML = '';
         fileTabs.forEach(t => {
@@ -2267,7 +2278,52 @@
             if(t.id === activeTabId) opt.selected = true;
             sel.appendChild(opt);
         });
+        if(fileTabs.length > 1) {
+            const allOpt = document.createElement('option');
+            allOpt.value = 'all';
+            allOpt.textContent = '⚡ All Files (Project Mode)';
+            sel.appendChild(allOpt);
+        }
         _agentTargetTabId = activeTabId;
+    }
+
+    function showAgentRestoreMenu() {
+        const tabId = (_agentTargetTabId && _agentTargetTabId !== 'all') ? _agentTargetTabId : activeTabId;
+        const hist = _agentHistory[tabId] || [];
+        if(hist.length === 0) { cdAlert('History', 'No agent history for this file yet.', 'info'); return; }
+        const bar = document.getElementById('agent-bar');
+        const inputRow = document.getElementById('agent-compact-row');
+        const old = document.getElementById('agent-restore-panel');
+        if(old) { old.remove(); return; }
+        const panel = document.createElement('div');
+        panel.id = 'agent-restore-panel';
+        panel.style.cssText = 'margin:5px 10px;border-radius:10px;background:rgba(0,0,0,0.25);border:1px solid var(--glass-border);overflow:hidden;animation:agentBubbleIn 0.18s ease both;';
+        const header = document.createElement('div');
+        header.style.cssText = 'padding:8px 10px;font-size:10px;font-weight:700;color:var(--accent);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--glass-border);';
+        header.innerHTML = `<span>Restore History (${hist.length})</span><span class="material-icons-round" style="font-size:14px;opacity:0.4;cursor:pointer;pointer-events:auto;" onclick="document.getElementById('agent-restore-panel').remove()">close</span>`;
+        panel.appendChild(header);
+        [...hist].reverse().forEach((h, i) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'padding:8px 10px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;gap:8px;';
+            const age = Math.round((Date.now()-h.ts)/60000);
+            row.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:11px;font-weight:600;color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.request.slice(0,50)}${h.request.length>50?'…':''}</div><div style="font-size:10px;opacity:0.4;margin-top:1px;">${age < 1 ? 'just now' : age + 'm ago'}</div></div><button style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;pointer-events:auto;flex-shrink:0;" onclick="event.stopPropagation();_restoreAgentHistory(${tabId},${hist.length-1-i})">Restore</button>`;
+            panel.appendChild(row);
+        });
+        bar.insertBefore(panel, inputRow);
+    }
+
+    function _restoreAgentHistory(tabId, idx) {
+        const hist = _agentHistory[tabId];
+        if(!hist || !hist[idx]) return;
+        const tab = fileTabs.find(t => t.id === tabId);
+        if(!tab) return;
+        cdConfirm('Restore', `Restore "${tab.name}" to before: "${hist[idx].request.slice(0,40)}"?`, 'Restore', 'Cancel', (ok) => {
+            if(!ok) return;
+            tab.content = hist[idx].before;
+            if(activeTabId === tabId) { _setEditorValueFast(tab.content); _setEditorMode(tab.name, tab.content); }
+            document.getElementById('agent-restore-panel')?.remove();
+            cdAlert('Restored', `"${tab.name}" restored.`, 'success');
+        });
     }
 
     function openAgentBar() {
@@ -2284,7 +2340,7 @@
 
     function _addAgentNavTab() {
         const bar = document.getElementById('file-tabs-bar');
-        if(document.getElementById('agent-nav-tab')) return; // already added
+        if(document.getElementById('agent-nav-tab')) return;
         const tab = document.createElement('div');
         tab.id = 'agent-nav-tab';
         tab.className = 'file-tab';
@@ -2293,18 +2349,12 @@
         tab.onclick = (e) => { if(!e.target.classList.contains('ft-close')) openAgentBar(); };
         bar.appendChild(tab);
     }
-
-    function _removeAgentNavTab() {
-        const t = document.getElementById('agent-nav-tab');
-        if(t) t.remove();
-    }
+    function _removeAgentNavTab() { const t = document.getElementById('agent-nav-tab'); if(t) t.remove(); }
 
     async function _pingAgentModel() {
         const dot = document.getElementById('agent-nav-status');
         const barDot = document.querySelector('.agent-status-dot');
-        // Key already validated by connectAgent() — if we got here, it's connected
-        // Just show green immediately; no need to burn tokens on a test call
-        if(dot) { dot.style.background = '#10b981'; dot.title = 'Connected · ' + (_activeAgent()?.providerName||'AI' || ''); }
+        if(dot) { dot.style.background = '#10b981'; dot.title = 'Connected · ' + (_activeAgent()?.providerName||'AI'); }
         if(barDot) barDot.style.background = '#10b981';
     }
     function closeAgentBar() {
@@ -2313,208 +2363,197 @@
         _removeAgentNavTab();
     }
 
-    async function _callAgentAPI(systemPrompt, userMsg) {
-        const cfg = _activeAgent();
-        // 30s timeout — prevents silent hang on slow networks
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+    // ── AGENT SYSTEM PROMPTS ──
+    const _AGENT_SYS = `You are CodX Agent — a professional surgical code editor.
+Do EXACTLY what the user asks. Nothing more. Nothing less.
 
-        try {
-            let res, d;
+Return a JSON array of edit objects:
+[{"find":"exact verbatim string","replace":"new string","reason":"one line","affects":"other function affected or null"}]
 
-            if(cfg.provider === 'anthropic') {
-                res = await fetch(cfg.url, {
-                    method:'POST', signal: controller.signal,
-                    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] })
-                });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
-                return d.content[0].text.trim();
+RULES:
+- "find" = exact copy from the code. Same whitespace, same newlines. No paraphrasing.
+- Minimum edits only. Never touch unrelated code.
+- If your change may break another function: add a second edit object to fix that function too.
+- One "find" must match exactly one location — add context lines to make it unique if needed.
+- Return [] if nothing needs to change.
+- Return ONLY the JSON array. No markdown, no backticks, no prose.`;
 
-            } else if(cfg.provider === 'gemini') {
-                res = await fetch(cfg.url + '?key=' + cfg.key, {
-                    method:'POST', signal: controller.signal,
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        contents:[{parts:[{text: systemPrompt + '\n\n' + userMsg}]}],
-                        generationConfig:{ maxOutputTokens:3000, temperature:0.2 }
-                    })
-                });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
-                if(!d.candidates || !d.candidates[0]) throw new Error('Gemini returned no candidates. Prompt may have been blocked.');
-                const part = d.candidates[0].content?.parts?.[0]?.text;
-                if(!part) throw new Error('Gemini response empty. Try again.');
-                return part.trim();
+    const _CHAT_SYS = `You are CodX AI — a direct, professional coding assistant in a mobile editor.
+Answer in plain text. Be concise and accurate. No filler. No markdown headers.`;
 
-            } else {
-                // OpenAI-compatible: OpenAI, Groq, OpenRouter
-                const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
-                if(cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
-                res = await fetch(cfg.url, {
-                    method:'POST', signal: controller.signal,
-                    headers,
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] })
-                });
-                d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
-                return d.choices[0].message.content.trim();
+    function _classifyRequest(req) {
+        const split = /\b(split|divide|separate|extract|break.?up|break.?into|multiple.?files?|alag|tod)\b/i;
+        const chat = /^(what |how |why |when |who |where |is |are |can |could |should |explain|tell me|describe|does |do |did |will |would |kya|kaise|kyun|bata|samjha|matlab|difference|vs )/i;
+        if(split.test(req)) return 'split';
+        if(chat.test(req)) return 'chat';
+        return 'edit';
+    }
+
+    function _trimCodeForEdit(code, request) {
+        if(code.length <= 3000) return { trimmed: code, wasTrimmed: false };
+        const words = request.toLowerCase().replace(/[^a-z0-9\s]/g,'').split(/\s+/).filter(w => w.length > 3);
+        const lines = code.split('\n');
+        const relevant = new Set();
+        lines.forEach((line, i) => {
+            if(words.some(w => line.toLowerCase().includes(w))) {
+                for(let j = Math.max(0,i-10); j <= Math.min(lines.length-1,i+10); j++) relevant.add(j);
             }
-        } catch(e) {
-            if(e.name === 'AbortError') throw new Error('Request timed out (30s). Check your internet connection.');
-            throw e;
-        } finally {
-            clearTimeout(timeoutId);
-        }
+        });
+        if(relevant.size === 0 || relevant.size > lines.length * 0.7) return { trimmed: code.slice(0,7000), wasTrimmed: code.length > 7000 };
+        const sections = []; let prev = -1;
+        [...relevant].sort((a,b)=>a-b).forEach(i => {
+            if(prev !== -1 && i > prev + 1) sections.push(`// ... [${i-prev-1} lines omitted] ...`);
+            sections.push(lines[i]); prev = i;
+        });
+        return { trimmed: sections.join('\n'), wasTrimmed: true };
     }
 
     async function sendAgentPrompt() {
         if(!_activeAgent()) { openAgentModal(); return; }
         const userRequest = document.getElementById('agent-prompt').value.trim();
         if(!userRequest) return;
-        if(_agentPendingEdits.length > 0) { cdAlert('Agent', 'Please accept or reject the current edits first.', 'warn'); return; }
+        if(_agentPendingEdits.length > 0) { cdAlert('Agent', 'Accept or reject current edits first.', 'warn'); return; }
 
         const thinking = document.getElementById('agent-thinking');
         const sendBtn = document.getElementById('agent-send-btn');
         thinking.classList.add('visible'); sendBtn.disabled = true;
 
-        // Use selected file from agent file selector if set
-        let _agentWorkTab = null;
-        if(_agentTargetTabId) {
-            _agentWorkTab = fileTabs.find(t => t.id === _agentTargetTabId);
-        }
-        if(!_agentWorkTab) _agentWorkTab = fileTabs.find(t => t.id === activeTabId);
-        // Save current editor content to active tab first
         const curTab = fileTabs.find(t => t.id === activeTabId);
         if(curTab) curTab.content = editor.getValue();
-        const code = _agentWorkTab ? _agentWorkTab.content : editor.getValue();
-        _agentOriginalCode = code;
 
-        // Detect split intent
-        const splitKeywords = /\b(split|divide|separate|extract|break\s*up|break\s*into|multiple\s*files?|alag|vibhajit|tod|tod\s*do|file\s*mein|files\s*mein|parts?)\b/i;
-        const isSplitIntent = splitKeywords.test(userRequest);
-
-        // Detect chat/question intent — no code, just a reply
-        const chatKeywords = /^(what|how|why|when|who|where|is|are|can|could|should|explain|tell me|describe|does|do|did|will|would|help me understand|kya|kaise|kyun|bata|samjha|matlab|difference|vs\b)/i;
-        const isChatIntent = chatKeywords.test(userRequest) && !isSplitIntent;
-
-        let attachCtx = agentAttachment ? `\n\nAttached file (${agentAttachment.name}):\n${agentAttachment.content.slice(0,3000)}` : '';
+        const mode = _classifyRequest(userRequest);
+        const attachCtx = agentAttachment ? `\n\n[Attached: ${agentAttachment.name}]\n${agentAttachment.content.slice(0,2000)}` : '';
+        const isAllTabs = _agentTargetTabId === 'all';
 
         try {
-            if(isSplitIntent) {
-                // SPLIT MODE — agent returns multiple files
-                const splitSystemPrompt = `You are CodX AI Agent. The user wants to split their code into multiple separate files.
-
-Analyse the code and split it logically into separate files (e.g. HTML, CSS, JS — or by component/module).
-
-Return ONLY a JSON array of file objects. Each object:
-{"filename": "name.ext", "content": "full file content here", "reason": "brief reason"}
-
-Rules:
-- filename must have a correct extension (.html, .css, .js, .json, etc.)
-- content must be the COMPLETE file content — nothing truncated
-- Split by type/concern: CSS into .css, JS into .js, HTML into .html, etc.
-- Link them correctly (e.g. <link rel="stylesheet"> in HTML, <script src="..."> in HTML)
-- Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
-
-                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
-
-                let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
-                raw = raw.replace(/```json|```/g,'').trim();
-                const files = JSON.parse(raw);
-
-                if(!Array.isArray(files) || files.length === 0) {
-                    cdAlert('Agent', 'Agent could not split the code. Try a more specific request.', 'warn');
-                } else {
-                    _showSplitFileReview(files);
-                }
-            } else if(isChatIntent) {
-                // CHAT MODE — user asked a question, reply inline
-                const chatSystem = `You are CodX AI, a helpful coding assistant embedded in a mobile code editor. 
-Answer clearly and concisely. You can see the user's current code if relevant.
-Keep answers short — this is a mobile chat UI.`;
-                const chatMsg = code.trim()
-                    ? `Current code:\n\`\`\`\n${code.slice(0,4000)}\n\`\`\`\n\nQuestion: ${userRequest}${attachCtx}`
-                    : `Question: ${userRequest}${attachCtx}`;
-                const reply = await _callAgentAPI(chatSystem, chatMsg);
+            if(mode === 'chat') {
+                const code = curTab?.content || '';
+                const codeCtx = code.length > 0 && code.length < 4000 ? `\n\nCode (${curTab?.name}):\n\`\`\`\n${code}\n\`\`\`` : '';
+                const reply = await _callAgentAPI(_CHAT_SYS, `${userRequest}${attachCtx}${codeCtx}`);
                 _showAgentChatReply(userRequest, reply);
+
+            } else if(mode === 'split') {
+                const code = curTab?.content || '';
+                const splitSys = `You are CodX Agent. Split the code into separate files.
+Return ONLY: [{"filename":"name.ext","content":"full content","reason":"brief"}]
+No markdown.`;
+                let raw = await _callAgentAPI(splitSys, `${userRequest}\n\nCode (${curTab?.name}):\n\`\`\`\n${code.slice(0,8000)}\n\`\`\``);
+                raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+                const files = JSON.parse(raw);
+                if(!Array.isArray(files)||files.length===0) throw new Error('Agent could not split the code.');
+                _showSplitFileReview(files);
+
             } else {
-                // EDIT MODE — surgical edits
-                const systemPrompt = `You are CodX AI Agent — a precise surgical code editor. You receive code and a user request.
-
-RULES (STRICT):
-1. Analyse the ENTIRE code first before making any changes.
-2. Make ONLY the minimal, targeted edits to satisfy the request. Never rewrite the whole file.
-3. Return a JSON array of edit objects. Each object: {"find": "exact string", "replace": "new string", "reason": "brief explanation"}
-4. "find" MUST be an exact verbatim substring from the code — copy-paste accurate, including whitespace and newlines.
-5. Each "find" must be unique enough to identify exactly one location. Include surrounding context if needed.
-6. If nothing needs changing: return [].
-7. Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
-
-                const userMsg = `Code:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
-
-                let raw = await _callAgentAPI(systemPrompt, userMsg);
-                raw = raw.replace(/```json|```/g,'').trim();
-                const edits = JSON.parse(raw);
-
-                if(!Array.isArray(edits) || edits.length === 0) {
-                    // AI said no changes — treat as chat reply
-                    const chatSystem = `You are CodX AI, a helpful coding assistant. The user made a request about their code but no code edits are needed. Explain why, or answer their question directly. Be brief and clear.`;
-                    const chatMsg = `Code:\n\`\`\`\n${code.slice(0,4000)}\n\`\`\`\n\nUser request: ${userRequest}${attachCtx}`;
-                    const reply = await _callAgentAPI(chatSystem, chatMsg);
-                    _showAgentChatReply(userRequest, reply);
+                if(isAllTabs) {
+                    await _runAgentAllTabs(userRequest, attachCtx);
                 } else {
-                    const valid = edits.filter(e => e.find && code.includes(e.find));
-                    const invalid = edits.length - valid.length;
-                    if(valid.length === 0) {
-                        cdAlert('Agent', 'Could not locate the code sections to edit. Try a more specific request.', 'warn');
-                    } else {
-                        _agentPendingEdits = valid;
-                        _showAgentDiffReview(valid, invalid);
-                    }
+                    const target = (_agentTargetTabId && _agentTargetTabId !== 'all')
+                        ? fileTabs.find(t => t.id === _agentTargetTabId) || curTab
+                        : curTab;
+                    await _runAgentSingleTab(userRequest, attachCtx, target);
                 }
             }
 
-            // Clear input
             document.getElementById('agent-prompt').value = '';
             document.getElementById('agent-prompt').style.height = 'auto';
             agentAttachment = null;
             document.getElementById('agent-attach-btn').style.background = '';
             document.getElementById('agent-attach-btn').style.color = '';
+
         } catch(err) {
-            const raw = err.message || 'Something went wrong.';
-            // Smart error classification — show short friendly message
-            let errMsg, errHint;
-            if(/quota|rate.?limit|limit.*0|exceeded/i.test(raw)) {
-                errMsg = 'Quota exceeded';
-                errHint = 'Free tier limit hit. Wait a bit or use a different API key.';
-            } else if(/timeout|abort|timed out/i.test(raw)) {
-                errMsg = 'Request timed out';
-                errHint = 'Check your internet and try again.';
-            } else if(/401|403|invalid.*key|api.?key/i.test(raw)) {
-                errMsg = 'Invalid API key';
-                errHint = 'Reconnect agent with a valid key.';
-            } else if(/network|fetch|failed to fetch/i.test(raw)) {
-                errMsg = 'Network error';
-                errHint = 'Check your internet connection.';
-            } else {
-                errMsg = 'Agent error';
-                errHint = raw.slice(0, 80) + (raw.length > 80 ? '…' : '');
-            }
-            const bar = document.getElementById('agent-bar');
-            const oldErr = document.getElementById('agent-inline-error');
-            if(oldErr) oldErr.remove();
-            const errEl = document.createElement('div');
-            errEl.id = 'agent-inline-error';
-            errEl.style.cssText = 'display:flex;align-items:flex-start;justify-content:space-between;gap:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:7px 10px;margin:4px 10px;';
-            errEl.innerHTML = `<div style="min-width:0;"><div style="font-size:11px;font-weight:700;color:#ef4444;">${errMsg}</div><div style="font-size:10px;color:#ef4444;opacity:0.75;margin-top:2px;word-break:break-word;">${errHint}</div></div><span class="material-icons-round" style="font-size:15px;color:#ef4444;opacity:0.6;cursor:pointer;flex-shrink:0;pointer-events:auto;" onclick="this.parentElement.remove()">close</span>`;
-            const inputRow = document.getElementById('agent-compact-row');
-            bar.insertBefore(errEl, inputRow);
-            setTimeout(() => { if(errEl.parentElement) errEl.remove(); }, 12000);
+            _showAgentError(err.message||'Unknown error');
         } finally {
             thinking.classList.remove('visible'); sendBtn.disabled = false;
         }
+    }
+
+    async function _runAgentSingleTab(request, attachCtx, tab) {
+        if(!tab) return;
+        const code = tab.content || '';
+        const { trimmed, wasTrimmed } = _trimCodeForEdit(code, request);
+        const trimNote = wasTrimmed ? `[Showing relevant sections. Full file: ${code.split('\n').length} lines]\n` : '';
+
+        const userMsg = `File: ${tab.name}\n${trimNote}\`\`\`\n${trimmed}\n\`\`\`${attachCtx}\n\nRequest: ${request}`;
+        let raw = await _callAgentAPI(_AGENT_SYS, userMsg);
+        raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+
+        let edits;
+        try { edits = JSON.parse(raw); } catch(e) { throw new Error('Agent returned invalid JSON. Try rephrasing.'); }
+
+        if(!Array.isArray(edits)||edits.length===0) {
+            const reply = await _callAgentAPI(_CHAT_SYS, `User asked: "${request}" about "${tab.name}". No edits needed. Explain briefly or answer the question.`);
+            _showAgentChatReply(request, reply); return;
+        }
+
+        const valid = edits.filter(e => e.find && code.includes(e.find));
+        const missed = edits.length - valid.length;
+
+        if(valid.length === 0 && wasTrimmed) {
+            // Retry with more code
+            const fullMsg = `File: ${tab.name}\n\`\`\`\n${code.slice(0,9000)}\n\`\`\`${attachCtx}\n\nRequest: ${request}`;
+            let raw2 = await _callAgentAPI(_AGENT_SYS, fullMsg);
+            raw2 = raw2.replace(/\`\`\`json|\`\`\`/g,'').trim();
+            try {
+                const edits2 = JSON.parse(raw2);
+                const valid2 = edits2.filter(e => e.find && code.includes(e.find));
+                if(valid2.length > 0) {
+                    _pushAgentHistory(tab.id, request, code);
+                    _agentPendingEdits = valid2;
+                    _showAgentDiffReview(valid2, 0, tab.id);
+                    return;
+                }
+            } catch(e) {}
+            throw new Error('Could not locate code to edit. Be more specific.');
+        }
+        if(valid.length === 0) throw new Error('Could not locate code sections. Be more specific.');
+
+        _pushAgentHistory(tab.id, request, code);
+        _agentOriginalCode = code;
+        _agentPendingEdits = valid;
+        _showAgentDiffReview(valid, missed, tab.id);
+    }
+
+    async function _runAgentAllTabs(request, attachCtx) {
+        const projectMap = fileTabs.map(t => `${t.name} (${t.content.split('\n').length} lines)`).join('\n');
+        const allResults = [];
+
+        for(const tab of fileTabs) {
+            if(!tab.content.trim()) continue;
+            const { trimmed } = _trimCodeForEdit(tab.content, request);
+            const userMsg = `Project:\n${projectMap}\n\nEditing: ${tab.name}\n\`\`\`\n${trimmed}\n\`\`\`${attachCtx}\n\nRequest: ${request}\n(Return [] if this file needs no changes)`;
+            try {
+                let raw = await _callAgentAPI(_AGENT_SYS, userMsg);
+                raw = raw.replace(/\`\`\`json|\`\`\`/g,'').trim();
+                const edits = JSON.parse(raw);
+                const valid = edits.filter(e => e.find && tab.content.includes(e.find));
+                if(valid.length > 0) allResults.push({ tab, edits: valid });
+            } catch(e) {}
+        }
+
+        if(allResults.length === 0) {
+            const reply = await _callAgentAPI(_CHAT_SYS, `User asked: "${request}". No changes needed in any file. Explain briefly.`);
+            _showAgentChatReply(request, reply); return;
+        }
+
+        allResults.forEach(r => _pushAgentHistory(r.tab.id, request, r.tab.content));
+        _showMultiFileDiffReview(allResults, request);
+    }
+
+    function _showAgentError(raw) {
+        let errMsg, errHint;
+        if(/quota|rate.?limit|exceeded/i.test(raw)) { errMsg='Quota exceeded'; errHint='Free tier limit hit. Wait or use a different key.'; }
+        else if(/timeout|abort|timed out/i.test(raw)) { errMsg='Timed out'; errHint='Check internet and retry.'; }
+        else if(/401|403|invalid.*key|api.?key/i.test(raw)) { errMsg='Invalid API key'; errHint='Reconnect agent.'; }
+        else if(/network|fetch|failed to fetch/i.test(raw)) { errMsg='Network error'; errHint='Check internet.'; }
+        else if(/invalid json|parse/i.test(raw)) { errMsg='Parse error'; errHint=raw.slice(0,80); }
+        else { errMsg='Agent error'; errHint=raw.slice(0,80)+(raw.length>80?'…':''); }
+        document.getElementById('agent-inline-error')?.remove();
+        const errEl = document.createElement('div');
+        errEl.id = 'agent-inline-error';
+        errEl.style.cssText = 'display:flex;align-items:flex-start;gap:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:7px 10px;margin:4px 10px;';
+        errEl.innerHTML = `<div style="min-width:0;flex:1;"><div style="font-size:11px;font-weight:700;color:#ef4444;">${errMsg}</div><div style="font-size:10px;color:#ef4444;opacity:0.75;margin-top:2px;word-break:break-word;">${errHint}</div></div><span class="material-icons-round" style="font-size:15px;color:#ef4444;cursor:pointer;flex-shrink:0;pointer-events:auto;" onclick="this.parentElement.remove()">close</span>`;
+        document.getElementById('agent-bar').insertBefore(errEl, document.getElementById('agent-compact-row'));
+        setTimeout(()=>{ if(errEl.parentElement) errEl.remove(); }, 12000);
     }
 
     // Show split file review panel — each file with open-in-tab + download
@@ -2623,40 +2662,41 @@ RULES (STRICT):
     }
 
     // Show accept/reject diff review inside agent bar
-    function _showAgentDiffReview(edits, skipped) {
+    let _agentDiffTabId = null; // which tab the current diff is for
+
+    function _showAgentDiffReview(edits, skipped, tabId) {
+        _agentDiffTabId = tabId || activeTabId;
         const bar = document.getElementById('agent-bar');
-        // Remove old review if any
-        const oldReview = document.getElementById('agent-diff-review');
-        if(oldReview) oldReview.remove();
+        document.getElementById('agent-diff-review')?.remove();
 
         const review = document.createElement('div');
         review.id = 'agent-diff-review';
         review.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;font-family:Poppins,sans-serif;';
 
+        const tabName = fileTabs.find(t => t.id === _agentDiffTabId)?.name || '';
         const header = document.createElement('div');
         header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
-        header.innerHTML = `<span style="font-size:11px;font-weight:600;color:var(--accent)">${edits.length} edit${edits.length>1?'s':''} ready${skipped>0?' ('+skipped+' skipped)':''}</span>`;
+        header.innerHTML = `<span style="font-size:11px;font-weight:600;color:var(--accent)">${edits.length} edit${edits.length>1?'s':''}${tabName?' · '+tabName:''}${skipped>0?' ('+skipped+' skipped)':''}</span>`;
         review.appendChild(header);
 
-        edits.forEach((edit, i) => {
+        edits.forEach((edit) => {
             const card = document.createElement('div');
             card.style.cssText = 'background:rgba(0,0,0,0.15);border:1px solid var(--glass-border);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px;';
-            const reason = edit.reason || 'Edit';
+            const affects = edit.affects ? `<div style="font-size:9px;color:#f59e0b;margin-top:4px;opacity:0.8;">⚡ Affects: ${edit.affects}</div>` : '';
             const findPreview = edit.find.slice(0,60).replace(/\n/g,'↵') + (edit.find.length>60?'…':'');
             const replacePreview = edit.replace.slice(0,60).replace(/\n/g,'↵') + (edit.replace.length>60?'…':'');
             card.innerHTML = `
-                <div style="font-weight:600;color:var(--text-color);margin-bottom:6px;opacity:0.9;font-size:11px;">${reason}</div>
+                <div style="font-weight:600;color:var(--text-color);margin-bottom:6px;opacity:0.9;font-size:11px;">${edit.reason||'Edit'}</div>
                 <div style="display:flex;gap:6px;">
                     <div style="flex:1;min-width:0;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:5px 7px;">
-                        <div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:3px;letter-spacing:0.4px;">REMOVE</div>
-                        <div style="color:#ef4444;font-family:monospace;font-size:10px;opacity:0.9;word-break:break-all;">${findPreview}</div>
+                        <div style="font-size:9px;color:#ef4444;font-weight:700;margin-bottom:3px;">REMOVE</div>
+                        <div style="color:#ef4444;font-family:monospace;font-size:10px;word-break:break-all;">${findPreview}</div>
                     </div>
                     <div style="flex:1;min-width:0;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:5px 7px;">
-                        <div style="font-size:9px;color:#10b981;font-weight:700;margin-bottom:3px;letter-spacing:0.4px;">INSERT</div>
-                        <div style="color:#10b981;font-family:monospace;font-size:10px;opacity:0.9;word-break:break-all;">${replacePreview}</div>
+                        <div style="font-size:9px;color:#10b981;font-weight:700;margin-bottom:3px;">INSERT</div>
+                        <div style="color:#10b981;font-family:monospace;font-size:10px;word-break:break-all;">${replacePreview}</div>
                     </div>
-                </div>
-            `;
+                </div>${affects}`;
             review.appendChild(card);
         });
 
@@ -2664,34 +2704,74 @@ RULES (STRICT):
         actions.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
         const rejectBtn = document.createElement('button');
         rejectBtn.className = 'modal-btn secondary'; rejectBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        rejectBtn.innerHTML = '✕ Reject All';
-        rejectBtn.onclick = _cancelPendingEdits;
+        rejectBtn.innerHTML = '✕ Reject'; rejectBtn.onclick = _cancelPendingEdits;
         const acceptBtn = document.createElement('button');
         acceptBtn.className = 'modal-btn'; acceptBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        acceptBtn.innerHTML = '✓ Accept All';
-        acceptBtn.onclick = _acceptPendingEdits;
+        acceptBtn.innerHTML = '✓ Apply'; acceptBtn.onclick = _acceptPendingEdits;
         actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
         review.appendChild(actions);
+        bar.insertBefore(review, document.getElementById('agent-compact-row'));
+    }
 
-        // Insert before input row
-        const inputRow = document.getElementById('agent-compact-row');
-        bar.insertBefore(review, inputRow);
+    function _showMultiFileDiffReview(allResults, request) {
+        const bar = document.getElementById('agent-bar');
+        document.getElementById('agent-diff-review')?.remove();
+        const review = document.createElement('div');
+        review.id = 'agent-diff-review';
+        review.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:10px;padding:10px;font-family:Poppins,sans-serif;max-height:280px;overflow-y:auto;';
+        const totalEdits = allResults.reduce((s,r) => s+r.edits.length, 0);
+        const header = document.createElement('div');
+        header.style.cssText = 'font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;';
+        header.textContent = `Project edit — ${allResults.length} files · ${totalEdits} changes`;
+        review.appendChild(header);
+        allResults.forEach(({ tab, edits }) => {
+            const fileHeader = document.createElement('div');
+            fileHeader.style.cssText = 'font-size:10px;font-weight:700;color:var(--text-color);opacity:0.6;margin:6px 0 3px;text-transform:uppercase;letter-spacing:0.5px;';
+            fileHeader.textContent = `${tab.name} (${edits.length})`;
+            review.appendChild(fileHeader);
+            edits.forEach(edit => {
+                const card = document.createElement('div');
+                card.style.cssText = 'background:rgba(0,0,0,0.15);border:1px solid var(--glass-border);border-radius:7px;padding:6px 8px;margin-bottom:4px;font-size:10px;';
+                const fp = edit.find.slice(0,40).replace(/\n/g,'↵')+(edit.find.length>40?'…':'');
+                const rp = edit.replace.slice(0,40).replace(/\n/g,'↵')+(edit.replace.length>40?'…':'');
+                card.innerHTML = `<div style="font-weight:600;margin-bottom:4px;opacity:0.85;">${edit.reason||'Edit'}</div><div style="display:flex;gap:4px;"><div style="flex:1;background:rgba(239,68,68,0.08);border-radius:4px;padding:3px 5px;color:#ef4444;font-family:monospace;font-size:9px;word-break:break-all;">${fp}</div><div style="flex:1;background:rgba(16,185,129,0.08);border-radius:4px;padding:3px 5px;color:#10b981;font-family:monospace;font-size:9px;word-break:break-all;">${rp}</div></div>`;
+                review.appendChild(card);
+            });
+        });
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;margin-top:10px;position:sticky;bottom:0;background:var(--glass-bg);padding-top:6px;';
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'modal-btn secondary'; rejectBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
+        rejectBtn.innerHTML = '✕ Reject All';
+        rejectBtn.onclick = () => { document.getElementById('agent-diff-review')?.remove(); };
+        const acceptBtn = document.createElement('button');
+        acceptBtn.className = 'modal-btn'; acceptBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
+        acceptBtn.innerHTML = '✓ Apply All';
+        acceptBtn.onclick = () => {
+            let applied = 0;
+            allResults.forEach(({ tab, edits }) => {
+                let code = tab.content;
+                edits.forEach(e => { if(code.includes(e.find)) { code = code.split(e.find).join(e.replace); applied++; } });
+                tab.content = code;
+                if(tab.id === activeTabId) { _setEditorValueFast(code); }
+            });
+            document.getElementById('agent-diff-review')?.remove();
+            _showAgentUndoToast(applied);
+        };
+        actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
+        review.appendChild(actions);
+        bar.insertBefore(review, document.getElementById('agent-compact-row'));
     }
 
     function _acceptPendingEdits() {
         if(_agentPendingEdits.length === 0) return;
-        _agentUndoStack.push(editor.getValue());
-        if(_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
-
-        // Apply edits to the agent's target tab
-        const targetId = _agentTargetTabId || activeTabId;
+        const targetId = _agentDiffTabId || _agentTargetTabId || activeTabId;
         const targetTab = fileTabs.find(t => t.id === targetId);
         let code = targetTab ? targetTab.content : editor.getValue();
         let applied = 0;
         _agentPendingEdits.forEach(edit => {
             if(code.includes(edit.find)) { code = code.split(edit.find).join(edit.replace); applied++; }
         });
-        // Switch to that tab and apply
         if(targetTab) {
             targetTab.content = code;
             if(targetId !== activeTabId) switchFileTab(targetId);
@@ -2699,10 +2779,8 @@ RULES (STRICT):
         _setEditorValueFast(code);
         const cur = fileTabs.find(t => t.id === activeTabId);
         if(cur) cur.content = code;
-
         _agentPendingEdits = [];
-        const rev = document.getElementById('agent-diff-review');
-        if(rev) rev.remove();
+        document.getElementById('agent-diff-review')?.remove();
         _showAgentUndoToast(applied);
     }
 
