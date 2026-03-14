@@ -159,9 +159,8 @@
         /* will-change: transform → own GPU layer, no repaint on slide */
         /* Nav panel — always visible, never collapses away */
         .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
-        /* mini mode: only cursor-nav row shows */
-        .bottom-wrapper.nav-mini .toolbar-rows { display: none; }
-        .bottom-wrapper.nav-mini .drag-handle-area { display: none; }
+        /* mini mode: smoothly hide toolbar-rows */
+        .bottom-wrapper.nav-mini .toolbar-rows { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; margin: 0; overflow: hidden; }
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
@@ -1066,7 +1065,7 @@
         .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
         /* Ultra-Compact 3-Row Grid (No Scroll) */
-        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; }
+        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; max-height: 200px; opacity: 1; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.3s ease; overflow: hidden; }
         .toolbar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
         .toolbar-btn { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1750,9 +1749,9 @@
                 <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
             </div>
 
-            <div class="drag-handle-area" style="justify-content:flex-end;padding-right:10px;">
-                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:none;border:none;cursor:pointer;color:var(--accent);display:flex;align-items:center;padding:2px 4px;opacity:0.7;">
-                    <span class="material-icons-round" id="nav-toggle-icon" style="font-size:18px;pointer-events:none;">expand_less</span>
+            <div class="drag-handle-area" style="justify-content:center; padding-top:6px; padding-bottom:2px;">
+                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--editor-bg);border:1px solid var(--glass-border);border-radius:16px;cursor:pointer;color:var(--text-color);display:flex;align-items:center;justify-content:center;padding:2px 45px;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;">
+                    <span class="material-icons-round" id="nav-toggle-icon" style="font-size:22px;pointer-events:none;">expand_more</span>
                 </button>
             </div>
 
@@ -2288,15 +2287,9 @@
 
     // Small perf badge shown when mode is downgraded
     function _showPerfBadge(msg) {
-        let b = document.getElementById('_perf_badge');
-        if(!b) {
-            b = document.createElement('div');
-            b.id = '_perf_badge';
-            b.style.cssText = 'position:fixed;top:50px;left:50%;transform:translateX(-50%);background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:#10b981;font-size:10px;font-family:Poppins,sans-serif;padding:4px 10px;border-radius:20px;z-index:999;pointer-events:none;transition:opacity 0.5s;';
-            document.body.appendChild(b);
-        }
-        b.textContent = msg; b.style.opacity = '1';
-        setTimeout(() => { b.style.opacity = '0'; }, 2500);
+        let icon = msg.includes('✓') ? 'check_circle' : 'speed';
+        let cleanMsg = msg.replace('⚡ ', '').replace('✓ ', '');
+        showToast(cleanMsg, icon);
     }
 
     // ── STEP 5: Fast value setter — freeze renderer during large loads ──
