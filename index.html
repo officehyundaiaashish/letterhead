@@ -745,6 +745,78 @@
         .chat-copy-btn:active { opacity: 1 !important; background: var(--accent-dim); color: var(--accent); }
         .chat-copy-btn.copied { opacity: 1 !important; color: var(--accent); }
 
+
+        /* ── 3-Step Agent Flow Cards ── */
+        .agent-step-card {
+            margin-top: 8px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+        .agent-step-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 12px;
+            background: rgba(16,185,129,0.08);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .agent-step-num {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--accent); color: white;
+            font-size: 10px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .agent-step-label {
+            font-size: 10px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 0.5px; flex: 1;
+        }
+        .agent-step-body {
+            padding: 10px 12px;
+            font-size: 12px; line-height: 1.6;
+            color: var(--text-color); opacity: 0.9;
+            background: rgba(0,0,0,0.12);
+        }
+        .agent-step-actions {
+            display: flex; gap: 8px;
+            padding: 9px 12px;
+            background: rgba(0,0,0,0.08);
+            border-top: 1px solid var(--glass-border);
+        }
+        .agent-step-accept {
+            flex: 1; padding: 8px; border: none; border-radius: 8px;
+            background: var(--accent); color: white;
+            font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 5px;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .agent-step-accept:active { opacity: 0.85; transform: scale(0.97); }
+        .agent-step-accept .material-icons-round { font-size: 14px; pointer-events: none; }
+        .agent-step-reject {
+            padding: 8px 14px; border: 1px solid var(--glass-border); border-radius: 8px;
+            background: none; color: var(--text-color); opacity: 0.6;
+            font-family: 'Poppins', sans-serif; font-size: 12px; font-weight: 700;
+            cursor: pointer; transition: opacity 0.15s, background 0.15s;
+        }
+        .agent-step-reject:active { background: rgba(239,68,68,0.1); color: #ef4444; opacity: 1; }
+        .agent-step-done {
+            font-size: 10px; font-weight: 700; color: var(--text-color);
+            opacity: 0.4; padding: 9px 12px;
+            background: rgba(0,0,0,0.08);
+            border-top: 1px solid var(--glass-border);
+            text-align: center;
+        }
+        .agent-plan-item {
+            display: flex; gap: 8px; align-items: flex-start;
+            padding: 6px 0; border-bottom: 1px solid var(--glass-border);
+            font-size: 11px; line-height: 1.5;
+        }
+        .agent-plan-item:last-child { border-bottom: none; }
+        .agent-plan-num {
+            font-size: 10px; font-weight: 700; color: var(--accent);
+            min-width: 18px; margin-top: 1px;
+        }
+
         /* Typing indicator bubble */
         .chat-typing-bubble {
             display: flex; align-items: center; gap: 4px;
@@ -3434,6 +3506,185 @@
         catch (e) { return null; }
     }
 
+
+    // ════════════════════════════════════════════════
+    // 3-STEP AGENT ENGINE
+    // User controls every step — Reject = full stop
+    // ════════════════════════════════════════════════
+    async function _runThreeStepAgent({ code, userRequest, attachCtx, appendMsg, showTyping, hideTyping, scrollBottom, onApply }) {
+
+        const RULES = `You are a professional software engineering agent.
+The COMPLETE code is provided. Read and analyse every line. Never assume.
+Only perform the exact task requested. Do not add extra features.
+Preserve original structure unless modification is required.`;
+
+        // ── STEP 1: ANALYSE ──
+        showTyping('🔍 Step 1 of 3 — Analysing code...');
+        let analysis;
+        try {
+            const s1Prompt = RULES + `
+
+TASK: Analyse the code and the user's request.
+Return a SHORT plain-language summary (3-5 sentences):
+- What the user wants
+- Which part of the code is affected (function/section name)
+- Root cause or what needs to change
+- Nothing else. No code. No JSON.`;
+            const s1Msg = `Code:
+\`\`\`
+${code}
+\`\`\`${attachCtx}
+
+User request: ${userRequest}`;
+            analysis = await _callAgentAPI(s1Prompt, s1Msg);
+        } catch(e) { hideTyping(); appendMsg('agent', '⚠️ ' + (e.message || 'Analysis failed.')); return; }
+        hideTyping();
+
+        // Show analysis card with Accept/Reject
+        await new Promise(resolve => {
+            const card = document.createElement('div');
+            card.className = 'agent-step-card';
+            card.innerHTML = `
+                <div class="agent-step-header">
+                    <div class="agent-step-num">1</div>
+                    <div class="agent-step-label">Analysis</div>
+                </div>
+                <div class="agent-step-body">${analysis.replace(/\n/g,'<br>')}</div>
+                <div class="agent-step-actions" id="s1-actions">
+                    <button class="agent-step-accept" id="s1-accept">
+                        <span class="material-icons-round">check</span> Looks right, continue
+                    </button>
+                    <button class="agent-step-reject" id="s1-reject">Reject</button>
+                </div>`;
+            appendMsg('agent', '', card);
+            scrollBottom();
+            document.getElementById('s1-accept').onclick = () => {
+                document.getElementById('s1-actions').outerHTML = '<div class="agent-step-done">✓ Analysis accepted</div>';
+                resolve(true);
+            };
+            document.getElementById('s1-reject').onclick = () => {
+                document.getElementById('s1-actions').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;">✗ Rejected — process stopped</div>';
+                resolve(false);
+            };
+        }).then(accepted => { if (!accepted) throw new Error('__REJECTED__'); });
+
+        // ── STEP 2: PLAN ──
+        showTyping('📋 Step 2 of 3 — Planning changes...');
+        let planItems;
+        try {
+            const s2Prompt = RULES + `
+
+TASK: Based on the analysis below, create a numbered change plan.
+Return ONLY a JSON array of plan items:
+[{"step": 1, "action": "what will be changed", "location": "function/section name", "reason": "why"}]
+No markdown, no backticks, only the JSON array.`;
+            const s2Msg = `Code:
+\`\`\`
+${code}
+\`\`\`${attachCtx}
+
+User request: ${userRequest}
+
+Analysis:
+${analysis}`;
+            const s2Raw = await _callAgentAPI(s2Prompt, s2Msg);
+            planItems = _safeExtractJSON(s2Raw);
+            if (!planItems || !planItems.length) throw new Error('Could not generate plan.');
+        } catch(e) {
+            if (e.message === '__REJECTED__') throw e;
+            hideTyping(); appendMsg('agent', '⚠️ ' + (e.message || 'Planning failed.')); return;
+        }
+        hideTyping();
+
+        // Show plan card with Accept/Reject
+        await new Promise(resolve => {
+            const planHTML = planItems.map(p =>
+                `<div class="agent-plan-item">
+                    <div class="agent-plan-num">${p.step}.</div>
+                    <div><strong>${p.action}</strong><br><span style="opacity:0.6;font-size:10px;">${p.location} — ${p.reason}</span></div>
+                </div>`
+            ).join('');
+            const card = document.createElement('div');
+            card.className = 'agent-step-card';
+            card.innerHTML = `
+                <div class="agent-step-header">
+                    <div class="agent-step-num">2</div>
+                    <div class="agent-step-label">Change Plan (${planItems.length} change${planItems.length>1?'s':''})</div>
+                </div>
+                <div class="agent-step-body">${planHTML}</div>
+                <div class="agent-step-actions" id="s2-actions">
+                    <button class="agent-step-accept" id="s2-accept">
+                        <span class="material-icons-round">check</span> Apply this plan
+                    </button>
+                    <button class="agent-step-reject" id="s2-reject">Reject</button>
+                </div>`;
+            appendMsg('agent', '', card);
+            scrollBottom();
+            document.getElementById('s2-accept').onclick = () => {
+                document.getElementById('s2-actions').outerHTML = '<div class="agent-step-done">✓ Plan accepted</div>';
+                resolve(true);
+            };
+            document.getElementById('s2-reject').onclick = () => {
+                document.getElementById('s2-actions').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;">✗ Rejected — process stopped</div>';
+                resolve(false);
+            };
+        }).then(accepted => { if (!accepted) throw new Error('__REJECTED__'); });
+
+        // ── STEP 3: EXECUTE ──
+        showTyping('⚙️ Step 3 of 3 — Executing changes...');
+        let edits;
+        try {
+            const s3Prompt = RULES + `
+
+TASK: Execute exactly the plan below. No extra changes.
+Return ONLY a JSON array of find/replace edits:
+[{"find":"exact verbatim substring from code","replace":"new string","reason":"brief"}]
+Rules:
+- "find" must be exact copy-paste accurate substring including all whitespace/newlines.
+- Each "find" must be unique — add surrounding lines as context if needed.
+- Return [] if nothing to change.
+- ONLY the JSON array. No markdown, no backticks.`;
+            const s3Msg = `Code:
+\`\`\`
+${code}
+\`\`\`${attachCtx}
+
+User request: ${userRequest}
+
+Analysis:
+${analysis}
+
+Approved plan:
+${JSON.stringify(planItems, null, 2)}`;
+            const s3Raw = await _callAgentAPI(s3Prompt, s3Msg);
+            edits = _safeExtractJSON(s3Raw);
+            if (!edits) throw new Error('Could not generate edits.');
+        } catch(e) {
+            if (e.message === '__REJECTED__') throw e;
+            hideTyping(); appendMsg('agent', '⚠️ ' + (e.message || 'Execution failed.')); return;
+        }
+        hideTyping();
+
+        // Validate edits against actual code
+        const valid = edits.filter(e => {
+            if (!e.find) return false;
+            if (code.includes(e.find)) return true;
+            const t = e.find.trim();
+            if (t && code.includes(t)) { e.find = t; return true; }
+            return false;
+        });
+
+        if (valid.length === 0) {
+            appendMsg('agent', edits.length > 0
+                ? '⚠️ Changes planned but exact code sections not found. Try rephrasing your request.'
+                : '✓ No changes needed.');
+            return;
+        }
+
+        // Hand off to caller (chat UI shows its own Apply/Reject card)
+        onApply(valid);
+    }
+
     async function sendAgentPrompt() {
         if(!_activeAgent()) { openAgentModal(); return; }
         const userRequest = document.getElementById('agent-prompt').value.trim();
@@ -3499,56 +3750,43 @@ Rules:
                     _showSplitFileReview(files);
                 }
             } else {
-                // EDIT MODE — surgical edits
-                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+                // EDIT MODE — 3-step: Analyse → Plan → Execute
+                const thinking = document.getElementById('agent-thinking');
+                function _agentShowTyping(msg) {
+                    if (thinking) { thinking.classList.add('visible'); thinking.querySelector('.agent-dots + *') && (thinking.lastChild.textContent = ' ' + msg); }
+                }
+                function _agentHideTyping() { if (thinking) thinking.classList.remove('visible'); }
 
-GENERAL RULES:
-1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
-2. Never guess — identify the root cause first.
-3. Only perform the task requested. Do not add extra features.
-4. Avoid silly mistakes. Maintain professional coding standards.
-5. Keep code clean, organised, and readable.
-6. Preserve original structure unless modification is required.
-
-PROCESS:
-STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
-STEP 2 – Load and analyse full code: structure, related components, problem areas.
-STEP 3 – Find root cause: never modify without identifying the exact reason.
-STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
-STEP 5 – Apply edit: precise corrected code, no full rewrites.
-STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
-
-OUTPUT FORMAT — Return ONLY a JSON array:
-[{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
-Rules:
-- "find" must be exact copy-paste accurate substring including whitespace/newlines.
-- Each "find" must be unique — include surrounding context if needed.
-- Return [] if nothing needs changing.
-- ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
-
-                const userMsg = `Code:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
-
-                let raw = await _callAgentAPI(systemPrompt, userMsg);
-                const edits = _safeExtractJSON(raw);
-                if (!edits) throw new Error('Agent response could not be parsed. Try again.');
-
-                if(!Array.isArray(edits) || edits.length === 0) {
-                    cdAlert('Agent', 'No changes needed for this request.', 'info');
-                } else {
-                    const valid = edits.filter(e => {
-                        if (!e.find) return false;
-                        if (code.includes(e.find)) return true;
-                        let trimmed = e.find.trim(); // Fallback: ignore invisible spaces
-                        if (trimmed && code.includes(trimmed)) { e.find = trimmed; return true; }
-                        return false;
+                try {
+                    await _runThreeStepAgent({
+                        code, userRequest, attachCtx,
+                        appendMsg: (role, text, card) => {
+                            // Show result in agent bar area — reuse cdAlert for simple msgs
+                            if (!card && text) { cdAlert('Agent', text, text.startsWith('⚠️') ? 'warn' : 'info'); return; }
+                            if (card) {
+                                // Show card in a floating panel above agent bar
+                                const existing = document.getElementById('agent-step-panel');
+                                if (existing) existing.remove();
+                                const panel = document.createElement('div');
+                                panel.id = 'agent-step-panel';
+                                panel.style.cssText = 'position:fixed;left:0;right:0;bottom:' + (document.getElementById('bottom-panel').offsetHeight + 8) + 'px;z-index:42;padding:0 10px;max-height:55vh;overflow-y:auto;';
+                                panel.appendChild(card);
+                                document.body.appendChild(panel);
+                            }
+                        },
+                        showTyping: (msg) => { if (thinking) { thinking.classList.add('visible'); } },
+                        hideTyping: () => { if (thinking) thinking.classList.remove('visible'); },
+                        scrollBottom: () => {},
+                        onApply: (valid) => {
+                            const existing = document.getElementById('agent-step-panel');
+                            if (existing) existing.remove();
+                            _agentPendingEdits = valid;
+                            _showAgentDiffReview(valid, 0);
+                        }
                     });
-                    const invalid = edits.length - valid.length;
-                    if(valid.length === 0) {
-                        cdAlert('Agent', 'Could not locate the code sections to edit. Try a more specific request.', 'warn');
-                    } else {
-                        _agentPendingEdits = valid;
-                        _showAgentDiffReview(valid, invalid);
-                    }
+                } catch(e) {
+                    if (thinking) thinking.classList.remove('visible');
+                    if (e.message !== '__REJECTED__') cdAlert('Agent', e.message || 'Something went wrong.', 'warn');
                 }
             }
 
@@ -4618,64 +4856,48 @@ No markdown, no backticks, no explanation outside the array.`;
                 extraEl = _buildSplitCard(files, msgId);
 
             } else {
-                // ── EDIT MODE: surgical fixes ──
-                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+                // ── EDIT MODE: 3-step Analyse → Plan → Execute ──
+                _hideChatTyping();
 
-GENERAL RULES:
-1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
-2. Never guess — identify the root cause first.
-3. Only perform the task requested. Do not add extra features.
-4. Avoid silly mistakes. Maintain professional coding standards.
-5. Keep code clean, organised, and readable.
-6. Preserve original structure unless modification is required.
-
-PROCESS:
-STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
-STEP 2 – Load and analyse full code: structure, related components, problem areas.
-STEP 3 – Find root cause: never modify without identifying the exact reason.
-STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
-STEP 5 – Apply edit: precise corrected code, no full rewrites.
-STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
-
-RESPONSE FORMAT:
-FIRST write 1-2 sentences explaining what you are changing and why (in user's language — English or Hindi/Hinglish).
-THEN write exactly: FIXES:
-THEN return a JSON array: [{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
-Rules:
-- "find" must be exact copy-paste accurate substring from the code.
-- Return [] if no changes needed.
-- Only the JSON array after FIXES: — nothing else after it.`;
-                const foundCtx = _searchSections.length > 0
-                    ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH (focus edits here):\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
-                    : '';
-                const userMsg = `Code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code}\n\`\`\`${attachCtx}${foundCtx}\n\nRequest: ${userRequest}`;
-                let raw = await _callAgentAPI(systemPrompt, userMsg);
-
-                // Split explanation from JSON
-                const fixesIdx = raw.indexOf('FIXES:');
-                if (fixesIdx !== -1) {
-                    agentText = raw.slice(0, fixesIdx).trim();
-                    const jsonPart = raw.slice(fixesIdx + 6).trim();
-                    const edits = _safeExtractJSON(jsonPart);
-                    if (edits) {
-                        const valid = edits.filter(e => {
-                            if (!e.find) return false;
-                            if (code.includes(e.find)) return true;
-                            const t = e.find.trim();
-                            if (t && code.includes(t)) { e.find = t; return true; }
-                            return false;
-                        });
-                        if (valid.length > 0) {
-                            _chatPendingEditsMap[msgId] = valid;
-                            extraEl = _buildFixCard(valid, msgId);
-                        } else if (edits.length > 0) {
-                            agentText += '\n\nI found changes to make but could not locate the exact code sections. Try being more specific.';
-                        }
+                await _runThreeStepAgent({
+                    code, userRequest,
+                    attachCtx: attachCtx || '',
+                    appendMsg: (role, text, card) => {
+                        const bubble = _appendChatMsg(role, text || '', _chatTime(), card || null);
+                    },
+                    showTyping: (msg) => {
+                        _hideChatTyping();
+                        const box = document.getElementById('agent-chat-messages');
+                        const wrap = document.createElement('div');
+                        wrap.className = 'chat-msg agent';
+                        wrap.id = 'chat-step-typing';
+                        wrap.innerHTML = `<div class="chat-bubble" style="font-size:11px;opacity:0.7;">${msg}</div>`;
+                        box.appendChild(wrap);
+                        _chatScrollBottom();
+                    },
+                    hideTyping: () => {
+                        const t = document.getElementById('chat-step-typing');
+                        if (t) t.remove();
+                    },
+                    scrollBottom: _chatScrollBottom,
+                    onApply: (valid) => {
+                        const msgIdLocal = ++_chatMsgCounter;
+                        _chatPendingEditsMap[msgIdLocal] = valid;
+                        const card = _buildFixCard(valid, msgIdLocal);
+                        _appendChatMsg('agent', `Ready to apply ${valid.length} change${valid.length>1?'s':''}.`, _chatTime(), card);
+                        _chatScrollBottom();
                     }
-                } else {
-                    // No FIXES: marker — treat as pure chat reply
-                    agentText = raw.trim();
-                }
+                }).catch(e => {
+                    const t = document.getElementById('chat-step-typing');
+                    if (t) t.remove();
+                    if (e.message !== '__REJECTED__') {
+                        _appendChatMsg('agent', '⚠️ ' + (e.message || 'Something went wrong.'), _chatTime());
+                    }
+                });
+
+                _chatHistory.push({ role: 'agent', text: agentText || '', time: _chatTime(), msgId });
+                sendBtn.disabled = false;
+                return;
             }
 
             _hideChatTyping();
@@ -4958,58 +5180,47 @@ No markdown, no backticks.`;
                 extraEl = _buildSplitCard(files, msgId);
 
             } else {
-                // EDIT MODE — explanation + FIXES JSON
-                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+                // EDIT MODE — 3-step Analyse → Plan → Execute
+                _inlineHideTyping();
 
-GENERAL RULES:
-1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
-2. Never guess — identify the root cause first.
-3. Only perform the task requested. Do not add extra features.
-4. Avoid silly mistakes. Maintain professional coding standards.
-5. Keep code clean, organised, and readable.
-6. Preserve original structure unless modification is required.
-
-PROCESS:
-STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
-STEP 2 – Load and analyse full code: structure, related components, problem areas.
-STEP 3 – Find root cause: never modify without identifying the exact reason.
-STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
-STEP 5 – Apply edit: precise corrected code, no full rewrites.
-STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
-
-RESPONSE FORMAT:
-FIRST write 1-2 sentences explaining what you will change and why (in user's language).
-THEN write exactly: FIXES:
-THEN return JSON array: [{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
-Rules: find must be exact copy-paste accurate substring. Return [] if no changes needed.
-Only JSON after FIXES: — nothing else after it.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
-                let raw = await _callAgentAPI(systemPrompt, userMsg);
-
-                const fixIdx = raw.indexOf('FIXES:');
-                if (fixIdx !== -1) {
-                    agentText = raw.slice(0, fixIdx).trim();
-                    const jsonPart = raw.slice(fixIdx + 6).trim();
-                    const jsonMatch = jsonPart.match(/\[[\s\S]*\]/);
-                    if (jsonMatch) {
-                        const edits = JSON.parse(jsonMatch[0]);
-                        const valid = edits.filter(e => {
-                            if (!e.find) return false;
-                            if (code.includes(e.find)) return true;
-                            const t = e.find.trim();
-                            if (t && code.includes(t)) { e.find = t; return true; }
-                            return false;
-                        });
-                        if (valid.length > 0) {
-                            _chatPendingEditsMap[msgId] = valid;
-                            extraEl = _buildFixCard(valid, msgId);
-                        } else if (edits.length > 0) {
-                            agentText += '\n\nCould not locate exact code sections. Try being more specific.';
-                        }
+                await _runThreeStepAgent({
+                    code, userRequest,
+                    attachCtx: allCtx || '',
+                    appendMsg: (role, text, card) => {
+                        _inlineAppendMsg(role, text || '', card || null);
+                    },
+                    showTyping: (msg) => {
+                        _inlineHideTyping();
+                        const box = document.getElementById('inline-chat-messages');
+                        const wrap = document.createElement('div');
+                        wrap.className = 'chat-msg agent';
+                        wrap.id = 'inline-step-typing';
+                        wrap.innerHTML = `<div class="chat-bubble" style="font-size:11px;opacity:0.7;">${msg}</div>`;
+                        box.appendChild(wrap);
+                        _inlineChatScroll();
+                    },
+                    hideTyping: () => {
+                        const t = document.getElementById('inline-step-typing');
+                        if (t) t.remove();
+                    },
+                    scrollBottom: _inlineChatScroll,
+                    onApply: (valid) => {
+                        const msgIdLocal = ++_chatMsgCounter;
+                        _chatPendingEditsMap[msgIdLocal] = valid;
+                        const card = _buildFixCard(valid, msgIdLocal);
+                        _inlineAppendMsg('agent', `Ready to apply ${valid.length} change${valid.length>1?'s':''}.`, card);
+                        _inlineChatScroll();
                     }
-                } else {
-                    agentText = raw.trim();
-                }
+                }).catch(e => {
+                    const t = document.getElementById('inline-step-typing');
+                    if (t) t.remove();
+                    if (e.message !== '__REJECTED__') {
+                        _inlineAppendMsg('agent', '⚠️ ' + (e.message || 'Something went wrong.'));
+                    }
+                });
+
+                sendBtn.disabled = false;
+                return;
             }
 
             _inlineHideTyping();
