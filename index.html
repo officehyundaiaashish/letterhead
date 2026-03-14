@@ -1379,8 +1379,8 @@
         #inline-chat-panel {
             position: fixed;
             left: 0; right: 0;
-            bottom: -45vh;
-            z-index: 39;
+            bottom: 0;
+            z-index: 50;
             display: flex;
             flex-direction: column;
             background: var(--glass-bg);
@@ -1389,12 +1389,12 @@
             box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
             overflow: hidden;
             height: 45vh;
-            transition: bottom 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
-            opacity: 0;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
             pointer-events: none;
         }
         #inline-chat-panel.chat-open {
-            opacity: 1;
+            transform: translateY(0);
             pointer-events: auto;
         }
 
@@ -4623,9 +4623,8 @@ Rules:
         const chatPanel = document.getElementById('inline-chat-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        // Position chat panel exactly above navigation bar
-        const navHeight = document.getElementById('bottom-panel').offsetHeight;
-        chatPanel.style.bottom = navHeight + 'px';
+        // Slide chat panel up above navigation using CSS transform
+        chatPanel.style.paddingBottom = document.getElementById('bottom-panel').offsetHeight + 'px';
         chatPanel.classList.add('chat-open');
         if (aiBtn) aiBtn.classList.add('chat-active');
 
@@ -4649,7 +4648,6 @@ Rules:
         const aiBtn     = document.getElementById('ai-agent-btn');
 
         chatPanel.classList.remove('chat-open');
-        setTimeout(() => { chatPanel.style.bottom = ''; }, 350);
         if (aiBtn) aiBtn.classList.remove('chat-active');
     }
 
