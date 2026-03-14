@@ -18,6 +18,1060 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <style>
+
+        /* ──────────────────────── Variables & Themes ──────────────────────── */
+
+        :root {
+            --bg-color: #0a0a0c;
+            --editor-bg: #141417;
+            --text-color: #e0e0e0;
+            --glass-bg: #141419;
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #10b981; 
+            --accent-dim: rgba(16, 185, 129, 0.15);
+            --panel-round: 24px;
+            --transition: opacity 0.15s;
+        }
+
+        body.light-theme {
+            --bg-color: #f0f2f5;
+            --editor-bg: #ffffff;
+            --text-color: #1c1e21;
+            --glass-bg: #f8f9fb;
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --accent: #059669;
+            --accent-dim: rgba(5, 150, 105, 0.1);
+        }
+
+        /* Anti-Google Search & Global UI Font */
+
+        
+        /* ──────────────────────── Performance & Base ──────────────────────── */
+/* ── PERF: GPU compositing hints for scroll containers ── */
+        #editor, #preview {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: none;
+        }
+        .cursor-nav, .toolbar-rows, .file-tabs-bar, .gh-custom-list, .agent-provider-grid {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+        /* Touch-action: tells browser which touches to handle natively — zero delay */
+        .bottom-area, .toolbar-rows, .cursor-nav { touch-action: pan-x pan-y; }
+        #editor { touch-action: pan-x pan-y pinch-zoom; }
+        /* Promote scrollable layers to own GPU composite layer */
+        .file-tabs-bar { transform: translateZ(0); }
+        /* Prevent text selection flicker during touch */
+        .toolbar-btn, .icon-btn, .tab, .file-tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        /* Remove 300ms tap delay on all interactive elements */
+        button, a, [onclick] { touch-action: manipulation; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+
+        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; overscroll-behavior: none; -webkit-text-size-adjust: none; }
+        .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
+        
+        /* ──────────────────────── Header & Tabs ──────────────────────── */
+
+        /* ──────────────────────── Editor & Preview ──────────────────────── */
+#editor { touch-action: pan-x pan-y pinch-zoom; }
+        /* Promote scrollable layers to own GPU composite layer */
+        .file-tabs-bar { transform: translateZ(0); }
+        /* Prevent text selection flicker during touch */
+        .toolbar-btn, .icon-btn, .tab, .file-tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        /* Remove 300ms tap delay on all interactive elements */
+        button, a, [onclick] { touch-action: manipulation; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+
+        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; overscroll-behavior: none; -webkit-text-size-adjust: none; }
+        .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
+        .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
+        .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
+        body.light-theme .tabs { background: rgba(0,0,0,0.05); }
+        .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
+        .tab.active { background: var(--accent); color: white; opacity: 1; }
+        
+        .main-container { flex-grow: 1; position: relative; background-color: var(--editor-bg); overflow: hidden; }
+
+        /* FASTEST MONOSPACE FOR EDITOR ONLY */
+        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: size layout; }
+        #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; transform: translateZ(0); }
+        #preview.active-pane { visibility: visible; opacity: 1; }
+
+        .ace_mobile-menu, .ace_tooltip, .ace_callout { display: none !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important; }
+        .ace_selection { background: rgba(16, 185, 129, 0.35) !important; }
+        .ace_selected-word { background: rgba(16, 185, 129, 0.3) !important; border: 1px solid rgba(16, 185, 129, 0.6) !important; border-radius: 2px; }
+
+        .scroll-jumpers { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none; flex-direction: column; gap: 15px; z-index: 45; opacity: 0; transition: opacity 0.3s; }
+        .scroll-jumpers.visible { opacity: 1; }
+        .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: none; opacity: 0.5; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
+        .jumper-btn:active { transform: scale(0.9); opacity: 1; }
+
+        /* will-change: transform → own GPU layer, no repaint on slide */
+        
+        /* ──────────────────────── Bottom Panel ──────────────────────── */
+
+        /* ──────────────────────── Toolbar & Cursor Nav ──────────────────────── */
+.cursor-nav { touch-action: pan-x pan-y; }
+        #editor { touch-action: pan-x pan-y pinch-zoom; }
+        /* Promote scrollable layers to own GPU composite layer */
+        .file-tabs-bar { transform: translateZ(0); }
+        /* Prevent text selection flicker during touch */
+        .toolbar-btn, .icon-btn, .tab, .file-tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        /* Remove 300ms tap delay on all interactive elements */
+        button, a, [onclick] { touch-action: manipulation; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+
+        body, html { width: 100vw; position: fixed; overflow: hidden; font-family: 'Poppins', sans-serif; background-color: var(--bg-color); color: var(--text-color); height: 100%; overscroll-behavior: none; -webkit-text-size-adjust: none; }
+        .app-layout { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
+        .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
+        .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
+        body.light-theme .tabs { background: rgba(0,0,0,0.05); }
+        .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
+        .tab.active { background: var(--accent); color: white; opacity: 1; }
+        
+        .main-container { flex-grow: 1; position: relative; background-color: var(--editor-bg); overflow: hidden; }
+
+        /* FASTEST MONOSPACE FOR EDITOR ONLY */
+        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: size layout; }
+        #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; transform: translateZ(0); }
+        #preview.active-pane { visibility: visible; opacity: 1; }
+
+        .ace_mobile-menu, .ace_tooltip, .ace_callout { display: none !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important; }
+        .ace_selection { background: rgba(16, 185, 129, 0.35) !important; }
+        .ace_selected-word { background: rgba(16, 185, 129, 0.3) !important; border: 1px solid rgba(16, 185, 129, 0.6) !important; border-radius: 2px; }
+
+        .scroll-jumpers { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); display: none; flex-direction: column; gap: 15px; z-index: 45; opacity: 0; transition: opacity 0.3s; }
+        .scroll-jumpers.visible { opacity: 1; }
+        .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: none; opacity: 0.5; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
+        .jumper-btn:active { transform: scale(0.9); opacity: 1; }
+
+        /* will-change: transform → own GPU layer, no repaint on slide */
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease; will-change: transform; }
+        .bottom-wrapper.collapsed { transform: translateY(100%); }
+        .bottom-area { 
+            background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+            padding-bottom: max(env(safe-area-inset-bottom), 12px);
+            box-shadow: none; 
+        }
+        .drag-handle-area { width: 100%; height: 16px; display: flex; justify-content: center; align-items: center; }
+        .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
+
+        /* Cursor nav row — compact */
+        .cursor-nav { display: flex; overflow-x: auto; padding: 0 8px 4px 8px; gap: 5px; }
+        .cursor-nav::-webkit-scrollbar { display: none; }
+        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
+        .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
+
+        /* Ultra-Compact 3-Row Grid (No Scroll) */
+        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; }
+        .toolbar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
+        .toolbar-btn { 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: none; border: none; color: var(--text-color); opacity: 0.8; 
+            font-size: 8px; font-weight: 600; gap: 1px; width: 100%;
+            padding: 6px 0; cursor: pointer; border-radius: 8px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
+        .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
+
+        
+        /* ──────────────────────── Restore Button ──────────────────────── */
+.restore-btn { 
+            position: absolute; bottom: 12px; right: 16px; 
+            background: var(--accent); color: white; 
+            width: 38px; height: 38px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: none; 
+            border: none; z-index: 30; 
+            opacity: 1; pointer-events: auto; transform: scale(1); 
+            transition: opacity 0.15s, transform 0.15s; 
+        }
+        .restore-btn.hidden-btn { opacity: 0 !important; pointer-events: none !important; transform: scale(0.7) !important; }
+        .restore-btn .material-icons-round { font-size: 20px; pointer-events: none; }
+
+        
+        /* ──────────────────────── Shared Modal ──────────────────────── */
+/* Shared Modal CSS */
+        .modal { 
+            position: fixed; left: 5%; width: 90%; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--panel-round); padding: 15px; z-index: 100; 
+            box-shadow: none; transition: opacity 0.15s, transform 0.15s;
+            bottom: -150%; opacity: 0; pointer-events: none; transform: scale(0.96);
+        }
+        .modal.active { bottom: 20px; opacity: 1; pointer-events: auto; transform: scale(1); }
+        
+        .modal textarea, .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Courier New', Courier, monospace; font-size: 13px; }
+        .modal-actions { display: flex; gap: 8px; }
+        .modal-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 600; font-family: 'Poppins', sans-serif; font-size: 13px; cursor: pointer; transition: opacity 0.2s, transform 0.15s; }
+        .modal-btn:active { opacity: 0.8; transform: scale(0.97); }
+        .modal-btn.secondary { background: rgba(128,128,128,0.2); color: var(--text-color); }
+
+        
+        /* ──────────────────────── Find & Replace ──────────────────────── */
+/* Find modal checkbox styles */
+        .find-options { display: flex; gap: 12px; margin-bottom: 8px; }
+        .find-check-label { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.8; cursor: pointer; user-select: none; }
+        .find-check-label input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+
+        
+        /* ──────────────────────── GitHub Modal ──────────────────────── */
+/* GitHub modal — full screen sheet */
+        #github-modal {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.88);
+            bottom: auto !important;
+            width: 92%;
+            max-width: 440px;
+            max-height: 88vh;
+            overflow-y: auto;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 18px;
+            z-index: 110;
+            box-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        #github-modal::-webkit-scrollbar { display: none; }
+        #github-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        #gh-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 105; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #gh-overlay.active { opacity: 1; pointer-events: auto; }
+        .gh-select-wrap { position: relative; margin-bottom: 8px; }
+        .gh-select-wrap select {
+            width: 100%; padding: 11px 36px 11px 12px; border-radius: 10px;
+            background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
+            color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
+            appearance: none; -webkit-appearance: none; cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .gh-select-wrap select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
+        #github-modal input { font-family: 'Poppins', sans-serif; border-radius: 10px; padding: 11px 12px; transition: border-color 0.15s; }
+        #github-modal input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
+
+        /* GitHub file tree */
+        #gh-file-tree { margin-top: 8px; max-height: 260px; overflow-y: auto; border-radius: 10px; background: rgba(0,0,0,0.15); border: 1px solid var(--glass-border); }
+        #gh-file-tree::-webkit-scrollbar { display: none; }
+        .gh-tree-item {
+            display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+            border-bottom: 1px solid var(--glass-border); cursor: pointer;
+            transition: background 0.15s; position: relative;
+        }
+        .gh-tree-item:last-child { border-bottom: none; }
+        .gh-tree-item:active { background: var(--accent-dim); }
+        .gh-tree-item.selected { background: var(--accent-dim); }
+        .gh-tree-item .gh-item-icon { font-size: 16px; color: var(--accent); flex-shrink: 0; }
+        .gh-tree-item .gh-item-name { flex: 1; font-size: 12px; font-weight: 600; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .gh-tree-item .gh-item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+        .gh-tree-item:hover .gh-item-actions, .gh-tree-item.selected .gh-item-actions { opacity: 1; }
+        .gh-item-action-btn { width: 26px; height: 26px; border-radius: 6px; border: none; background: rgba(128,128,128,0.15); color: var(--text-color); display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
+        .gh-item-action-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.9); }
+        .gh-item-action-btn .material-icons-round { font-size: 14px; pointer-events: none; }
+        .gh-breadcrumb { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; padding: 6px 10px; background: rgba(0,0,0,0.15); border-radius: 8px; }
+        .gh-crumb { font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
+        .gh-crumb-sep { font-size: 11px; opacity: 0.3; }
+        .gh-tree-loading { text-align: center; padding: 20px; font-size: 11px; opacity: 0.5; }
+
+        
+        /* ──────────────────────── File Tabs Bar ──────────────────────── */
+/* File Tabs Bar */
+        .file-tabs-bar { flex-shrink: 0; display: flex; flex-wrap: nowrap; overflow-x: auto; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 0 6px; gap: 2px; }
+        .file-tabs-bar::-webkit-scrollbar { display: none; }
+        .file-tab { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.55; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .file-tab.active { opacity: 1; border-bottom-color: var(--accent); color: var(--accent); }
+        .file-tab .ft-close { font-size: 13px; opacity: 0.4; margin-left: 2px; line-height: 1; transition: opacity 0.15s; pointer-events: auto; }
+        .file-tab .ft-close:active { opacity: 1; }
+
+        
+        /* ──────────────────────── Welcome Screen ──────────────────────── */
+/* ===== WELCOME SCREEN ===== */
+        #welcome-screen {
+            position: fixed; inset: 0; z-index: 1000;
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0a0a0c 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 30px;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        #welcome-screen.hiding { opacity: 0; transform: scale(1.04); pointer-events: none; }
+        #welcome-screen.hidden { display: none; }
+        .welcome-card {
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 28px;
+            padding: 36px 28px 28px; width: 100%; max-width: 360px;
+            box-shadow: none;
+            animation: welcomeCardIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+            text-align: center;
+        }
+        @keyframes welcomeCardIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.92); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .welcome-logo {
+            width: 72px; height: 72px; border-radius: 20px; background: #10b981;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; font-size: 28px; font-weight: 900; color: white;
+            font-family: monospace; box-shadow: none;
+            animation: welcomeLogoPop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.4s both;
+        }
+        @keyframes welcomeLogoPop { from { opacity:0; transform:scale(0.6); } to { opacity:1; transform:scale(1); } }
+        .welcome-title {
+            font-size: 28px; font-weight: 700; color: white; letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            animation: welcomeFadeUp 0.5s ease 0.55s both;
+        }
+        .welcome-sub {
+            font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 28px;
+            animation: welcomeFadeUp 0.5s ease 0.65s both;
+        }
+        @keyframes welcomeFadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        .welcome-features {
+            display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px;
+            animation: welcomeFadeUp 0.5s ease 0.75s both;
+        }
+        .welcome-feature {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px;
+            border: 1px solid rgba(255,255,255,0.08); text-align: left;
+        }
+        .welcome-feature .material-icons-round { color: #10b981; font-size: 18px; flex-shrink:0; }
+        .welcome-feature span:last-child { font-size: 12px; color: rgba(255,255,255,0.8); font-weight: 600; }
+        .welcome-start-btn {
+            width: 100%; padding: 15px; border: none; border-radius: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white; font-size: 15px; font-weight: 700; font-family: 'Poppins', sans-serif;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: welcomeFadeUp 0.5s ease 0.85s both;
+        }
+        .welcome-start-btn:active { transform: scale(0.97); box-shadow: none; }
+        .welcome-start-btn .material-icons-round { font-size: 20px; }
+
+        
+        /* ──────────────────────── Repo Progress Bar ──────────────────────── */
+/* ===== REPO LOAD PROGRESS BAR ===== */
+        #repo-progress-overlay {
+            position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.7);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center; gap: 20px;
+        }
+        #repo-progress-overlay.visible { display: flex; }
+        .repo-progress-card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 28px 24px; width: 85%; max-width: 320px;
+            box-shadow: none;
+            animation: welcomeCardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .repo-progress-title { font-size: 14px; font-weight: 700; color: var(--text-color); margin-bottom: 6px; }
+        .repo-progress-sub { font-size: 11px; color: var(--text-color); opacity: 0.5; margin-bottom: 18px; }
+        .repo-progress-bar-track {
+            height: 6px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+        }
+        .repo-progress-bar-fill {
+            height: 100%; background: linear-gradient(90deg, #10b981, #34d399);
+            border-radius: 10px; width: 0%; transition: width 0.3s ease;
+            box-shadow: none;
+        }
+        .repo-progress-count { font-size: 11px; color: var(--accent); font-weight: 600; text-align:right; }
+
+        
+        /* ──────────────────────── New Project Modal ──────────────────────── */
+/* ===== NEW PROJECT MODAL ===== */
+        #new-project-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #new-project-overlay.active { opacity: 1; pointer-events: auto; }
+        #new-project-modal {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 22px 20px; width: 88%; max-width: 400px;
+            box-shadow: none;
+            transform: scale(0.9) translateY(10px); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            font-family: 'Poppins', sans-serif; max-height: 90vh; overflow-y: auto;
+        }
+        #new-project-overlay.active #new-project-modal { transform: scale(1) translateY(0); }
+        #new-project-modal input, #new-project-modal select, #new-project-modal textarea {
+            width: 100%; padding: 11px 12px; border-radius: 10px; background: rgba(0,0,0,0.25);
+            border: 1px solid var(--glass-border); color: var(--text-color);
+            font-family: 'Poppins', sans-serif; font-size: 13px; margin-bottom: 10px;
+            transition: border-color 0.15s;
+        }
+        #new-project-modal input:focus, #new-project-modal select:focus, #new-project-modal textarea:focus {
+            border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+        .np-section-label { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase;
+            letter-spacing: 0.8px; margin-bottom: 8px; margin-top: 14px; opacity: 0.9; }
+        .np-save-options { display: flex; gap: 8px; margin-bottom: 10px; }
+        .np-save-opt {
+            flex: 1; padding: 12px 8px; border: 1.5px solid var(--glass-border); border-radius: 12px;
+            background: rgba(0,0,0,0.15); cursor: pointer; text-align: center; transition: all 0.2s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .np-save-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
+        .np-save-opt .material-icons-round { font-size: 22px; color: var(--accent); display: block; margin-bottom: 4px; }
+        .np-save-opt span:last-child { font-size: 10px; font-weight: 600; color: var(--text-color); }
+        .np-tab-bar { display: flex; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 3px; margin-bottom: 14px; }
+        .np-tab { flex: 1; padding: 7px; text-align: center; font-size: 11px; font-weight: 600;
+            border-radius: 8px; cursor: pointer; color: var(--text-color); opacity: 0.5; transition: all 0.2s; }
+        .np-tab.active { background: var(--accent); color: white; opacity: 1; }
+        .np-pane { display: none; }
+        .np-pane.active { display: block; }
+        .np-repo-visibility { display: flex; gap: 8px; margin-bottom: 10px; }
+        .np-vis-opt {
+            flex: 1; padding: 10px 8px; border: 1.5px solid var(--glass-border); border-radius: 10px;
+            background: rgba(0,0,0,0.15); cursor: pointer; text-align: center;
+            font-family: 'Poppins', sans-serif; transition: all 0.2s;
+        }
+        .np-vis-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
+        .np-vis-opt .material-icons-round { font-size: 18px; color: var(--accent); display: block; margin-bottom: 3px; }
+        .np-vis-opt span:last-child { font-size: 10px; font-weight: 600; color: var(--text-color); }
+
+        
+        /* ──────────────────────── Custom Dialog ──────────────────────── */
+#custom-dialog-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #custom-dialog-overlay.active { opacity: 1; pointer-events: auto; }
+        #custom-dialog-box {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 18px;
+            padding: 22px 20px 16px; width: 82%; max-width: 340px; box-shadow: none;
+            transform: scale(0.9) translateY(10px); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            font-family: 'Poppins', sans-serif;
+        }
+        #custom-dialog-overlay.active #custom-dialog-box { transform: scale(1) translateY(0); }
+        #custom-dialog-icon { font-size: 28px; margin-bottom: 10px; }
+        #custom-dialog-title { font-size: 15px; font-weight: 600; color: var(--text-color); margin-bottom: 6px; }
+        #custom-dialog-msg { font-size: 12px; color: var(--text-color); opacity: 0.65; margin-bottom: 14px; line-height: 1.5; }
+        #custom-dialog-input { width: 100%; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px; margin-bottom: 12px; user-select: text; -webkit-user-select: text; }
+        #custom-dialog-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-dim); }
+        #custom-dialog-btns { display: flex; gap: 8px; }
+        .cdlg-btn { flex: 1; padding: 11px; border: none; border-radius: 10px; font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform 0.15s, opacity 0.15s; }
+        .cdlg-btn:active { transform: scale(0.96); opacity: 0.85; }
+        .cdlg-btn.primary { background: var(--accent); color: #fff; }
+        .cdlg-btn.danger { background: #ef4444; color: #fff; }
+        .cdlg-btn.secondary { background: rgba(128,128,128,0.18); color: var(--text-color); }
+
+        
+        /* ──────────────────────── GitHub Dropdowns ──────────────────────── */
+/* ===== CUSTOM GITHUB DROPDOWNS ===== */
+        .gh-custom-select { position: relative; margin-bottom: 10px; }
+        .gh-custom-trigger {
+            width: 100%; padding: 11px 36px 11px 12px; border-radius: 10px;
+            background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
+            color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 13px;
+            cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+             user-select: none;
+        }
+        .gh-custom-trigger.open { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+        .gh-custom-trigger .gh-trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
+        .gh-custom-trigger .gh-trigger-text.selected { opacity: 1; color: var(--text-color); }
+        .gh-custom-trigger .material-icons-round { font-size: 18px; color: var(--accent); transition: transform 0.2s; flex-shrink: 0; }
+        .gh-custom-trigger.open .material-icons-round { transform: rotate(180deg); }
+        .gh-custom-list {
+            position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px;
+            box-shadow: none; z-index: 200; max-height: 200px; overflow-y: auto;
+            opacity: 0; transform: translateY(-6px) scale(0.97); pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .gh-custom-list::-webkit-scrollbar { display: none; }
+        .gh-custom-list.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+        .gh-custom-option {
+            padding: 11px 14px; font-family: 'Poppins', sans-serif; font-size: 12px;
+            color: var(--text-color); cursor: pointer; 
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--glass-border);
+        }
+        .gh-custom-option:last-child { border-bottom: none; }
+        .gh-custom-option:active, .gh-custom-option.selected { background: var(--accent-dim); color: var(--accent); }
+        .gh-custom-option .material-icons-round { font-size: 15px; opacity: 0.6; }
+
+        
+        /* ──────────────────────── Agent Modal ──────────────────────── */
+/* ===== AGENT MODAL ===== */
+        #agent-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #agent-overlay.active { opacity: 1; pointer-events: auto; }
+        #agent-modal {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.88);
+            width: 88%; max-width: 400px;
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px;
+            z-index: 210; box-shadow: none;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+        #agent-modal.active { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+        .agent-provider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 12px; max-height: 200px; overflow-y: auto; padding-right: 2px; }
+        .agent-provider-grid::-webkit-scrollbar { display: none; }
+        .agent-provider-btn {
+            padding: 10px 8px; border-radius: 10px; border: 1px solid var(--glass-border);
+            background: rgba(0,0,0,0.2); color: var(--text-color); font-family: 'Poppins', sans-serif;
+            font-size: 11px; font-weight: 600; cursor: pointer; text-align: center;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s;
+        }
+        .agent-provider-btn:active { transform: scale(0.95); }
+        .agent-provider-btn.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+        .agent-provider-btn .provider-tag { font-size: 9px; opacity: 0.6; display: block; margin-top: 2px; }
+
+        
+        /* ──────────────────────── Agent Bar ──────────────────────── */
+/* ===== AGENT BAR — compact strip inside nav panel ===== */
+        #agent-bar {
+            display: none; flex-direction: column; gap: 0;
+            border-bottom: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+        }
+        #agent-bar.visible { display: flex; }
+        #agent-compact-row {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 10px;
+        }
+        .agent-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #6b7280; flex-shrink: 0; transition: background 0.3s; }
+        #agent-prompt {
+            flex: 1; padding: 7px 10px; border-radius: 10px;
+            background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
+            color: var(--text-color); font-family: 'Poppins', sans-serif; font-size: 12px;
+            resize: none; height: 34px; max-height: 90px; overflow-y: auto; line-height: 1.4;
+            user-select: text; -webkit-user-select: text;
+            transition: border-color 0.2s;
+        }
+        #agent-prompt:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 2px var(--accent-dim); }
+        #agent-attach-btn, #agent-send-btn {
+            width: 34px; height: 34px; border-radius: 10px; border: none; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+        #agent-attach-btn:active, #agent-send-btn:active { transform: scale(0.9); }
+        #agent-attach-btn { background: rgba(128,128,128,0.12); color: var(--text-color); }
+        #agent-send-btn { background: var(--accent); color: white; }
+        #agent-send-btn .material-icons-round, #agent-attach-btn .material-icons-round { font-size: 16px; pointer-events: none; }
+        #agent-bar-label { font-size: 10px; font-weight: 700; color: var(--accent); white-space: nowrap; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
+        #agent-close-btn { font-size: 16px; opacity: 0.4; cursor: pointer; pointer-events: auto; flex-shrink: 0; }
+        #agent-thinking {
+            display: none; align-items: center; gap: 6px; font-size: 10px; color: var(--accent); font-weight: 600;
+            padding: 0 10px 5px;
+        }
+        #agent-thinking.visible { display: flex; }
+        .agent-dots span { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin-right: 2px; animation: agentBounce 0.8s infinite; }
+        .agent-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .agent-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes agentBounce { 0%,80%,100%{ transform:translateY(0); opacity:0.6; } 40%{ transform:translateY(-4px); opacity:1; } }
+        #agent-file-selector { padding: 0 10px 5px; }
+        #agent-file-select {
+            width:100%; padding:5px 8px; border-radius:7px;
+            background:rgba(0,0,0,0.25); border:1px solid var(--glass-border);
+            color:var(--text-color); font-family:Poppins,sans-serif; font-size:10px;
+            font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;
+        }
+    
+    </style>
+
+
+    <!-- ════════════════ Welcome Screen ════════════════ -->
+<!-- Welcome Screen (first launch only) -->
+<div id="welcome-screen" class="hidden">
+    <div class="welcome-card">
+        <div class="welcome-logo">&lt;/&gt;</div>
+        <div class="welcome-title">CodX Editor</div>
+        <div class="welcome-sub">Your pocket-sized code editor.<br>Write, edit & sync with GitHub — anywhere.</div>
+        <div class="welcome-features">
+            <div class="welcome-feature">
+                <span class="material-icons-round">code</span>
+                <span>Full code editor with syntax highlighting</span>
+            </div>
+            <div class="welcome-feature">
+                <span class="material-icons-round">cloud_sync</span>
+                <span>GitHub sync — load, edit & commit</span>
+            </div>
+            <div class="welcome-feature">
+                <span class="material-icons-round">smart_toy</span>
+                <span>AI Agent with multiple model support</span>
+            </div>
+            <div class="welcome-feature">
+                <span class="material-icons-round">preview</span>
+                <span>Live preview with instant refresh</span>
+            </div>
+        </div>
+        <button class="welcome-start-btn" onclick="dismissWelcome()">
+            <span class="material-icons-round">rocket_launch</span>
+            Start Coding
+        </button>
+    </div>
+</div>
+
+
+    <!-- ════════════════ Repo Progress Overlay ════════════════ -->
+<!-- Repo Load Progress Bar -->
+<div id="repo-progress-overlay">
+    <div class="repo-progress-card">
+        <div class="repo-progress-title">Loading Repository</div>
+        <div class="repo-progress-sub" id="repo-progress-sub">Fetching files...</div>
+        <div class="repo-progress-bar-track">
+            <div class="repo-progress-bar-fill" id="repo-progress-fill"></div>
+        </div>
+        <div class="repo-progress-count" id="repo-progress-count">0 / 0</div>
+    </div>
+</div>
+
+
+    <!-- ════════════════ App Shell ════════════════ -->
+<div class="app-layout">
+    <div class="app-header" id="header">
+        <div class="tabs">
+            <div class="tab active" id="tab-code" onclick="switchTab('editor')">Code</div>
+            <div class="tab" id="tab-preview" onclick="switchTab('preview')">Preview</div>
+        </div>
+        
+        <div style="display:flex; align-items:center;">
+            <button class="icon-btn no-select" id="install-btn" style="display:none; width:30px; height:30px; background:var(--accent-dim); min-width:30px; border: 1px solid var(--accent); margin-right: 5px;">
+                <span class="material-icons-round" style="color:var(--accent); font-size:16px;">download</span>
+            </button>
+            <button class="icon-btn no-select" style="width:30px; height:30px; background:none; min-width:30px;" onclick="toggleTheme()">
+                <span class="material-icons-round" id="theme-icon" style="color:var(--accent); font-size:18px;">light_mode</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="file-tabs-bar no-select" id="file-tabs-bar"></div>
+
+    <div class="main-container" id="editor-wrapper">
+        <div id="editor"></div>
+        <iframe id="preview" allow="geolocation; microphone; camera; fullscreen; payment; clipboard-read; clipboard-write"></iframe>
+        <!-- Preview welcome overlay — shown when no project is loaded -->
+                <div id="preview-welcome" style="
+            position:absolute;top:0;left:0;right:0;bottom:0;
+            background:#10b981;
+            display:none;flex-direction:column;align-items:center;justify-content:center;
+            z-index:25;padding:28px;
+        ">
+            <div style="font-size:38px;font-weight:900;color:white;font-family:monospace;margin-bottom:8px;">&lt;/&gt;</div>
+            <div style="font-size:20px;font-weight:700;color:white;margin-bottom:6px;">CodX Editor</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:32px;text-align:center;line-height:1.6;">Write, preview &amp; sync code<br>from your phone.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:260px;">
+                <button onclick="dismissPreviewWelcome();openNewProjectModal();" style="
+                    padding:15px;border:none;border-radius:14px;
+                    background:white;color:#10b981;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">add_box</span>New Project</button>
+                <button onclick="dismissPreviewWelcome();document.getElementById('file-input').click();" style="
+                    padding:15px;border:1.5px solid rgba(255,255,255,0.5);border-radius:14px;
+                    background:transparent;color:white;
+                    font-size:15px;font-weight:700;font-family:system-ui,sans-serif;
+                    display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+                "><span style="font-size:20px;font-family:'Material Icons Round';font-style:normal;">folder_open</span>Open Project</button>
+            </div>
+        </div>
+        
+        <div class="scroll-jumpers no-select" id="jumpers">
+            <div class="jumper-btn" onclick="customFastScroll('up')"><span class="material-icons-round">keyboard_double_arrow_up</span></div>
+            <div class="jumper-btn" onclick="customFastScroll('down')"><span class="material-icons-round">keyboard_double_arrow_down</span></div>
+        </div>
+    </div>
+
+    <button class="restore-btn no-select" id="restore-btn" onclick="restoreBottomPanel()">
+        <span class="material-icons-round">keyboard_arrow_up</span>
+    </button>
+
+    <div class="bottom-wrapper no-select" id="bottom-panel">
+        <div class="bottom-area">
+            <!-- AGENT BAR — compact strip, sits at top of nav panel -->
+            <div id="agent-bar">
+                <div id="agent-file-selector" style="display:none;">
+                    <select id="agent-file-select" onchange="agentSelectFile(this.value)"></select>
+                </div>
+                <div id="agent-compact-row">
+                    <div class="agent-status-dot"></div>
+                    <span id="agent-bar-label" onclick="openAgentModal()" style="cursor:pointer;" title="Switch agent">AI</span>
+                    <textarea id="agent-prompt" placeholder="Ask agent to edit code..." rows="1"></textarea>
+                    <button id="agent-attach-btn" onclick="document.getElementById('agent-file-input').click()">
+                        <span class="material-icons-round">attach_file</span>
+                    </button>
+                    <button id="agent-send-btn" onclick="sendAgentPrompt()">
+                        <span class="material-icons-round">send</span>
+                    </button>
+                    <span class="material-icons-round" id="agent-close-btn" onclick="closeAgentBar()">close</span>
+                </div>
+                <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
+            </div>
+
+            <div class="drag-handle-area"><div class="drag-pill"></div></div>
+
+            <!-- ROW 0: Cursor Navigation (scroll row) -->
+            <div class="cursor-nav">
+                <button class="icon-btn" onclick="editor.gotoLine(1)"><span class="material-icons-round">vertical_align_top</span></button>
+                <button class="icon-btn" onclick="editor.gotoLine(editor.session.getLength())"><span class="material-icons-round">vertical_align_bottom</span></button>
+                <div style="width:1px;background:var(--glass-border);margin:4px 3px;flex-shrink:0;"></div>
+                <button class="icon-btn" onclick="editor.navigateLineStart()"><span class="material-icons-round">first_page</span></button>
+                <button class="icon-btn" onclick="editor.navigateLineEnd()"><span class="material-icons-round">last_page</span></button>
+                <button class="icon-btn" onclick="editor.navigateLeft()"><span class="material-icons-round">chevron_left</span></button>
+                <button class="icon-btn" onclick="editor.navigateRight()"><span class="material-icons-round">chevron_right</span></button>
+                <button class="icon-btn" onclick="editor.navigateUp()"><span class="material-icons-round">keyboard_arrow_up</span></button>
+                <button class="icon-btn" onclick="editor.navigateDown()"><span class="material-icons-round">keyboard_arrow_down</span></button>
+                <div style="width:1px;background:var(--glass-border);margin:4px 3px;flex-shrink:0;"></div>
+                <button class="icon-btn" onclick="editorUndo()"><span class="material-icons-round">undo</span></button>
+                <button class="icon-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span></button>
+            </div>
+
+            <div class="toolbar-rows">
+                <!-- ROW 1: File & Project -->
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_box</span>New</button>
+                    <button class="toolbar-btn" onclick="document.getElementById('file-input').click()"><span class="material-icons-round">folder_open</span>Open</button>
+                    <button class="toolbar-btn" onclick="saveFile()"><span class="material-icons-round">save</span>Save</button>
+                    <button class="toolbar-btn" onclick="saveFileToRepo()"><span class="material-icons-round">cloud_upload</span>Commit</button>
+                    <button class="toolbar-btn" onclick="closeAllTabs()"><span class="material-icons-round">playlist_remove</span>Close All</button>
+                    <button class="toolbar-btn" onclick="openGithubModal()"><span class="material-icons-round">hub</span>GitHub</button>
+                </div>
+                <!-- ROW 2: Edit -->
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="editor.selectAll()"><span class="material-icons-round">select_all</span>Select All</button>
+                    <button class="toolbar-btn" onclick="copyClipboard()"><span class="material-icons-round">content_copy</span>Copy</button>
+                    <button class="toolbar-btn" onclick="cutClipboard()"><span class="material-icons-round">content_cut</span>Cut</button>
+                    <button class="toolbar-btn" onclick="pasteClipboard()"><span class="material-icons-round">content_paste</span>Paste</button>
+                    <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">find_replace</span>Find</button>
+                    <button class="toolbar-btn" onclick="openAgentModal()"><span class="material-icons-round">smart_toy</span>AI Agent</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ════════════════ Hidden File Inputs ════════════════ -->
+<input type="file" id="file-input" accept=".html,.js,.css,.txt" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
+
+
+    <!-- ════════════════ Find & Replace Modal ════════════════ -->
+<div class="modal no-select" id="find-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; color:var(--accent); font-weight:600; margin-bottom:10px; font-size:14px;">
+        Find & Replace <span class="material-icons-round" onclick="toggleFindReplace()" style="opacity:0.6; cursor:pointer; font-size: 18px; pointer-events:auto;">close</span>
+    </div>
+        <textarea id="find-input" class="no-select" placeholder="Paste exact code to find..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px; font-family: 'Poppins', sans-serif;"></textarea>
+    <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text; -webkit-user-select:text; resize:none; height:45px; font-family: 'Poppins', sans-serif;"></textarea>
+    <div class="find-options">
+        <label class="find-check-label"><input type="checkbox" id="find-case"> Case Sensitive</label>
+        <label class="find-check-label"><input type="checkbox" id="find-regex"> Regex</label>
+    </div>
+    <div class="modal-actions">
+        <button class="modal-btn secondary" onclick="clearFind()">Clear</button>
+        <button class="modal-btn" onclick="findText(true)">Find Next</button>
+        <button class="modal-btn" onclick="replaceText()">Replace</button>
+    </div>
+</div>
+
+
+    <!-- ════════════════ GitHub Overlay & Modal ════════════════ -->
+<div id="gh-overlay" onclick="closeGithubModal()"></div>
+
+<div class="no-select" id="github-modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-icons-round" style="color:var(--accent); font-size:20px;">cloud_sync</span>
+            <span style="color:var(--text-color); font-weight:700; font-size:15px; font-family:'Poppins',sans-serif;">GitSync</span>
+        </div>
+        <span class="material-icons-round" onclick="closeGithubModal()" style="opacity:0.5; cursor:pointer; font-size:20px; pointer-events:auto;">close</span>
+    </div>
+    
+    <div id="gh-login-section">
+        <div style="font-size:11px; color:var(--text-color); opacity:0.5; margin-bottom:8px; font-family:'Poppins',sans-serif;">Enter your GitHub Personal Access Token</div>
+        <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx" style="user-select:text; -webkit-user-select:text;">
+        <button class="modal-btn" onclick="saveGhToken()" style="width:100%; margin-bottom:0px;">Login & Save to Device</button>
+    </div>
+
+    <div id="gh-repo-section" style="display:none;" class="gh-section-anim">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="font-size:11px; color:var(--accent); font-weight:700;">● Connected</div>
+            <div style="font-size:11px; color:var(--text-color); opacity:0.5; cursor:pointer; display:flex; align-items:center; gap:3px;" onclick="ghLogout()">
+                <span class="material-icons-round" style="font-size:13px;">logout</span> Logout
+            </div>
+        </div>
+        
+        <!-- Repo selector -->
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <div class="gh-select-wrap" style="flex:1; margin-bottom:0;">
+                <select id="gh-repo-select" onchange="fetchGhFiles()">
+                    <option value="">Select Repository...</option>
+                </select>
+            </div>
+            <button class="modal-btn secondary" onclick="fetchGhFiles()" style="flex:none; width:42px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:10px;" title="Sync Repo">
+                <span class="material-icons-round" style="font-size:20px; pointer-events:none;">sync</span>
+            </button>
+        </div>
+
+        <!-- Breadcrumb path -->
+        <div class="gh-breadcrumb" id="gh-breadcrumb" style="display:none;"></div>
+
+        <!-- File tree -->
+        <div id="gh-file-tree" style="display:none;">
+            <div class="gh-tree-loading">Loading files...</div>
+        </div>
+
+        <!-- Action bar -->
+        <div id="gh-action-bar" style="display:none; gap:6px; margin-top:10px; flex-wrap:wrap;">
+            <button class="modal-btn secondary" id="gh-load-btn" onclick="loadGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:90px;font-size:11px;padding:8px;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">edit</span> Open
+            </button>
+            <button class="modal-btn secondary" id="gh-dl-btn" onclick="downloadGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:90px;font-size:11px;padding:8px;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">download</span> Download
+            </button>
+            <button class="modal-btn secondary" id="gh-rename-btn" onclick="renameGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:90px;font-size:11px;padding:8px;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">drive_file_rename_outline</span> Rename
+            </button>
+            <button class="modal-btn secondary" id="gh-delete-btn" onclick="deleteGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:90px;font-size:11px;padding:8px;background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#ef4444;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">delete</span> Delete
+            </button>
+        </div>
+
+        <!-- Create bar -->
+        <div style="display:flex;gap:6px;margin-top:8px;" id="gh-create-bar" style="display:none;">
+            <button class="modal-btn secondary" onclick="createGhFile()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;padding:8px;" id="gh-new-file-btn">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">add</span> New File
+            </button>
+            <button class="modal-btn secondary" onclick="createGhFolder()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;padding:8px;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">create_new_folder</span> New Folder
+            </button>
+            <button class="modal-btn secondary" id="gh-load-repo-btn" onclick="loadGhRepo()" disabled style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;padding:8px;border-color:var(--accent);">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">folder_zip</span> Load All
+            </button>
+        </div>
+
+        <!-- Commit bar -->
+        <div style="margin-top:8px;">
+            <button class="modal-btn" id="gh-commit-btn" onclick="commitGhFile()" disabled style="background:#ef4444;width:100%;display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;padding:10px;">
+                <span class="material-icons-round" style="font-size:15px;pointer-events:none;">upload</span> Commit Current File
+            </button>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ════════════════ Agent File Input ════════════════ -->
+<input type="file" id="agent-file-input" accept=".html,.js,.css,.txt,.json,.md" style="display:none;">
+
+<!-- New Project Modal -->
+
+
+    <!-- ════════════════ New Project Modal ════════════════ -->
+<div id="new-project-overlay" onclick="if(event.target===this)closeNewProjectModal()">
+    <div id="new-project-modal" class="no-select">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <span class="material-icons-round" style="color:var(--accent);font-size:20px;">add_circle</span>
+                <span style="font-weight:700;font-size:15px;color:var(--text-color);">New Project</span>
+            </div>
+            <span class="material-icons-round" onclick="closeNewProjectModal()" style="opacity:0.5;cursor:pointer;font-size:20px;pointer-events:auto;">close</span>
+        </div>
+        <div class="np-tab-bar">
+            <div class="np-tab active" id="np-tab-blank" onclick="npSwitchTab('blank')">Blank File</div>
+            <div class="np-tab" id="np-tab-repo" onclick="npSwitchTab('repo')">New GitHub Repo</div>
+        </div>
+        <!-- Blank File Pane -->
+        <div class="np-pane active" id="np-pane-blank">
+            <div class="np-section-label">File Name</div>
+            <input type="text" id="np-filename" placeholder="e.g. index.html, app.js" value="index.html">
+            <div class="np-section-label">Save To</div>
+            <div class="np-save-options">
+                <div class="np-save-opt selected" id="np-save-local" onclick="npSelectSave('local')">
+                    <span class="material-icons-round">phone_android</span>
+                    <span>Local Device</span>
+                </div>
+                <div class="np-save-opt" id="np-save-github" onclick="npSelectSave('github')">
+                    <span class="material-icons-round">cloud_upload</span>
+                    <span>GitHub Repo</span>
+                </div>
+            </div>
+            <div id="np-github-repo-wrap" style="display:none;">
+                <div class="np-section-label">Select Repo</div>
+                <div class="gh-select-wrap" id="np-repo-select-wrap">
+                    <select id="np-gh-repo-select"><option value="">Select Repository...</option></select>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+                <button class="modal-btn secondary" onclick="closeNewProjectModal()" style="flex:1;">Cancel</button>
+                <button class="modal-btn" onclick="createNewProject()" style="flex:2;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <span class="material-icons-round" style="font-size:16px;pointer-events:none;">rocket_launch</span> Create & Open
+                </button>
+            </div>
+        </div>
+        <!-- New GitHub Repo Pane -->
+        <div class="np-pane" id="np-pane-repo">
+            <div id="np-repo-login-warn" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#ef4444;font-weight:600;">
+                &#9888; Please connect GitHub first via GitSync &#8594; Login
+            </div>
+            <div class="np-section-label">Repository Name</div>
+            <input type="text" id="np-repo-name" placeholder="my-awesome-project">
+            <div class="np-section-label">Description (optional)</div>
+            <input type="text" id="np-repo-desc" placeholder="Short description of your project">
+            <div class="np-section-label">Visibility</div>
+            <div class="np-repo-visibility">
+                <div class="np-vis-opt selected" id="np-vis-public" onclick="npSelectVis('public')">
+                    <span class="material-icons-round">public</span>
+                    <span>Public</span>
+                </div>
+                <div class="np-vis-opt" id="np-vis-private" onclick="npSelectVis('private')">
+                    <span class="material-icons-round">lock</span>
+                    <span>Private</span>
+                </div>
+            </div>
+            <div class="np-section-label">Options</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;cursor:pointer;user-select:none;">
+                <input type="checkbox" id="np-repo-readme" checked style="accent-color:var(--accent);width:14px;height:14px;"> Add README.md
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px;cursor:pointer;user-select:none;">
+                <input type="checkbox" id="np-repo-gitignore" style="accent-color:var(--accent);width:14px;height:14px;"> Add .gitignore (Node)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:14px;cursor:pointer;user-select:none;">
+                <input type="checkbox" id="np-repo-license" style="accent-color:var(--accent);width:14px;height:14px;"> Add MIT License
+            </label>
+            <div style="display:flex;gap:8px;">
+                <button class="modal-btn secondary" onclick="closeNewProjectModal()" style="flex:1;">Cancel</button>
+                <button class="modal-btn" onclick="createGithubRepo()" style="flex:2;display:flex;align-items:center;justify-content:center;gap:6px;">
+                    <span class="material-icons-round" style="font-size:16px;pointer-events:none;">cloud</span> Create Repo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ════════════════ Custom Dialog ════════════════ -->
+<!-- Custom Dialog (replaces all browser confirm/alert/prompt) -->
+<div id="custom-dialog-overlay">
+    <div id="custom-dialog-box">
+        <div id="custom-dialog-icon"></div>
+        <div id="custom-dialog-title"></div>
+        <div id="custom-dialog-msg"></div>
+        <input type="text" id="custom-dialog-input" style="display:none;">
+        <div id="custom-dialog-btns"></div>
+    </div>
+</div>
+
+
+    <!-- ════════════════ Agent Setup Modal ════════════════ -->
+<!-- Agent Setup Modal -->
+<div id="agent-overlay" onclick="closeAgentModal()"></div>
+<div id="agent-modal" class="no-select">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span class="material-icons-round" style="color:var(--accent); font-size:20px;">smart_toy</span>
+            <span style="font-weight:700; font-size:15px; color:var(--text-color);">AI Agents</span>
+        </div>
+        <span class="material-icons-round" onclick="closeAgentModal()" style="opacity:0.5; cursor:pointer; font-size:20px; pointer-events:auto;">close</span>
+    </div>
+
+    <!-- Free providers tip -->
+    <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:10px;line-height:1.7;color:var(--text-color);opacity:0.85;">
+        <span style="font-weight:700;color:var(--accent);">⚡ Best Free AI:</span>
+        <span style="font-weight:600;"> Groq</span> — console.groq.com · No quota · Super fast<br>
+        <span style="font-weight:600;"> OpenRouter</span> — openrouter.ai · Many free models<br>
+        <span style="font-weight:600;"> Gemini</span> — aistudio.google.com · Has daily limits
+    </div>
+
+    <!-- Connected agents list -->
+    <div id="agent-connected-section" style="display:none; margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Connected Agents — tap to switch active</div>
+        <div id="agent-list-container"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="modal-btn secondary" onclick="disconnectAgent()" style="flex:1;font-size:11px;padding:8px;">
+                <span style="display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-icons-round" style="font-size:14px;">logout</span>Remove All</span>
+            </button>
+            <button class="modal-btn" onclick="closeAgentModal();openAgentBar();" style="flex:1;font-size:11px;padding:8px;display:flex;align-items:center;justify-content:center;gap:4px;">
+                <span class="material-icons-round" style="font-size:14px;pointer-events:none;">psychology</span> Open Bar
+            </button>
+        </div>
+        <div style="height:1px;background:var(--glass-border);margin:12px 0;"></div>
+    </div>
+
+    <!-- Add new agent -->
+    <div id="agent-setup-section">
+        <div style="font-size:11px; font-weight:700; color:var(--text-color); margin-bottom:8px;">Add Agent — Paste API Key</div>
+        <input type="text" id="agent-api-key" placeholder="AIza... / gsk_... / sk-or-... / sk-..."
+            style="width:100%; padding:11px 12px; border-radius:10px; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); color:var(--text-color); font-family:'Poppins',sans-serif; font-size:13px; margin-bottom:8px; user-select:text; -webkit-user-select:text; transition:border-color 0.15s;"
+            oninput="agentKeyPreview(this.value)">
+        <div id="agent-detect-badge" style="display:none; align-items:center; gap:8px; background:var(--accent-dim); border:1px solid var(--accent); border-radius:8px; padding:9px 12px; margin-bottom:10px; font-size:11px; font-weight:600; color:var(--accent);">
+            <span class="material-icons-round" style="font-size:15px;pointer-events:none;">auto_awesome</span>
+            <span id="agent-detect-text">Detected: —</span>
+        </div>
+        <button class="modal-btn" onclick="connectAgent()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <span class="material-icons-round" style="font-size:16px;pointer-events:none;">add_circle</span> Connect Agent
+        </button>
+    </div>
+</div>
+
+
+<script>
+
+    // ═════════════════ INIT — Viewport & Modal Refs ═════════════════
+
+    // ════════════ PWA — Icons, Manifest & Service Worker ════════════
+
+    // ═════════════════════ PWA — Install Prompt ═════════════════════
+
+    // ═══════════════ STORAGE — CodXStore (IndexedDB) ════════════════
+
+    // ═════════════════ EDITOR — ACE Setup & Config ══════════════════
+
+    // ════════════════ UI — Scroll, Swipe & Nav Panel ════════════════
+
+    // ═══════════════ UI — Theme Toggle, Toast & Zoom ════════════════
+
+    // ═══════════════════ TABS — Multi-Tab System ════════════════════
+
+    // ═══════════════════ FILE — Open, Save & Load ═══════════════════
+
+    // ════════════════════════ FIND & REPLACE ════════════════════════
+
+    // ═══════════════════════ GITHUB — Manager ═══════════════════════
+
+    // ════════════ DIALOGS — Custom Alert/Confirm/Prompt ═════════════
+
+    // ═══════════════ GITHUB — Custom Select Renderer ════════════════
+
+    // ═════════════════════ AGENT — Full System ══════════════════════
+
+    // ═════════════════ MISC — Undo/Redo & Close All ═════════════════
+
+    // ══════════════════ GITHUB — Save File to Repo ══════════════════
+
+    // ═════════════════ NEW PROJECT — Modal & Create ═════════════════
+
+    // ═════════════════════ GITHUB — Create Repo ═════════════════════
+
+    // ═════════════════ GITHUB — Repo Created Dialog ═════════════════
+
+    // ════════════════════ FIX — Nav Bar Restore ═════════════════════
+
+    // ═════════════════ APK — Install Log Downloader ═════════════════
+
+</script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-searchbox.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
     <style>
         :root {
@@ -92,8 +1146,7 @@
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* will-change: transform → own GPU layer, no repaint on slide */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease;   }
-        .bottom-wrapper { will-change: transform; }
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease; will-change: transform; }
         .bottom-wrapper.collapsed { transform: translateY(100%); }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
@@ -120,7 +1173,6 @@
             padding: 6px 0; cursor: pointer; border-radius: 8px;
             -webkit-tap-highlight-color: transparent;
         }
-        .toolbar-btn .material-icons-round { font-size: 17px; }
         .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
         .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
 
@@ -197,7 +1249,6 @@
         .gh-select-wrap select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
         #github-modal input { font-family: 'Poppins', sans-serif; border-radius: 10px; padding: 11px 12px; transition: border-color 0.15s; }
         #github-modal input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); outline: none; }
-        .gh-section-anim {}
 
         /* GitHub file tree */
         #gh-file-tree { margin-top: 8px; max-height: 260px; overflow-y: auto; border-radius: 10px; background: rgba(0,0,0,0.15); border: 1px solid var(--glass-border); }
@@ -366,9 +1417,6 @@
         .np-vis-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
         .np-vis-opt .material-icons-round { font-size: 18px; color: var(--accent); display: block; margin-bottom: 3px; }
         .np-vis-opt span:last-child { font-size: 10px; font-weight: 600; color: var(--text-color); }
-
-        /* ===== APK LOG DOWNLOAD ===== */
-        /* Already handled in JS */
 
         #custom-dialog-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
@@ -920,7 +1968,6 @@
 </div>
 
 
-
 <script>
     // Use dynamic viewport height to avoid Chrome bottom bar clipping
     // GitHub modal refs — declared early so closeGithubModal() never hits TDZ
@@ -1008,14 +2055,6 @@
     });
     window.addEventListener('appinstalled', () => {
         installBtn.style.display = 'none'; deferredPrompt = null;
-    });
-    installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') { installBtn.style.display = 'none'; deferredPrompt = null; }
-            // If dismissed, keep deferredPrompt so user can try again
-        }
     });
 
     // ════════════════════════════════════════════════
@@ -1230,7 +2269,7 @@
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => jumpers.classList.remove('visible'), 2000);
     });
-        function saveSession() {
+    function saveSession() {
         if (typeof fileTabs !== 'undefined' && fileTabs.length > 0) {
             let cur = fileTabs.find(t => t.id === activeTabId);
             if(cur) cur.content = editor.getValue();
@@ -1452,7 +2491,7 @@
         }
     }
 
-        // --- MULTI-TAB SYSTEM ---
+    // --- MULTI-TAB SYSTEM ---
     let _savedSession = null;
     try { _savedSession = JSON.parse(localStorage.getItem('codx_session')); } catch(e) {}
     
@@ -1582,7 +2621,7 @@
         if(match.isEmpty() && showErrorAlert) { cdAlert('Find', 'No exact match found.', 'warn'); editor.clearSelection(); } 
         else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); }
     }
-            function replaceText() { 
+    function replaceText() { 
         let replaceStr = document.getElementById('replace-input').value.trim(); let match = editor.getSelectionRange();
         if(!match.isEmpty()) { 
             let start = match.start;
@@ -2971,7 +4010,6 @@ RULES (STRICT):
 
     // ===== NAV BAR RESTORE FIX =====
     // After closing Find/Replace or other modals, ensure restore button and bottom panel state is consistent
-    const _origToggleFindReplace = toggleFindReplace;
     // Patch toggleFindReplace to ensure header/nav never disappears
     window._ensureNavVisible = function() {
         const header = document.getElementById('header');
@@ -3004,7 +4042,6 @@ RULES (STRICT):
         a.click();
     };
     // Hook install button to log events
-    const _origInstallBtnClick = installBtn.onclick;
     installBtn.addEventListener('click', async () => {
         window._logApkEvent('INFO', 'User clicked install / PWA prompt');
         if (deferredPrompt) {
