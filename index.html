@@ -157,8 +157,12 @@
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* will-change: transform → own GPU layer, no repaint on slide */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease; will-change: transform; }
-        .bottom-wrapper.collapsed { transform: translateY(100%); }
+        /* Nav panel — always visible, never collapses away */
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
+        /* mini mode: only cursor-nav row shows */
+        .bottom-wrapper.nav-mini .toolbar-rows { display: none; }
+        .bottom-wrapper.nav-mini .drag-handle-area { display: none; }
+        .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
@@ -923,8 +927,12 @@
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* will-change: transform → own GPU layer, no repaint on slide */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; transform: translateY(0); transition: transform 0.2s ease; will-change: transform; }
-        .bottom-wrapper.collapsed { transform: translateY(100%); }
+        /* Nav panel — always visible, never collapses away */
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
+        /* mini mode: only cursor-nav row shows */
+        .bottom-wrapper.nav-mini .toolbar-rows { display: none; }
+        .bottom-wrapper.nav-mini .drag-handle-area { display: none; }
+        .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
@@ -953,16 +961,7 @@
         .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
         .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
 
-        .restore-btn { 
-            position: absolute; bottom: 12px; right: 16px; 
-            background: var(--accent); color: white; 
-            width: 38px; height: 38px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; 
-            box-shadow: none; 
-            border: none; z-index: 30; 
-            opacity: 1; pointer-events: auto; transform: scale(1); 
-            transition: opacity 0.15s, transform 0.15s; 
-        }
+        .restore-btn { display: none !important; }
         .restore-btn.hidden-btn { opacity: 0 !important; pointer-events: none !important; transform: scale(0.7) !important; }
         .restore-btn .material-icons-round { font-size: 20px; pointer-events: none; }
 
@@ -1544,8 +1543,12 @@
             <div class="jumper-btn" onclick="customFastScroll('down')"><span class="material-icons-round">keyboard_double_arrow_down</span></div>
         </div>
 
-        <!-- Inline Split Chat Panel -->
-        <div id="inline-chat-panel" style="display:none;">
+    </div>
+
+    <div class="bottom-wrapper no-select" id="bottom-panel">
+        <div class="bottom-area">
+                <!-- Inline Split Chat Panel -->
+        <div id="inline-chat-panel" style="display:none;flex-direction:column;background:var(--glass-bg);border-top:2px solid var(--accent);height:45vh;flex-shrink:0;">
 
             <!-- Header: avatar + name + model selector + settings + close -->
             <div id="inline-chat-header">
@@ -1554,12 +1557,9 @@
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div id="inline-chat-name" style="font-size:11px;font-weight:700;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">AI Agent</div>
-                    <!-- Model selector -->
                     <select id="inline-model-select" onchange="_inlineSwitchModel(this.value)" style="font-size:9px;font-weight:600;color:var(--accent);background:none;border:none;outline:none;cursor:pointer;max-width:120px;font-family:Poppins,sans-serif;-webkit-appearance:none;appearance:none;padding:0;"></select>
                 </div>
-                <!-- Tab/file selector -->
-                <select id="inline-tab-select" onchange="agentSelectFile(this.value)" title="Select file to work on" style="font-size:9px;font-weight:600;color:var(--text-color);background:rgba(0,0,0,0.2);border:1px solid var(--glass-border);border-radius:6px;padding:3px 5px;max-width:80px;font-family:Poppins,sans-serif;cursor:pointer;outline:none;display:none;"></select>
-                <!-- Settings button -->
+                <select id="inline-tab-select" onchange="agentSelectFile(this.value)" title="Select file" style="font-size:9px;font-weight:600;color:var(--text-color);background:rgba(0,0,0,0.2);border:1px solid var(--glass-border);border-radius:6px;padding:3px 5px;max-width:80px;font-family:Poppins,sans-serif;cursor:pointer;outline:none;display:none;"></select>
                 <button onclick="openAgentModal()" title="Agent settings" style="background:none;border:none;cursor:pointer;color:var(--text-color);opacity:0.45;display:flex;align-items:center;padding:3px;">
                     <span class="material-icons-round" style="font-size:17px;pointer-events:none;">settings</span>
                 </button>
@@ -1568,7 +1568,6 @@
                 </button>
             </div>
 
-            <!-- Messages -->
             <div id="inline-chat-messages">
                 <div id="inline-chat-empty">
                     <span class="material-icons-round">chat</span>
@@ -1576,16 +1575,14 @@
                 </div>
             </div>
 
-            <!-- Context/attach bar — shown when attachment active -->
             <div id="inline-attach-bar" style="display:none;align-items:center;gap:6px;padding:4px 10px;background:var(--accent-dim);border-top:1px solid var(--accent);font-size:10px;font-weight:600;color:var(--accent);">
                 <span class="material-icons-round" style="font-size:14px;">attach_file</span>
                 <span id="inline-attach-name" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
                 <span class="material-icons-round" onclick="_inlineClearAttach()" style="font-size:14px;cursor:pointer;opacity:0.6;pointer-events:auto;">close</span>
             </div>
 
-            <!-- Input row: attach + textarea + send -->
             <div id="inline-chat-input-row">
-                <button onclick="_inlineTriggerAttach()" title="Attach file" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform 0.15s;">
+                <button onclick="_inlineTriggerAttach()" title="Attach file" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
                     <span class="material-icons-round" style="font-size:16px;pointer-events:none;">attach_file</span>
                 </button>
                 <textarea id="inline-chat-textarea" placeholder="Ask agent..." rows="1"></textarea>
@@ -1594,7 +1591,8 @@
                 </button>
             </div>
         </div>
-    </div>
+
+            <!-- AGENT BAR — legacy compat, hidden -->
 
     <button class="restore-btn no-select" id="restore-btn" onclick="restoreBottomPanel()">
         <span class="material-icons-round">keyboard_arrow_up</span>
@@ -1622,7 +1620,11 @@
                 <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
             </div>
 
-            <div class="drag-handle-area"><div class="drag-pill"></div></div>
+            <div class="drag-handle-area" style="justify-content:flex-end;padding-right:10px;">
+                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:none;border:none;cursor:pointer;color:var(--accent);display:flex;align-items:center;padding:2px 4px;opacity:0.7;">
+                    <span class="material-icons-round" id="nav-toggle-icon" style="font-size:18px;pointer-events:none;">expand_less</span>
+                </button>
+            </div>
 
             <!-- ROW 0: Cursor Navigation (scroll row) -->
             <div class="cursor-nav">
@@ -2306,65 +2308,22 @@
 
     const bottomPanel = document.getElementById('bottom-panel'), restoreBtn = document.getElementById('restore-btn');
 
-    // ── NAV PANEL STATE MANAGER ──
-    // Rule: restoreBtn is ALWAYS visible when panel is collapsed AND we are NOT in preview.
-    // On launch: panel starts collapsed, restoreBtn visible.
-    let _inPreview = false; // starts in code view
+    let _inPreview = false;
+    let _navMini = false; // false = full rows visible, true = only cursor row
 
-    function _collapseNav() {
-        bottomPanel.classList.add('collapsed');
-        bottomPanel.style.transform = '';
-        if (!_inPreview) {
-            restoreBtn.classList.remove('hidden-btn');
-        }
-    }
-    function _expandNav() {
-        bottomPanel.classList.remove('collapsed');
-        bottomPanel.style.transform = '';
-        restoreBtn.classList.add('hidden-btn');
-    }
-    function restoreBottomPanel() {
-        _expandNav();
+    // ── NAV TOGGLE: full ↔ mini (single cursor row) ──
+    function toggleNavSize() {
+        _navMini = !_navMini;
+        bottomPanel.classList.toggle('nav-mini', _navMini);
+        const icon = document.getElementById('nav-toggle-icon');
+        if (icon) icon.textContent = _navMini ? 'expand_less' : 'expand_more';
+        editor.resize();
     }
 
-    // Start collapsed on launch
-    _collapseNav();
-
-    // Swipe down to collapse
-    let startY = 0, startX = 0, isSwipingDown = false;
-    bottomPanel.addEventListener('touchstart', (e) => {
-        startY = e.touches[0].clientY;
-        startX = e.touches[0].clientX;
-        isSwipingDown = false;
-        bottomPanel.style.transition = 'none';
-    }, {passive: true});
-    let _swipeRaf = null;
-    bottomPanel.addEventListener('touchmove', (e) => {
-        const deltaY = e.touches[0].clientY - startY;
-        const deltaX = e.touches[0].clientX - startX;
-        if (Math.abs(deltaY) > Math.abs(deltaX) && deltaY > 0) {
-            isSwipingDown = true;
-            if (!_swipeRaf) {
-                _swipeRaf = requestAnimationFrame(() => {
-                    bottomPanel.style.transform = `translateY(${deltaY}px)`;
-                    _swipeRaf = null;
-                });
-            }
-        }
-    }, {passive: true});
-    bottomPanel.addEventListener('touchend', (e) => {
-        _swipeRaf = null;
-        // Sensitivity increased: threshold reduced from 40 to 15 for "thoda sa" swipe
-        if (isSwipingDown && e.changedTouches[0].clientY - startY > 15) {
-            bottomPanel.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            bottomPanel.style.transform = '';
-            _collapseNav();
-        } else {
-            bottomPanel.style.transition = 'transform 0.2s ease-out';
-            bottomPanel.style.transform = 'translateY(0)';
-            setTimeout(() => { bottomPanel.style.transition = ''; }, 200);
-        }
-    }, {passive: true});
+    // Legacy stubs — kept so existing calls dont break
+    function _collapseNav()        {}
+    function _expandNav()          {}
+    function restoreBottomPanel()  {}
 
     // Dynamic Theme Color Updater
     function toggleTheme() {
@@ -2422,8 +2381,8 @@
             document.getElementById('editor').style.pointerEvents = 'none';
             jumpers.style.display = 'none';
             // Hide nav panel AND up arrow completely in preview
-            bottomPanel.style.display = 'none';
-            restoreBtn.classList.add('hidden-btn');
+            // nav stays visible in preview
+            // nav always visible
             document.getElementById('find-modal').classList.remove('active');
             closeGithubModal();
             _refreshPreview();
@@ -2433,12 +2392,12 @@
             document.getElementById('editor').style.opacity = '1';
             document.getElementById('editor').style.pointerEvents = 'auto';
             checkScrollable();
-            bottomPanel.style.display = '';
+            // nav always visible
             // Up arrow always visible when panel is collapsed
             if(bottomPanel.classList.contains('collapsed')) {
-                restoreBtn.classList.remove('hidden-btn');
+                // nav always visible
             } else {
-                restoreBtn.classList.add('hidden-btn');
+                // nav always visible
             }
             editor.blur();
         }
@@ -2556,7 +2515,7 @@
         closeGithubModal(); 
         let isActive = findModal.classList.toggle('active'); 
         if (isActive) { 
-            bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); findModal.style.bottom = '20px'; 
+            findModal.style.bottom = '20px'; 
             // Focus find input to push keyboard up smoothly
             requestAnimationFrame(() => { 
                 const fi = document.getElementById('find-input');
@@ -2593,7 +2552,7 @@
         findModal.classList.remove('active'); 
         ghOverlay.classList.add('active');
         ghModal.classList.add('active');
-        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); bottomPanel.style.transform = ''; if(!_inPreview) restoreBtn.classList.remove('hidden-btn'); }
+        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); }
         checkGhLogin();
     }
     function closeGithubModal() { 
@@ -4012,10 +3971,7 @@ RULES (STRICT):
     // ===== NAV BAR RESTORE FIX =====
     // After closing Find/Replace or other modals, ensure restore button and bottom panel state is consistent
     // Patch toggleFindReplace to ensure header/nav never disappears
-    window._ensureNavVisible = function() {
-        const header = document.getElementById('header');
-        if (header) { header.style.display = ''; header.style.opacity = '1'; header.style.visibility = 'visible'; }
-    };
+    window._ensureNavVisible = function() {}; // nav always visible now
     // Watch for any modal close that might hide nav
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -4612,30 +4568,20 @@ Rules:
         if (!_activeAgent()) { openAgentModal(); return; }
         _inlineChatOpen = true;
 
-        const container = document.getElementById('editor-wrapper');
         const chatPanel = document.getElementById('inline-chat-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        container.classList.add('chat-split');
+        // Show chat panel inside bottom-area (above nav rows)
         chatPanel.style.display = 'flex';
         if (aiBtn) aiBtn.classList.add('chat-active');
 
-        // Sync agent name + model list
+        // Sync agent name
         const ag = _activeAgent();
-        if (ag) {
-            document.getElementById('inline-chat-name').textContent = ag.providerName;
-        }
+        if (ag) document.getElementById('inline-chat-name').textContent = ag.providerName;
 
-        // Populate model selector
         _inlinePopulateModels();
-
-        // Populate tab selector
         _inlinePopulateTabs();
 
-        // Nav panel stays — just resize ACE to new height
-        setTimeout(() => { editor.resize(); }, 50);
-
-        // Focus textarea
         setTimeout(() => {
             const ta = document.getElementById('inline-chat-textarea');
             if (ta) ta.focus();
@@ -4645,16 +4591,11 @@ Rules:
     function closeInlineChat() {
         _inlineChatOpen = false;
 
-        const container = document.getElementById('editor-wrapper');
         const chatPanel = document.getElementById('inline-chat-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        container.classList.remove('chat-split');
         chatPanel.style.display = 'none';
         if (aiBtn) aiBtn.classList.remove('chat-active');
-
-        // Resize ACE back to full height
-        setTimeout(() => { editor.resize(); }, 50);
     }
 
     // ── Auto resize textarea ──
