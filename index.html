@@ -93,8 +93,49 @@
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
         .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
-        .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
+        /* Tabs pill with snake border animation */
+        .tabs {
+            display: flex;
+            padding: 2px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.2);
+            position: relative;
+        }
         body.light-theme .tabs { background: rgba(0,0,0,0.05); }
+
+        /* Snake = thin conic border + inner mask to hollow it out */
+        .tabs::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 21px;
+            padding: 1px;
+            background: conic-gradient(
+                from var(--pill-snake, 0deg),
+                transparent 0deg,
+                transparent 300deg,
+                rgba(16,185,129,0.2) 320deg,
+                rgba(16,185,129,0.7) 340deg,
+                #10b981 352deg,
+                rgba(52,211,153,0.3) 357deg,
+                transparent 360deg
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: pillSnake 3.5s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pillSnake {
+            from { --pill-snake: 0deg; }
+            to   { --pill-snake: 360deg; }
+        }
+        @property --pill-snake {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
         .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .tab.active { background: var(--accent); color: white; opacity: 1; }
         
@@ -135,8 +176,49 @@
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
         .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
-        .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
+        /* Tabs pill with snake border animation */
+        .tabs {
+            display: flex;
+            padding: 2px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.2);
+            position: relative;
+        }
         body.light-theme .tabs { background: rgba(0,0,0,0.05); }
+
+        /* Snake = thin conic border + inner mask to hollow it out */
+        .tabs::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 21px;
+            padding: 1px;
+            background: conic-gradient(
+                from var(--pill-snake, 0deg),
+                transparent 0deg,
+                transparent 300deg,
+                rgba(16,185,129,0.2) 320deg,
+                rgba(16,185,129,0.7) 340deg,
+                #10b981 352deg,
+                rgba(52,211,153,0.3) 357deg,
+                transparent 360deg
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: pillSnake 3.5s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pillSnake {
+            from { --pill-snake: 0deg; }
+            to   { --pill-snake: 360deg; }
+        }
+        @property --pill-snake {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
         .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .tab.active { background: var(--accent); color: white; opacity: 1; }
         
@@ -1015,8 +1097,49 @@
 
         /* ── GPU PERF: Reduce backdrop-filter cost on mobile ── */
         .app-header { /* perf: no blur, no shadow */ flex-shrink: 0; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; z-index: 50;  }
-        .tabs { display: flex; background: rgba(0,0,0,0.2); padding: 2px; border-radius: 20px; }
+        /* Tabs pill with snake border animation */
+        .tabs {
+            display: flex;
+            padding: 2px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.2);
+            position: relative;
+        }
         body.light-theme .tabs { background: rgba(0,0,0,0.05); }
+
+        /* Snake = thin conic border + inner mask to hollow it out */
+        .tabs::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 21px;
+            padding: 1px;
+            background: conic-gradient(
+                from var(--pill-snake, 0deg),
+                transparent 0deg,
+                transparent 300deg,
+                rgba(16,185,129,0.2) 320deg,
+                rgba(16,185,129,0.7) 340deg,
+                #10b981 352deg,
+                rgba(52,211,153,0.3) 357deg,
+                transparent 360deg
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: pillSnake 3.5s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pillSnake {
+            from { --pill-snake: 0deg; }
+            to   { --pill-snake: 360deg; }
+        }
+        @property --pill-snake {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
         .tab { padding: 4px 14px; border-radius: 18px; font-weight: 600; font-size: 12px; color: var(--text-color); opacity: 0.7; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .tab.active { background: var(--accent); color: white; opacity: 1; }
         
@@ -2656,14 +2779,18 @@
         if(!code.includes('viewport')) {
             code = code.replace('<head>', '<head><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">');
         }
-        // Inject base CSS reset only if user has no body/html styling — fixes "wall" issue
+        // Inject base CSS reset only if user has no body/html styling
         const hasBodyStyle = /body\s*\{|html\s*\{|margin\s*:|padding\s*:/.test(code);
         if(!hasBodyStyle && code.includes('<head>')) {
             const resetCSS = '<style>*{box-sizing:border-box;}body{margin:0;padding:0;}</style>';
             code = code.replace('<head>', '<head>' + resetCSS);
         }
-        if(_previewBlobUrl) { URL.revokeObjectURL(_previewBlobUrl); _previewBlobUrl = null; }
-        document.getElementById('preview').srcdoc = code;
+        // Use Blob URL instead of srcdoc — gives iframe a real origin so
+        // internet requests, CDN scripts, fetch/XHR, APIs all work
+        if(_previewBlobUrl) { URL.revokeObjectURL(_previewBlobUrl); }
+        const blob = new Blob([code], { type: 'text/html' });
+        _previewBlobUrl = URL.createObjectURL(blob);
+        document.getElementById('preview').src = _previewBlobUrl;
     }
 
     function switchTab(tabName, fromBtn) {
