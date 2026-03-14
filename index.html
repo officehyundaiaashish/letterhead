@@ -203,6 +203,9 @@
             bottom: -150%; opacity: 0; pointer-events: none; transform: scale(0.96);
         }
         .modal.active { bottom: 20px; opacity: 1; pointer-events: auto; transform: scale(1); }
+        /* Find modal — sits flush above keyboard */
+        #find-modal { left: 2%; width: 96%; }
+        #find-modal.active { bottom: 8px; }
         
         .modal textarea, .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Courier New', Courier, monospace; font-size: 13px; }
         .modal-actions { display: flex; gap: 8px; }
@@ -1744,7 +1747,7 @@
             </div>
 
             <div class="drag-handle-area" style="justify-content:center; padding:0; position:relative; z-index:50; height:0; overflow:visible; display:flex; align-items:center;">
-                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--accent);border:2px solid var(--glass-bg);border-radius:50%;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;box-shadow:0 2px 10px rgba(16,185,129,0.35);transition:box-shadow 0.2s;position:absolute;top:-18px;">
+                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--accent);border:2px solid var(--glass-bg);border-radius:50%;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;box-shadow:none;transition:opacity 0.2s;position:absolute;top:-18px;margin-top:-1px;">
                     <span class="material-icons-round" id="nav-toggle-icon" style="font-size:22px;pointer-events:none;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">expand_more</span>
                 </button>
             </div>
@@ -2109,7 +2112,11 @@
     window.visualViewport && window.visualViewport.addEventListener('resize', () => {
         let kbHeight = window.innerHeight - window.visualViewport.height;
         let activeModal = document.querySelector('.modal.active:not(#github-modal)');
-        if (activeModal) { activeModal.style.bottom = kbHeight > 0 ? (kbHeight + 10) + 'px' : '20px'; }
+        if (activeModal) {
+            // Find modal sits just above keyboard; other modals float at 20px
+            const isFindModal = activeModal.id === 'find-modal';
+            activeModal.style.bottom = kbHeight > 0 ? (kbHeight + (isFindModal ? 4 : 10)) + 'px' : (isFindModal ? '8px' : '20px');
+        }
     });
 
     // --- PWA & SERVICE WORKER ---
@@ -2433,17 +2440,29 @@
         if (!toast) {
             toast = document.createElement('div');
             toast.id = 'action-toast';
-            toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%) translateY(20px);background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-color);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:9999;opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 12px rgba(0,0,0,0.2); pointer-events:none;';
+            toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-color);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:9999;opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 12px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;';
             document.body.appendChild(toast);
         }
-        let panel = document.getElementById('bottom-panel');
-        let offset = panel.classList.contains('nav-mini') ? 70 : (panel.offsetHeight || 220) + 20;
-        toast.style.bottom = offset + 'px';
-        toast.innerHTML = `<span class="material-icons-round" style="font-size:16px;color:var(--accent)">${iconName}</span> ${msg}`;
-        toast.style.transform = 'translateX(-50%) translateY(0)';
+        // Determine position: if any modal/dialog open → top of screen; else → above nav panel
+        const anyModalOpen = document.querySelector('.modal.active, #github-modal.active, #agent-modal.active, #custom-dialog-overlay.active, #commit-modal-overlay');
+        if (anyModalOpen) {
+            // Top area — sits just below the header, won't cover editor or dialogs
+            toast.style.top = '60px';
+            toast.style.bottom = 'auto';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        } else {
+            // Above nav panel
+            toast.style.top = 'auto';
+            const panel = document.getElementById('bottom-panel');
+            const navVisible = !_navHidden && panel && panel.style.transform !== 'translateY(100%)';
+            const offset = navVisible ? (panel.offsetHeight || 180) + 12 : 20;
+            toast.style.bottom = offset + 'px';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        }
+        toast.innerHTML = `<span class="material-icons-round" style="font-size:16px;color:var(--accent);flex-shrink:0;">${iconName}</span> ${msg}`;
         toast.style.opacity = '1';
         clearTimeout(toast.timer);
-        toast.timer = setTimeout(() => { toast.style.transform = 'translateX(-50%) translateY(20px)'; toast.style.opacity = '0'; }, 2000);
+        toast.timer = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
     }
 
     const editorWrapper = document.getElementById('editor');
