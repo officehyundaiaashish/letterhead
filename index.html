@@ -1688,7 +1688,15 @@
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div id="inline-chat-name" style="font-size:11px;font-weight:700;color:var(--text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">AI Agent</div>
-                    <select id="inline-model-select" onchange="_inlineSwitchModel(this.value)" style="font-size:9px;font-weight:600;color:var(--accent);background:none;border:none;outline:none;cursor:pointer;max-width:120px;font-family:Poppins,sans-serif;-webkit-appearance:none;appearance:none;padding:0;"></select>
+                    <!-- Model selector — SVG icon + label -->
+                    <div style="position:relative;display:inline-block;">
+                        <button id="inline-model-btn" onclick="_inlineToggleModelDropdown()" style="background:none;border:none;padding:0;display:flex;align-items:center;gap:3px;cursor:pointer;margin-top:1px;">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07M8.46 8.46a5 5 0 000 7.07"/></svg>
+                            <span id="inline-model-label" style="font-size:9px;font-weight:600;color:var(--accent);font-family:'Poppins',sans-serif;pointer-events:none;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Select Model</span>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" id="inline-model-chevron" style="pointer-events:none;transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div id="inline-model-dropdown" style="display:none;position:absolute;left:0;top:calc(100% + 4px);min-width:150px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.3);"></div>
+                    </div>
                 </div>
                 <!-- Custom file selector -->
                 <div id="inline-file-selector" style="position:relative;flex-shrink:0;">
@@ -1700,12 +1708,8 @@
                     <div id="inline-file-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:160px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.3);">
                     </div>
                 </div>
-                <button onclick="openAgentModal()" title="Switch or add agent" style="background:rgba(128,128,128,0.1);border:1px solid var(--glass-border);border-radius:8px;padding:3px 8px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text-color);font-family:'Poppins',sans-serif;font-size:9px;font-weight:600;transition:all 0.15s;flex-shrink:0;">
-                    <span class="material-icons-round" style="font-size:13px;pointer-events:none;color:var(--accent);">smart_toy</span>
-                    <span id="inline-agent-label" style="max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;">Add Agent</span>
-                </button>
-                <button id="inline-chat-close" onclick="closeInlineChat()">
-                    <span class="material-icons-round">close</span>
+                <button id="inline-chat-close" onclick="closeInlineChat()" style="background:rgba(239,68,68,0.1);border:none;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ef4444;flex-shrink:0;">
+                    <span class="material-icons-round" style="font-size:16px;pointer-events:none;">close</span>
                 </button>
             </div>
 
@@ -5643,22 +5647,62 @@ No markdown, no backticks.`;
 
     // ── Inline chat: populate model dropdown ──
     function _inlinePopulateModels() {
-        const sel = document.getElementById('inline-model-select');
-        const agLabel = document.getElementById('inline-agent-label');
-        if (!sel) return;
-        sel.innerHTML = '';
-        agentList.forEach((ag, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = ag.providerName;
-            if (i === activeAgentIdx) opt.selected = true;
-            sel.appendChild(opt);
-        });
-        sel.style.display = agentList.length > 0 ? 'block' : 'none';
-        // Update agent button label + remove no-agent banner if showing
         const activeAg = _activeAgent();
-        if (agLabel) agLabel.textContent = activeAg ? activeAg.providerName : 'Add Agent';
+        const modelLabel = document.getElementById('inline-model-label');
+        if (modelLabel) modelLabel.textContent = activeAg ? activeAg.providerName : 'Select Model';
+        // Remove no-agent banner if showing
         if (activeAg) { const b = document.getElementById('inline-no-agent-banner'); if(b) b.remove(); }
+    }
+
+    function _inlineToggleModelDropdown() {
+        const dd = document.getElementById('inline-model-dropdown');
+        const chevron = document.getElementById('inline-model-chevron');
+        if (!dd) return;
+        const isOpen = dd.style.display === 'block';
+        if (isOpen) {
+            dd.style.display = 'none';
+            if(chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+            _inlineRenderModelDropdown();
+            dd.style.display = 'block';
+            if(chevron) chevron.style.transform = 'rotate(180deg)';
+            setTimeout(() => document.addEventListener('click', _inlineCloseModelDropdown, { once: true }), 50);
+        }
+    }
+
+    function _inlineCloseModelDropdown() {
+        const dd = document.getElementById('inline-model-dropdown');
+        const chevron = document.getElementById('inline-model-chevron');
+        if(dd) dd.style.display = 'none';
+        if(chevron) chevron.style.transform = 'rotate(0deg)';
+    }
+
+    function _inlineRenderModelDropdown() {
+        const dd = document.getElementById('inline-model-dropdown');
+        if (!dd) return;
+        dd.innerHTML = '';
+        if (agentList.length === 0) {
+            dd.innerHTML = `<div style="padding:12px;font-size:11px;color:var(--text-color);opacity:0.5;font-family:'Poppins',sans-serif;text-align:center;">No agents connected</div>
+            <div style="padding:0 10px 10px;"><button onclick="_inlineCloseModelDropdown();openAgentModal();" style="width:100%;padding:8px;border-radius:8px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;">Add Agent</button></div>`;
+            return;
+        }
+        agentList.forEach((ag, i) => {
+            const isSelected = i === activeAgentIdx;
+            const row = document.createElement('div');
+            row.style.cssText = `display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--glass-border);background:${isSelected ? 'var(--accent-dim)' : 'transparent'};transition:background 0.15s;`;
+            row.innerHTML = `
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? 'var(--accent)' : 'var(--text-color)'}" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;pointer-events:none;opacity:${isSelected ? '1' : '0.5'};"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+                <span style="flex:1;font-size:11px;font-weight:600;color:${isSelected ? 'var(--accent)' : 'var(--text-color)'};font-family:'Poppins',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;">${ag.providerName}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;opacity:${isSelected ? '1' : '0'};flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>`;
+            row.onclick = (e) => {
+                e.stopPropagation();
+                _inlineSwitchModel(i);
+                _inlineCloseModelDropdown();
+                _inlineRenderModelDropdown();
+            };
+            dd.appendChild(row);
+        });
+        if(dd.lastChild) dd.lastChild.style.borderBottom = 'none';
     }
 
     // ── Inline chat: switch active model from dropdown ──
@@ -5666,7 +5710,11 @@ No markdown, no backticks.`;
         activeAgentIdx = parseInt(idx) || 0;
         _saveAgentList();
         const ag = _activeAgent();
-        if (ag) document.getElementById('inline-chat-name').textContent = ag.providerName;
+        if (ag) {
+            document.getElementById('inline-chat-name').textContent = ag.providerName;
+            const ml = document.getElementById('inline-model-label');
+            if (ml) ml.textContent = ag.providerName;
+        }
     }
 
     // ── Inline chat: custom file selector dropdown ──
