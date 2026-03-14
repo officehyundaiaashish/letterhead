@@ -5659,12 +5659,13 @@ CRITICAL RULES:
         const snapTab = fileTabs.find(t => t.id === (tabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
         const original = snapTab ? snapTab.content : editor.getValue();
 
-        // Save undo snapshot
+        // Save undo snapshot before every apply
         _agentUndoStack.push(original);
         if (_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
 
         const lines = original.split('\n');
-        let applied = 0, failed = 0;
+        let applied = 0;
+        const failedEdits = [];
 
         // Sort edits bottom-to-top so line numbers stay valid after each replacement
         const sorted = [...edits].sort((a, b) => (b.line_start || 0) - (a.line_start || 0));
@@ -5674,62 +5675,110 @@ CRITICAL RULES:
             if (edit.line_start != null) {
                 const s = Math.max(0, (edit.line_start || 1) - 1);
                 const e = Math.min(lines.length - 1, (edit.line_end || edit.line_start || 1) - 1);
-
-                // Detect indentation from first replaced line
-                const origIndent = (lines[s] || '').match(/^(\s*)/)?.[1] || '';
-
-                // Apply replacement — preserve indentation style
-                const newLines = (edit.replace || '').split('\n').map((l, i) => {
-                    if (i === 0) return l; // first line keeps AI's indent
-                    // Subsequent lines — strip leading whitespace collapse
-                    return l.replace(/^\t/, '  '); // normalize tabs to spaces
-                });
-
+                const newLines = (edit.replace || '').split('\n').map(l => l.replace(/^\t/, '  '));
                 lines.splice(s, e - s + 1, ...newLines);
                 applied++;
 
             } else if (edit.find != null) {
                 // ── Fallback: find-based with whitespace normalization ──
-                const normalize = str => str.replace(/\r\n/g, '\n').replace(/\t/g, '  ').replace(/ +/g, ' ').trim();
-                const normContent = normalize(lines.join('\n'));
-                const normFind    = normalize(edit.find || '');
-
-                if (normFind && normContent.includes(normFind)) {
-                    // Reconstruct with replacement on normalized match
-                    const fullContent = lines.join('\n');
-                    // Try exact first
-                    if (fullContent.includes(edit.find)) {
-                        const updated = fullContent.replace(edit.find, edit.replace || '');
-                        lines.splice(0, lines.length, ...updated.split('\n'));
-                    } else {
-                        // Whitespace-tolerant replace — rebuild with regex
-                        const escaped = edit.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
-                        try {
-                            const rx = new RegExp(escaped);
-                            const updated = fullContent.replace(rx, edit.replace || '');
-                            lines.splice(0, lines.length, ...updated.split('\n'));
-                        } catch(_) { failed++; return; }
-                    }
+                const fullContent = lines.join('\n');
+                if (fullContent.includes(edit.find)) {
+                    const updated = fullContent.replace(edit.find, edit.replace || '');
+                    lines.splice(0, lines.length, ...updated.split('\n'));
                     applied++;
                 } else {
-                    failed++;
+                    // Whitespace-tolerant regex fallback
+                    const escaped = edit.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                    try {
+                        const rx = new RegExp(escaped);
+                        if (rx.test(fullContent)) {
+                            const updated = fullContent.replace(rx, edit.replace || '');
+                            lines.splice(0, lines.length, ...updated.split('\n'));
+                            applied++;
+                        } else {
+                            failedEdits.push(edit); // collect for retry
+                        }
+                    } catch(_) { failedEdits.push(edit); }
                 }
             } else {
-                failed++;
+                failedEdits.push(edit);
             }
         });
 
-        // Remove accidental consecutive blank lines (max 2 allowed)
+        // Clean up extra blank lines
         const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n');
-
         if (snapTab) snapTab.content = cleaned;
         if (!tabId || tabId === activeTabId) editor.setValue(cleaned, -1);
 
-        btn.closest('div').parentElement.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border-radius:12px;">
-            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
-            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${applied} applied${failed ? ' · ' + failed + ' not found' : ''}</span>
-        </div>`;
-        showToast(`${applied} edit${applied!==1?'s':''} applied`, 'check_circle');
+        const cardParent = btn.closest('div').parentElement;
+
+        if (failedEdits.length > 0) {
+            // ── Auto retry for failed edits ──
+            cardParent.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);">
+                <span class="material-icons-round" style="font-size:15px;color:#f59e0b;animation:commitSpin 1s linear infinite;">refresh</span>
+                <span style="font-size:11px;font-weight:700;color:#f59e0b;font-family:'Poppins',sans-serif;">${applied} applied · Retrying ${failedEdits.length} not found...</span>
+            </div>`;
+
+            // Build retry prompt — tell AI exactly which blocks failed
+            const failInfo = failedEdits.map((e, i) =>
+                `Block ${i+1} NOT FOUND in file:\n${e.find ? '"' + e.find.slice(0,100) + '"' : 'line ' + e.line_start}`
+            ).join('\n\n');
+
+            const currentCode = cleaned.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
+            const retryMsg = `The following edits could NOT be applied because the blocks were not found in the current code.\n\nCurrent code:\n\`\`\`\n${currentCode}\n\`\`\`\n\nFailed blocks:\n${failInfo}\n\nPlease find the correct location in the current code and return updated edits.`;
+
+            _callAgentAPI(_AGENT_SYSTEM_PROMPT, retryMsg).then(raw => {
+                try {
+                    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+                    if (!jsonMatch) throw new Error('No JSON');
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.type === 'edit' && parsed.edits?.length) {
+                        cardParent.innerHTML = '';
+                        const retryCard = _buildInlineEditCard(parsed.edits, snapTab);
+                        retryCard.querySelector('.agent-retry-label') && (retryCard.querySelector('.agent-retry-label').textContent = 'Retry — ' + parsed.explanation);
+                        cardParent.appendChild(retryCard);
+                        _inlineAppendMsg('agent', `⚠️ ${failedEdits.length} block${failedEdits.length>1?'s':''} not found — here are corrected edits:`);
+                    } else {
+                        throw new Error('no edits');
+                    }
+                } catch(_) {
+                    cardParent.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(239,68,68,0.08);border-radius:12px;">
+                        <span class="material-icons-round" style="font-size:15px;color:#ef4444;">error</span>
+                        <span style="font-size:11px;font-weight:700;color:#ef4444;font-family:'Poppins',sans-serif;">${applied} applied · ${failedEdits.length} could not be located — try rephrasing your request.</span>
+                    </div>`;
+                }
+            }).catch(() => {
+                cardParent.innerHTML = `<div style="padding:9px 12px;font-size:11px;color:#ef4444;font-family:'Poppins',sans-serif;">Retry failed — network error.</div>`;
+            });
+
+        } else {
+            // All applied — show success + undo button
+            const undoCount = _agentUndoStack.length;
+            cardParent.innerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);border-radius:12px;">
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${applied} edit${applied!==1?'s':''} applied</span>
+                <button onclick="_agentUndoLast(this)" title="Undo this change" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
+                    Undo (${undoCount})
+                </button>
+            </div>`;
+            showToast(`${applied} edit${applied!==1?'s':''} applied`, 'check_circle');
+        }
+    }
+
+    // ── Undo last agent edit — restores most recent snapshot ──
+    function _agentUndoLast(btn) {
+        if (_agentUndoStack.length === 0) { showToast('Nothing to undo', 'info'); return; }
+        const prev = _agentUndoStack.pop();
+        const curTab = fileTabs.find(t => t.id === activeTabId);
+        if (curTab) curTab.content = prev;
+        editor.setValue(prev, -1);
+        if (btn) {
+            const remaining = _agentUndoStack.length;
+            btn.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg> Undo (${remaining})`;
+            if (remaining === 0) btn.style.opacity = '0.35';
+        }
+        showToast('Undone', 'undo');
     }
 
     // ── Build Split card ──
