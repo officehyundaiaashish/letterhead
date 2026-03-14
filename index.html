@@ -164,7 +164,7 @@
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
-            padding-top: 20px;
+            padding-top: 4px;
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
             box-shadow: none; 
         }
@@ -1045,7 +1045,7 @@
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
-            padding-top: 20px;
+            padding-top: 4px;
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
             box-shadow: none; 
         }
@@ -1726,6 +1726,12 @@
             <!-- AGENT BAR — legacy compat, hidden -->
 
     <div class="bottom-wrapper no-select" id="bottom-panel">
+        <!-- Arrow sits on top border of bottom-area: half outside half inside -->
+        <div style="position:relative;height:0;overflow:visible;display:flex;justify-content:center;z-index:51;">
+            <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--accent);border:2px solid var(--bg-color);border-radius:50%;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;box-shadow:none;transition:opacity 0.2s;position:absolute;top:-18px;">
+                <span class="material-icons-round" id="nav-toggle-icon" style="font-size:22px;pointer-events:none;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">expand_more</span>
+            </button>
+        </div>
         <div class="bottom-area">
             <!-- AGENT BAR — compact strip, sits at top of nav panel -->
             <div id="agent-bar">
@@ -1745,12 +1751,6 @@
                     <span class="material-icons-round" id="agent-close-btn" onclick="closeAgentBar()">close</span>
                 </div>
                 <div id="agent-thinking"><div class="agent-dots"><span></span><span></span><span></span></div> Analysing...</div>
-            </div>
-
-            <div class="drag-handle-area" style="justify-content:center; padding:0; position:relative; z-index:50; height:0; overflow:visible; display:flex; align-items:center;">
-                <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--accent);border:2px solid var(--glass-bg);border-radius:50%;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;box-shadow:none;transition:opacity 0.2s;position:absolute;top:-18px;margin-top:-1px;">
-                    <span class="material-icons-round" id="nav-toggle-icon" style="font-size:22px;pointer-events:none;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">expand_more</span>
-                </button>
             </div>
 
             <!-- ROW 0: Cursor Navigation (scroll row) -->
@@ -1913,18 +1913,18 @@
         </div>
 
         <!-- Create + Load row -->
-        <div style="display:flex;gap:5px;margin-bottom:10px;" id="gh-create-bar">
-            <button class="modal-btn secondary" onclick="createGhFile()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;padding:8px 6px;" id="gh-new-file-btn">
-                <span class="material-icons-round" style="font-size:14px;pointer-events:none;">add</span>New File
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="gh-create-bar">
+            <button onclick="createGhFile()" id="gh-new-file-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
+                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">add_circle_outline</span>New File
             </button>
-            <button class="modal-btn secondary" onclick="createGhFolder()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;padding:8px 6px;">
-                <span class="material-icons-round" style="font-size:14px;pointer-events:none;">create_new_folder</span>New Folder
+            <button onclick="createGhFolder()" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
+                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">create_new_folder</span>New Folder
             </button>
-            <button class="modal-btn secondary" id="gh-load-btn" onclick="loadGhFile()" disabled style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;padding:8px 6px;border-color:rgba(16,185,129,0.4);">
-                <span class="material-icons-round" style="font-size:14px;pointer-events:none;">file_open</span>Load Selected
+            <button id="gh-load-btn" onclick="loadGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.07);color:var(--accent);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.45;" onmouseenter="if(!this.disabled){this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.opacity='1'}" onmouseleave="if(!this.disabled){this.style.background='rgba(16,185,129,0.07)';this.style.borderColor='rgba(16,185,129,0.3)';this.style.opacity='1'}">
+                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">file_open</span>Load Selected
             </button>
-            <button class="modal-btn secondary" id="gh-load-repo-btn" onclick="loadGhRepo()" disabled style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11px;padding:8px 6px;">
-                <span class="material-icons-round" style="font-size:14px;pointer-events:none;">folder_zip</span>Load All
+            <button id="gh-load-repo-btn" onclick="loadGhRepo()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.45;" onmouseenter="if(!this.disabled){this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.opacity='1'}" onmouseleave="if(!this.disabled){this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)';this.style.opacity='1'}">
+                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">folder_zip</span>Load All
             </button>
         </div>
 
@@ -2905,7 +2905,7 @@
         tree.innerHTML = '<div class="gh-tree-loading">Loading repository...</div>';
         breadcrumb.style.display = 'flex';
         createBar.style.display = 'flex';
-        document.getElementById('gh-load-repo-btn').disabled = false;
+        const b = document.getElementById('gh-load-repo-btn'); if(b){ b.disabled = false; b.style.opacity='1'; }
         _ghSelectedItem = null;
         _ghDisableFileActions();
         try {
@@ -3000,7 +3000,7 @@
         if (type === 'blob') localStorage.setItem('gh_last_file', path);
         // Enable Load Selected only for files not folders
         const loadBtn = document.getElementById('gh-load-btn');
-        if(loadBtn) loadBtn.disabled = type !== 'blob';
+        if(loadBtn) { loadBtn.disabled = type !== 'blob'; loadBtn.style.opacity = type === 'blob' ? '1' : '0.45'; }
         // Enable commit button and notify user when a file is selected
         if (type === 'blob') {
             const commitBtn = document.getElementById('gh-commit-btn');
@@ -3015,7 +3015,7 @@
     }
 
     function enableLoadBtn() { /* compat shim */ }
-    function _enableRepoBtn() { document.getElementById('gh-load-repo-btn').disabled = false; }
+    function _enableRepoBtn() { const b = document.getElementById('gh-load-repo-btn'); if(b){ b.disabled = false; b.style.opacity='1'; } }
 
     function _ghRenameRepo() {
         if (!ghCurrentRepo) { cdAlert('Rename Repo', 'No repository selected.', 'warn'); return; }
