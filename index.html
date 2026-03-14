@@ -2921,7 +2921,7 @@
         tree.style.display = 'block';
         tree.innerHTML = '<div class="gh-tree-loading">Loading repository...</div>';
         breadcrumb.style.display = 'flex';
-        createBar.style.display = 'flex';
+        createBar.style.display = 'grid';
         const b = document.getElementById('gh-load-repo-btn'); if(b){ b.disabled = false; b.style.opacity='1'; }
         _ghSelectedItem = null;
         _ghDisableFileActions();
