@@ -1692,7 +1692,7 @@
 <!-- Welcome Screen (first launch only) -->
 <div id="welcome-screen" class="hidden">
     <div class="welcome-card">
-<div class="welcome-logo"><span class="material-icons-round" style="color:white;font-size:48px;">apps</span></div>
+        <div class="welcome-logo">&lt;/&gt;</div>
         <div class="welcome-title">CodX Editor</div>
         <div class="welcome-sub">Your pocket-sized code editor.<br>Write, edit & sync with GitHub — anywhere.</div>
         <div class="welcome-features">
@@ -5530,37 +5530,29 @@ No markdown, no backticks, no explanation outside the array.`;
     let _inlineChatOpen = false;
 
     // ── Conversation history for inline chat ──
-    // Stores {role, content} pairs — sent with every API call
+    // Each entry: {role: 'user'|'assistant', content: string}
+    // Special entries use role 'user' with content starting with [APPLIED] or [CONFIRMED] or [REJECTED]
     let _inlineChatHistory = [];
-    const _HISTORY_MAX_MESSAGES = 20;    // max messages to keep (10 exchanges)
-    const _HISTORY_MAX_CHARS    = 40000; // generous char budget — models support large context
+    const _HISTORY_MAX_TURNS = 12; // keep last 12 exchanges (24 messages)
 
-    // Smart trim: keep full recent history, strip large code blocks only from oldest messages
-    function _buildHistoryForAPI(currentFileCode) {
+    // ── Build history for API call ──
+    // Strips old code blocks from older turns but keeps ALL events: applied changes, feedback, rejections
+    function _buildHistoryForAPI() {
         if (!_inlineChatHistory.length) return [];
 
-        // Take last N messages
-        let history = _inlineChatHistory.slice(-_HISTORY_MAX_MESSAGES);
+        // Keep last N turns
+        const history = _inlineChatHistory.slice(-(_HISTORY_MAX_TURNS * 2));
 
-        // Strip full file code blocks ONLY from messages older than last 4
-        // — AI still sees what was changed recently, just not the full file repeatedly
-        const codeBlockRx = /```[\s\S]{500,}```/g;
-        history = history.map((msg, i) => {
-            if (i < history.length - 4 && msg.role === 'user') {
-                const trimmed = msg.content.replace(codeBlockRx, '[code file — see current version in this message]');
-                return { ...msg, content: trimmed };
+        // Strip large code blocks from older user messages (not recent 4)
+        // Everything else (requests, applied summaries, feedback) is kept intact
+        const codeBlockRx = /```[\s\S]{200,}```/g;
+        return history.map((msg, i) => {
+            const isRecent = i >= history.length - 4;
+            if (!isRecent && msg.role === 'user') {
+                return { ...msg, content: msg.content.replace(codeBlockRx, '[full code — see latest version in current message]') };
             }
             return msg;
         });
-
-        // Enforce char budget — drop oldest pairs if over limit
-        let totalChars = history.reduce((s, m) => s + m.content.length, 0);
-        while (totalChars > _HISTORY_MAX_CHARS && history.length > 2) {
-            const removed = history.shift();
-            totalChars -= removed.content.length;
-        }
-
-        return history;
     }
 
     // Clear history when chat is closed
@@ -5871,8 +5863,34 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
         const filename = targetTab ? targetTab.name : 'untitled';
 
         // Add line numbers so AI can reference precise locations
-        // Full code is sent — Groq (131k), Gemini (1M), OpenAI (128k) all support large contexts
+        // Per-provider safe limits (chars, not tokens — 1 token ≈ 4 chars):
+        //   Groq llama-3.3-70b  → ~128k tokens context, but on_demand tier throttles large requests
+        //                          Safe payload: ~60k chars  (~15k tokens)
+        //   Gemini 1.5 flash    → 1M tokens  → no practical limit, send full
+        //   OpenAI gpt-4o-mini  → 128k tokens → send full
+        //   Anthropic Haiku     → 200k tokens → send full
+        //   OpenRouter / DeepSeek → conservative 80k chars
+        const _provider = _activeAgent()?.provider || '';
+        const _MAX_CHARS = {
+            groq:       60000,   // Groq on_demand tier safe limit
+            gemini:     Infinity,
+            openai:     Infinity,
+            anthropic:  Infinity,
+            openrouter: 80000,
+            deepseek:   80000,
+        }[_provider] ?? 80000;
+
         let numberedCode = code.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
+        if (numberedCode.length > _MAX_CHARS) {
+            const lines = numberedCode.split('\n');
+            // Send head + tail so AI sees structure at both ends
+            const headLines = Math.floor(_MAX_CHARS * 0.65 / 80); // ~65% from top
+            const tailLines = Math.floor(_MAX_CHARS * 0.30 / 80); // ~30% from bottom
+            const head = lines.slice(0, headLines).join('\n');
+            const tail = lines.slice(-tailLines).join('\n');
+            const skipped = lines.length - headLines - tailLines;
+            numberedCode = head + `\n\n// ⚠️ [${skipped} lines omitted — file too large for ${_provider} free tier. Use Gemini/OpenAI for full context]\n\n` + tail;
+        }
 
         // Build/refresh index for this file
         if (!_codeIndex || _codeIndexFile !== filename) _buildCodeIndex();
@@ -5880,20 +5898,33 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
 
         // Attachment context
         const attachCtx = _inlineAttachment
-            ? `\n\nAttached file (${_inlineAttachment.name}):\n${_inlineAttachment.content.slice(0, 2000)}`
+            ? `\n\n── ATTACHED FILE (${_inlineAttachment.name}) ──\n${_inlineAttachment.content.slice(0, 2000)}`
             : '';
         _inlineClearAttach();
 
-        const userMsg = `File: ${filename}${indexSummary}\n\`\`\`\n${numberedCode}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+        // ── Build full structured context message ──
+        // Every call gets: full current code + conversation summary + pending state
+        const historyForAPI = _buildHistoryForAPI();
 
-        // Build history for this call (smart trimmed)
-        const historyForAPI = _buildHistoryForAPI(code);
+        // Summarise what has happened so far in this session (for AI awareness)
+        const sessionEvents = _inlineChatHistory
+            .filter(m => m.content.startsWith('[APPLIED') || m.content.startsWith('[CONFIRMED') || m.content.startsWith('[REJECTED') || m.content.startsWith('[USER CONFIRMED'))
+            .map(m => m.content)
+            .join('\n');
+
+        const sessionSummaryBlock = sessionEvents
+            ? `\n\n── SESSION EVENTS (changes made so far) ──\n${sessionEvents}`
+            : '';
+
+        const userMsg = `── CURRENT FILE: ${filename} ──${indexSummary}${sessionSummaryBlock}\n\n── FULL CODE (with line numbers) ──\n\`\`\`\n${numberedCode}\n\`\`\`${attachCtx}\n\n── USER REQUEST ──\n${userRequest}`;
 
         try {
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI);
             _inlineHideTyping();
 
             // Save this exchange to history
+            // Store user message WITH full code so history is accurate
+            // (older entries get their code blocks stripped by _buildHistoryForAPI)
             _inlineChatHistory.push({ role: 'user', content: userMsg });
             _inlineChatHistory.push({ role: 'assistant', content: raw });
 
@@ -5938,9 +5969,16 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
                     _inlineHideTyping();
                     try { const m2 = retryRaw.match(/\{[\s\S]*\}/); if (m2) parsed = JSON.parse(m2[0]); } catch(_) {}
                 }
-                _inlineAppendMsg('agent', parsed.explanation || `Creating ${parsed.filename}`);
-                const card = _buildInlineNewFileCard(parsed.filename, parsed.content);
-                _inlineAppendMsg('agent', '', card);
+                // Auto-create the file directly — no confirmation card needed
+                openFileInTab(parsed.filename, parsed.content || '', true);
+                _inlineAppendMsg('agent',
+                    `✅ "${parsed.filename}" created and opened.` +
+                    (parsed.explanation ? '\n' + parsed.explanation : '')
+                );
+                _inlineChatHistory.push({
+                    role: 'assistant',
+                    content: `[CREATED FILE: ${parsed.filename}] ${parsed.explanation || ''}`
+                });
 
             } else if (parsed.type === 'reorganize') {
                 // Check truncation — reorganize must have FULL content
@@ -6288,16 +6326,40 @@ Use only line numbers visible in the context. Be precise.`;
             });
 
         } else {
-            // All applied — show success + undo button
+            // All applied — show success + undo + feedback buttons
             const undoCount = _agentUndoStack.length;
-            cardParent.innerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);border-radius:12px;">
-                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
-                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${applied} edit${applied!==1?'s':''} applied</span>
-                <button onclick="_agentUndoLast(this)" title="Undo this change" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
-                    Undo (${undoCount})
-                </button>
+
+            // Human-readable summary for history so AI knows what was done
+            const editSummary = (edits||[]).map((e, i) => {
+                const loc = e.line_start != null ? `lines ${e.line_start}-${e.line_end}` : `"${(e.find||'').slice(0,40)}"`;
+                return `Edit ${i+1}: replaced ${loc} with: "${(e.replace||'').slice(0,60).replace(/\n/g,' ')}"`;
+            }).join('\n');
+
+            cardParent.innerHTML = `<div style="border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;">
+                <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);">
+                    <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+                    <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${applied} edit${applied!==1?'s':''} applied ✓</span>
+                    <button onclick="_agentUndoLast(this)" title="Undo" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
+                        Undo (${undoCount})
+                    </button>
+                </div>
+                <div style="padding:8px 12px;border-top:1px solid var(--glass-border);display:flex;gap:7px;">
+                    <button onclick="_inlineReportNotWorking(this)" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.07);color:#ef4444;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                        <span class="material-icons-round" style="font-size:14px;pointer-events:none;">thumb_down</span>Didn't work
+                    </button>
+                    <button onclick="_inlineConfirmWorking(this)" style="flex:1;padding:7px;border-radius:9px;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.07);color:var(--accent);font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                        <span class="material-icons-round" style="font-size:14px;pointer-events:none;">thumb_up</span>Looks good
+                    </button>
+                </div>
             </div>`;
+
+            // Push applied summary to chat history so AI has full context next turn
+            _inlineChatHistory.push({
+                role: 'assistant',
+                content: `[APPLIED ${applied} edit${applied!==1?'s':''}]\n${editSummary}`
+            });
+
             showToast(`${applied} edit${applied!==1?'s':''} applied`, 'check_circle');
         }
     }
@@ -6315,6 +6377,86 @@ Use only line numbers visible in the context. Be precise.`;
             if (remaining === 0) btn.style.opacity = '0.35';
         }
         showToast('Undone', 'undo');
+    }
+
+    // ── "Didn't work" — re-send full current code + full history to AI for re-analysis ──
+    function _inlineReportNotWorking(btn) {
+        const card = btn.closest('div').parentElement;
+        card.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(245,158,11,0.08);border-radius:12px;border:1px solid rgba(245,158,11,0.25);">
+            <span class="material-icons-round" style="font-size:15px;color:#f59e0b;animation:commitSpin 1s linear infinite;">refresh</span>
+            <span style="font-size:11px;font-weight:700;color:#f59e0b;font-family:'Poppins',sans-serif;">Re-analysing with full context...</span>
+        </div>`;
+
+        // Get current (post-apply) code
+        const targetTab = fileTabs.find(t => t.id === ((_agentTargetTabId) || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
+        const curTab = fileTabs.find(t => t.id === activeTabId);
+        if (curTab) curTab.content = editor.getValue();
+        const code = targetTab ? targetTab.content : editor.getValue();
+        const filename = targetTab ? targetTab.name : 'untitled';
+
+        if (!_codeIndex || _codeIndexFile !== filename) _buildCodeIndex();
+        const indexSummary = _getCodeIndexSummary();
+
+        const _provider = _activeAgent()?.provider || '';
+        const _MAX_CHARS = { groq: 60000, gemini: Infinity, openai: Infinity, anthropic: Infinity, openrouter: 80000, deepseek: 80000 }[_provider] ?? 80000;
+        let numberedCode = code.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
+        if (numberedCode.length > _MAX_CHARS) {
+            const lines = numberedCode.split('\n');
+            const headLines = Math.floor(_MAX_CHARS * 0.65 / 80);
+            const tailLines = Math.floor(_MAX_CHARS * 0.30 / 80);
+            const skipped = lines.length - headLines - tailLines;
+            numberedCode = lines.slice(0, headLines).join('\n') + `\n\n// ⚠️ [${skipped} lines omitted]\n\n` + lines.slice(-tailLines).join('\n');
+        }
+
+        // Collect session events for context
+        const sessionEvents2 = _inlineChatHistory
+            .filter(m => m.content.startsWith('[APPLIED') || m.content.startsWith('[CONFIRMED') || m.content.startsWith('[REJECTED') || m.content.startsWith('[USER CONFIRMED'))
+            .map(m => m.content).join('\n');
+        const sessionSummaryBlock2 = sessionEvents2 ? `\n\n── SESSION EVENTS ──\n${sessionEvents2}` : '';
+
+        // Build re-analysis message — full current code + all context
+        const reAnalyseMsg = `── CURRENT FILE: ${filename} ──${indexSummary}${sessionSummaryBlock2}\n\n── FULL CODE (current state, after previous fix was applied) ──\n\`\`\`\n${numberedCode}\n\`\`\`\n\n── USER REPORT ──\nThe previous fix was applied but the issue is STILL present. Analyse the current code above carefully — it already includes the previous changes. Identify what is still wrong and provide a corrected fix.`;
+
+        // Include full chat history so AI sees the full conversation context
+        const historyForAPI = _buildHistoryForAPI();
+
+        _callAgentAPI(_AGENT_SYSTEM_PROMPT, reAnalyseMsg, historyForAPI).then(raw => {
+            // Save to history
+            _inlineChatHistory.push({ role: 'user', content: reAnalyseMsg });
+            _inlineChatHistory.push({ role: 'assistant', content: raw });
+
+            let parsed = null;
+            try { const m = raw.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); } catch(_) {}
+
+            card.innerHTML = '';
+
+            if (!parsed || !parsed.type) {
+                _inlineAppendMsg('agent', raw.trim());
+            } else if (parsed.type === 'edit') {
+                _inlineAppendMsg('agent', '🔁 ' + (parsed.explanation || 'Revised fix — review and apply:'));
+                const newCard = _buildInlineEditCard(parsed.edits, targetTab);
+                _inlineAppendMsg('agent', '', newCard);
+            } else if (parsed.type === 'reorganize') {
+                _inlineAppendMsg('agent', '🔁 ' + (parsed.explanation || 'Revised reorganize:'));
+                const newCard = _buildInlineReorganizeCard(parsed.content, targetTab);
+                _inlineAppendMsg('agent', '', newCard);
+            } else {
+                _inlineAppendMsg('agent', raw.trim());
+            }
+            _inlineChatScroll();
+        }).catch(err => {
+            card.innerHTML = `<div style="padding:9px 12px;font-size:11px;color:#ef4444;font-family:'Poppins',sans-serif;">⚠️ Re-analysis failed: ${(err.message||'').slice(0,80)}</div>`;
+        });
+    }
+
+    // ── "Looks good" — dismiss card, add positive confirmation to history ──
+    function _inlineConfirmWorking(btn) {
+        btn.closest('div').parentElement.innerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.06);border-radius:12px;border:1px solid rgba(16,185,129,0.2);">
+            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">verified</span>
+            <span style="font-size:11px;font-weight:600;color:var(--accent);font-family:'Poppins',sans-serif;">Fix confirmed ✓</span>
+        </div>`;
+        _inlineChatHistory.push({ role: 'user', content: '[USER CONFIRMED: the fix worked correctly]' });
+        showToast('Fix confirmed!', 'verified');
     }
 
     // ── Build Split card ──
