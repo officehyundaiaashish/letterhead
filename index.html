@@ -5532,23 +5532,22 @@ No markdown, no backticks, no explanation outside the array.`;
     // ── Conversation history for inline chat ──
     // Stores {role, content} pairs — sent with every API call
     let _inlineChatHistory = [];
-    const _HISTORY_MAX_MESSAGES = 10;   // max pairs to keep
-    const _HISTORY_MAX_CHARS    = 8000; // total char budget for history
+    const _HISTORY_MAX_MESSAGES = 20;    // max messages to keep (10 exchanges)
+    const _HISTORY_MAX_CHARS    = 40000; // generous char budget — models support large context
 
-    // Smart trim: keep recent messages, strip large code blocks from older ones
+    // Smart trim: keep full recent history, strip large code blocks only from oldest messages
     function _buildHistoryForAPI(currentFileCode) {
         if (!_inlineChatHistory.length) return [];
 
         // Take last N messages
         let history = _inlineChatHistory.slice(-_HISTORY_MAX_MESSAGES);
 
-        // Strip full file code blocks from older messages (keep last 2 only)
-        // This prevents sending 5000-line file 5 times
+        // Strip full file code blocks ONLY from messages older than last 4
+        // — AI still sees what was changed recently, just not the full file repeatedly
         const codeBlockRx = /```[\s\S]{500,}```/g;
         history = history.map((msg, i) => {
-            if (i < history.length - 2 && msg.role === 'user') {
-                // Replace large code blocks with a summary
-                const trimmed = msg.content.replace(codeBlockRx, '[code file — see current version above]');
+            if (i < history.length - 4 && msg.role === 'user') {
+                const trimmed = msg.content.replace(codeBlockRx, '[code file — see current version in this message]');
                 return { ...msg, content: trimmed };
             }
             return msg;
@@ -5872,16 +5871,8 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
         const filename = targetTab ? targetTab.name : 'untitled';
 
         // Add line numbers so AI can reference precise locations
-        // Limit to 10000 chars for free models (Groq context window)
-        const MAX_CODE_CHARS = 10000;
+        // Full code is sent — Groq (131k), Gemini (1M), OpenAI (128k) all support large contexts
         let numberedCode = code.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
-        if (numberedCode.length > MAX_CODE_CHARS) {
-            const lines = numberedCode.split('\n');
-            const half = Math.floor(MAX_CODE_CHARS / 2 / 50); // approx lines
-            const head = lines.slice(0, half).join('\n');
-            const tail = lines.slice(-half).join('\n');
-            numberedCode = head + `\n\n... [middle truncated — file too large for free model] ...\n\n` + tail;
-        }
 
         // Build/refresh index for this file
         if (!_codeIndex || _codeIndexFile !== filename) _buildCodeIndex();
