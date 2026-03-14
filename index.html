@@ -1670,7 +1670,7 @@
 
     </div>
 
-    <div class="bottom-wrapper no-select" id="bottom-panel">
+    <div class="bottom-wrapper no-select" id="bottom-outer">
         <div class="bottom-area">
                 <!-- Inline Split Chat Panel -->
         <div id="inline-chat-panel" style="display:none;flex-direction:column;background:var(--glass-bg);border-top:2px solid var(--accent);height:45vh;flex-shrink:0;">
@@ -1934,7 +1934,7 @@
 
         <!-- Commit button -->
         <button class="modal-btn" id="gh-commit-btn" onclick="commitGhFile()" disabled style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;padding:11px;background:linear-gradient(135deg,#10b981,#059669);">
-            <span class="material-icons-round" style="font-size:16px;pointer-events:none;">upload</span>Select/Save Commit
+            <span class="material-icons-round" style="font-size:16px;pointer-events:none;">upload</span>Commit
         </button>
     </div>
 </div>
@@ -2492,16 +2492,18 @@
     let _navHidden = false;
     function toggleNavVisibility() {
         _navHidden = !_navHidden;
-        const bp = document.getElementById('bottom-panel');
+        const outer = document.getElementById('bottom-outer');
+        const inner = document.getElementById('bottom-panel');
         const icon = document.getElementById('nav-hide-icon');
+        const t = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
         if (_navHidden) {
-            bp.style.transform = 'translateY(100%)';
-            bp.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-            if(icon) { icon.style.opacity = '0.4'; icon.style.transform = 'scale(0.85)'; }
+            if(outer) { outer.style.transition = t; outer.style.transform = 'translateY(100%)'; }
+            if(inner) { inner.style.transition = t; inner.style.transform = 'translateY(100%)'; }
+            if(icon)  { icon.style.opacity = '0.4'; icon.style.transform = 'scale(0.85)'; }
         } else {
-            bp.style.transform = '';
-            bp.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
-            if(icon) { icon.style.opacity = '1'; icon.style.transform = 'scale(1)'; }
+            if(outer) { outer.style.transition = t; outer.style.transform = ''; }
+            if(inner) { inner.style.transition = t; inner.style.transform = ''; }
+            if(icon)  { icon.style.opacity = '1'; icon.style.transform = 'scale(1)'; }
         }
         setTimeout(() => editor.resize(), 380);
     }
@@ -2566,9 +2568,11 @@
             document.getElementById('editor').style.opacity = '0';
             document.getElementById('editor').style.pointerEvents = 'none';
             jumpers.style.display = 'none';
-            // Hide nav panel in preview
-            const bp = document.getElementById('bottom-panel');
-            if(bp) { bp.style.transform = 'translateY(100%)'; bp.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)'; }
+            const t = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+            const outer = document.getElementById('bottom-outer');
+            const inner = document.getElementById('bottom-panel');
+            if(outer) { outer.style.transition = t; outer.style.transform = 'translateY(100%)'; }
+            if(inner) { inner.style.transition = t; inner.style.transform = 'translateY(100%)'; }
             document.getElementById('find-modal').classList.remove('active');
             closeGithubModal();
             _refreshPreview();
@@ -2577,9 +2581,14 @@
             document.getElementById('preview').classList.remove('active-pane');
             document.getElementById('editor').style.opacity = '1';
             document.getElementById('editor').style.pointerEvents = 'auto';
-            // Restore nav panel
-            const bp = document.getElementById('bottom-panel');
-            if(bp) { bp.style.transform = ''; bp.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)'; }
+            // Only restore nav if user hasn't manually hidden it
+            if(!_navHidden) {
+                const t = 'transform 0.3s cubic-bezier(0.4,0,0.2,1)';
+                const outer = document.getElementById('bottom-outer');
+                const inner = document.getElementById('bottom-panel');
+                if(outer) { outer.style.transition = t; outer.style.transform = ''; }
+                if(inner) { inner.style.transition = t; inner.style.transform = ''; }
+            }
             checkScrollable();
             editor.blur();
         }
@@ -2950,7 +2959,7 @@
         if (type === 'blob') {
             const commitBtn = document.getElementById('gh-commit-btn');
             if (commitBtn) commitBtn.disabled = false;
-            showToast(`"${name}" selected — tap Select/Save Commit to push`, 'cloud_upload');
+            showToast(`"${name}" selected — tap Commit to push`, 'cloud_upload');
         }
     }
 
