@@ -3327,58 +3327,95 @@
 
     async function _callAgentAPI(systemPrompt, userMsg) {
         const cfg = _activeAgent();
-        // 90s timeout — free models handling large code need more time
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-        try {
-            let res, d;
+        // ── Helper: extract best JSON array from raw text ──
+        function _extractJSON(raw) {
+            if (!raw) return null;
+            // Strip markdown code fences
+            raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+            // Find the outermost [ ... ] with bracket counting
+            let start = raw.indexOf('[');
+            if (start === -1) return null;
+            let depth = 0, end = -1;
+            for (let i = start; i < raw.length; i++) {
+                if (raw[i] === '[') depth++;
+                else if (raw[i] === ']') { depth--; if (depth === 0) { end = i; break; } }
+            }
+            if (end === -1) return null;
+            return raw.slice(start, end + 1);
+        }
 
-            if(cfg.provider === 'anthropic') {
+        try {
+            let res, d, text;
+
+            if (cfg.provider === 'anthropic') {
                 res = await fetch(cfg.url, {
-                    method:'POST', signal: controller.signal,
-                    headers:{'Content-Type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01'},
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, system:systemPrompt, messages:[{role:'user',content:userMsg}] })
+                    method: 'POST', signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01' },
+                    body: JSON.stringify({ model: cfg.model, max_tokens: 6000, system: systemPrompt, messages: [{ role: 'user', content: userMsg }] })
                 });
                 d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
-                return d.content[0].text.trim();
+                if (!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                // Extract only text blocks (skip thinking blocks)
+                const textBlock = (d.content || []).find(b => b.type === 'text');
+                if (!textBlock?.text) throw new Error('Anthropic returned no text. Try again.');
+                return textBlock.text.trim();
 
-            } else if(cfg.provider === 'gemini') {
+            } else if (cfg.provider === 'gemini') {
                 res = await fetch(cfg.url + '?key=' + cfg.key, {
-                    method:'POST', signal: controller.signal,
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        contents:[{parts:[{text: systemPrompt + '\n\n' + userMsg}]}],
-                        generationConfig:{ maxOutputTokens:3000, temperature:0.2 }
+                    method: 'POST', signal: controller.signal,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: systemPrompt + '\n\n' + userMsg }] }],
+                        generationConfig: { maxOutputTokens: 6000, temperature: 0.2 }
                     })
                 });
                 d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
-                if(!d.candidates || !d.candidates[0]) throw new Error('Gemini returned no candidates. Prompt may have been blocked.');
-                const part = d.candidates[0].content?.parts?.[0]?.text;
-                if(!part) throw new Error('Gemini response empty. Try again.');
-                return part.trim();
+                if (!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
+                if (!d.candidates?.[0]) throw new Error('Gemini returned no candidates. Prompt may have been blocked.');
+                text = d.candidates[0].content?.parts?.[0]?.text;
+                if (!text) throw new Error('Gemini response empty. Try again.');
+                return text.trim();
 
             } else {
                 // OpenAI-compatible: OpenAI, Groq, OpenRouter
-                const headers = {'Content-Type':'application/json','Authorization':'Bearer '+cfg.key};
-                if(cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
+                const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key };
+                if (cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
                 res = await fetch(cfg.url, {
-                    method:'POST', signal: controller.signal,
+                    method: 'POST', signal: controller.signal,
                     headers,
-                    body:JSON.stringify({ model:cfg.model, max_tokens:3000, messages:[{role:'system',content:systemPrompt},{role:'user',content:userMsg}] })
+                    body: JSON.stringify({ model: cfg.model, max_tokens: 6000, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }] })
                 });
                 d = await res.json();
-                if(!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
-                return d.choices[0].message.content.trim();
+                if (!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
+                text = d.choices?.[0]?.message?.content;
+                if (!text) throw new Error('Model returned empty response. Try again.');
+                return text.trim();
             }
-        } catch(e) {
-            if(e.name === 'AbortError') throw new Error('Request timed out (90s). Free servers are busy, try again.');
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error('Request timed out (90s). Free servers are busy, try again.');
             throw e;
         } finally {
             clearTimeout(timeoutId);
         }
+    }
+
+    // ── Shared: safe JSON array extractor ──
+    function _safeExtractJSON(raw) {
+        if (!raw) return null;
+        raw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+        let start = raw.indexOf('[');
+        if (start === -1) return null;
+        let depth = 0, end = -1;
+        for (let i = start; i < raw.length; i++) {
+            if (raw[i] === '[') depth++;
+            else if (raw[i] === ']') { depth--; if (depth === 0) { end = i; break; } }
+        }
+        if (end === -1) return null;
+        try { return JSON.parse(raw.slice(start, end + 1)); }
+        catch (e) { return null; }
     }
 
     async function sendAgentPrompt() {
@@ -3434,12 +3471,11 @@ Rules:
 - Link them correctly (e.g. <link rel="stylesheet"> in HTML, <script src="..."> in HTML)
 - Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
 
-                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
-                let jsonMatch = raw.match(/\[[\s\S]*\]/);
-                if (!jsonMatch) throw new Error("Agent chatted instead of editing. Try again.");
-                const files = JSON.parse(jsonMatch[0]);
+                const files = _safeExtractJSON(raw);
+                if (!files || !files.length) throw new Error('Agent could not split the code. Try again.');
 
                 if(!Array.isArray(files) || files.length === 0) {
                     cdAlert('Agent', 'Agent could not split the code. Try a more specific request.', 'warn');
@@ -3459,12 +3495,11 @@ RULES (STRICT):
 6. If nothing needs changing: return [].
 7. Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
 
-                const userMsg = `Code:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
-                let jsonMatch = raw.match(/\[[\s\S]*\]/);
-                if (!jsonMatch) throw new Error("Agent chatted instead of editing. Try again.");
-                const edits = JSON.parse(jsonMatch[0]);
+                const edits = _safeExtractJSON(raw);
+                if (!edits) throw new Error('Agent response could not be parsed. Try again.');
 
                 if(!Array.isArray(edits) || edits.length === 0) {
                     cdAlert('Agent', 'No changes needed for this request.', 'info');
@@ -4500,7 +4535,7 @@ Do NOT return JSON. Just talk naturally.`;
                 const foundCtx = _searchSections.length > 0
                     ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH:\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
                     : '';
-                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,8000)}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}`;
+                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}`;
                 agentText = await _callAgentAPI(systemPrompt, userMsg);
 
             } else if (isSplitIntent) {
@@ -4509,11 +4544,10 @@ Do NOT return JSON. Just talk naturally.`;
 Analyse the code and split it logically. Return ONLY a JSON array:
 [{"filename":"name.ext","content":"full content","reason":"brief reason"}]
 No markdown, no backticks, no explanation outside the array.`;
-                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
-                let jsonMatch = raw.match(/\[[\s\S]*\]/);
-                if (!jsonMatch) throw new Error('Agent could not split the code. Try again.');
-                const files = JSON.parse(jsonMatch[0]);
+                const files = _safeExtractJSON(raw);
+                if (!files || !files.length) throw new Error('Agent could not split the code. Try again.');
                 agentText = `I've split your code into ${files.length} files. Open each one below:`;
                 extraEl = _buildSplitCard(files, msgId);
 
@@ -4530,7 +4564,7 @@ Rules:
                 const foundCtx = _searchSections.length > 0
                     ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH (focus edits here):\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
                     : '';
-                const userMsg = `Code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${attachCtx}${foundCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}${foundCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
 
                 // Split explanation from JSON
@@ -4538,9 +4572,8 @@ Rules:
                 if (fixesIdx !== -1) {
                     agentText = raw.slice(0, fixesIdx).trim();
                     const jsonPart = raw.slice(fixesIdx + 6).trim();
-                    let jsonMatch = jsonPart.match(/\[[\s\S]*\]/);
-                    if (jsonMatch) {
-                        const edits = JSON.parse(jsonMatch[0]);
+                    const edits = _safeExtractJSON(jsonPart);
+                    if (edits) {
                         const valid = edits.filter(e => {
                             if (!e.find) return false;
                             if (code.includes(e.find)) return true;
@@ -4785,7 +4818,7 @@ Rules:
                 const systemPrompt = `You are CodX AI — a friendly expert code assistant inside a split-screen chat.
 Keep responses SHORT and conversational. Match the user's language (English or Hindi/Hinglish).
 Diagnose problems clearly. Do NOT return JSON. Just talk naturally.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,8000)}\n\`\`\`${foundCtx}\n\nUser: ${userRequest}`;
+                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${foundCtx}\n\nUser: ${userRequest}`;
                 agentText = await _callAgentAPI(systemPrompt, userMsg);
 
             } else if (isSplitIntent) {
@@ -4793,7 +4826,7 @@ Diagnose problems clearly. Do NOT return JSON. Just talk naturally.`;
                 const splitPrompt = `You are CodX AI. Split the code into multiple files.
 Return ONLY a JSON array: [{"filename":"name.ext","content":"full content","reason":"brief"}]
 No markdown, no backticks.`;
-                const userMsg = `Code:\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(splitPrompt, userMsg);
                 let match = raw.match(/\[[\s\S]*\]/);
                 if (!match) throw new Error('Could not split code. Try again.');
@@ -4809,7 +4842,7 @@ THEN write exactly: FIXES:
 THEN return JSON array: [{"find":"exact string","replace":"new string","reason":"brief"}]
 Rules: find must be exact verbatim substring. Return [] if no changes needed.
 Only JSON after FIXES: — nothing else after it.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,10000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
 
                 const fixIdx = raw.indexOf('FIXES:');
