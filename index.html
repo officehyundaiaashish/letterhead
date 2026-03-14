@@ -3946,11 +3946,17 @@
         try {
             let res, d, text;
 
+            // Per-provider max_tokens — free models have tight output limits
+            const _maxTok = {
+                groq: 8000, gemini: 8192, openai: 8000,
+                anthropic: 8000, openrouter: 8000, deepseek: 8000
+            }[cfg.provider] ?? 8000;
+
             if (cfg.provider === 'anthropic') {
                 res = await fetch(cfg.url, {
                     method: 'POST', signal: controller.signal,
                     headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01' },
-                    body: JSON.stringify({ model: cfg.model, max_tokens: 6000, system: systemPrompt, messages })
+                    body: JSON.stringify({ model: cfg.model, max_tokens: _maxTok, system: systemPrompt, messages })
                 });
                 d = await res.json();
                 if (!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
@@ -3959,19 +3965,30 @@
                 return textBlock.text.trim();
 
             } else if (cfg.provider === 'gemini') {
-                // Gemini uses contents[] format
-                const contents = messages.map(m => ({
+                // Gemini: history roles must be 'user' or 'model' (not 'assistant')
+                // System prompt injected into first user message
+                const geminiHistory = conversationHistory.map(m => ({
                     role: m.role === 'assistant' ? 'model' : 'user',
-                    parts: [{ text: m.role === 'system' ? systemPrompt + '\n\n' + m.content : m.content }]
+                    parts: [{ text: m.content }]
                 }));
-                // Prepend system prompt to first user message if no prior history
-                if (contents.length > 0 && contents[0].role === 'user') {
-                    contents[0].parts[0].text = systemPrompt + '\n\n' + contents[0].parts[0].text;
-                }
+                // Fix: Gemini cannot have consecutive same-role messages — merge if needed
+                const mergedHistory = [];
+                geminiHistory.forEach(msg => {
+                    const last = mergedHistory[mergedHistory.length - 1];
+                    if (last && last.role === msg.role) {
+                        last.parts[0].text += '\n' + msg.parts[0].text;
+                    } else {
+                        mergedHistory.push({ role: msg.role, parts: [{ text: msg.parts[0].text }] });
+                    }
+                });
+                const contents = [
+                    ...mergedHistory,
+                    { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userMsg }] }
+                ];
                 res = await fetch(cfg.url + '?key=' + cfg.key, {
                     method: 'POST', signal: controller.signal,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 6000, temperature: 0.2 } })
+                    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: _maxTok, temperature: 0.1 } })
                 });
                 d = await res.json();
                 if (!res.ok) throw new Error(d.error?.message || d.error?.status || `HTTP ${res.status}`);
@@ -3981,13 +3998,18 @@
                 return text.trim();
 
             } else {
-                // OpenAI-compatible: OpenAI, Groq, OpenRouter
+                // OpenAI-compatible: OpenAI, Groq, OpenRouter, DeepSeek
                 const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key };
                 if (cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
                 res = await fetch(cfg.url, {
                     method: 'POST', signal: controller.signal,
                     headers,
-                    body: JSON.stringify({ model: cfg.model, max_tokens: 6000, messages: [{ role: 'system', content: systemPrompt }, ...messages] })
+                    body: JSON.stringify({
+                        model: cfg.model,
+                        max_tokens: _maxTok,
+                        temperature: 0.1,
+                        messages: [{ role: 'system', content: systemPrompt }, ...messages]
+                    })
                 });
                 d = await res.json();
                 if (!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
@@ -5769,80 +5791,32 @@ No markdown, no backticks, no explanation outside the array.`;
     //  No regex intent detection — AI handles everything
     // ══════════════════════════════════════════════════
 
-    const _AGENT_SYSTEM_PROMPT = `You are an expert HTML/CSS/JS code assistant inside CodX mobile editor.
+    const _AGENT_SYSTEM_PROMPT = `You are a code assistant in CodX editor. You receive code with LINE NUMBERS like "42| code here".
 
-You will receive the full file with LINE NUMBERS in format: "N| code"
+RESPOND WITH ONE OF THESE — pick based on user intent:
 
-━━━ YOUR JOB: Read the request carefully, then decide the action type yourself ━━━
-Do NOT rely on keywords. Understand the INTENT.
+─── EXPLAIN (question/debug/review) ───
+Reply in plain text. Short. Same language as user (English/Hindi/Hinglish).
 
-════ ACTION TYPE 1: explain ════
-User is asking a question, wants explanation, debugging help, review, or suggestion.
-→ Reply in plain conversational text. SHORT. Match user language (English/Hindi/Hinglish).
-→ Do NOT return JSON.
+─── EDIT (fix/change/improve/add/remove) ───
+Return ONLY this JSON, nothing else before or after:
+{"type":"edit","explanation":"what changed","edits":[{"line_start":N,"line_end":N,"replace":"new code"}]}
+Rules: use exact line numbers shown. replace = complete new lines. surgical changes only. max 8 edits.
 
-════ ACTION TYPE 2: edit ════
-User wants to change, fix, add, remove, or improve something in the existing code.
-→ Return ONLY valid JSON — no markdown fences, no text before or after:
-{
-  "type": "edit",
-  "explanation": "What changed and why — one line",
-  "edits": [
-    {
-      "line_start": 42,
-      "line_end": 45,
-      "replace": "exact new code to put here"
-    }
-  ]
-}
-RULES:
-- line_start and line_end are the line numbers from the provided code (inclusive).
-- replace is the COMPLETE new content for those lines.
-- Be surgical — only change what is needed. Do not touch unrelated lines.
-- Preserve indentation style of the file. Do not add extra blank lines.
-- Max 5 edits per request.
+─── NEW FILE (create from scratch) ───
+Return ONLY this JSON, nothing else:
+{"type":"new_file","explanation":"what it does","filename":"name.ext","content":"complete file"}
+If MODE: CREATE NEW FILE is in the message — you MUST use this type.
 
-════ ACTION TYPE 3: split ════
-User wants to break the file into multiple separate files/modules.
-→ Return ONLY valid JSON:
-{
-  "type": "split",
-  "explanation": "What was split and why",
-  "files": [
-    { "filename": "index.html", "content": "complete file content" }
-  ]
-}
+─── REORGANIZE (restructure layout/order) ───
+Return ONLY this JSON with COMPLETE file content:
+{"type":"reorganize","explanation":"what changed","content":"entire file content"}
 
-════ ACTION TYPE 4: new_file ════
-User wants a brand new file created from scratch.
-→ Return ONLY valid JSON — NO explanation text before or after, NO markdown fences:
-{"type":"new_file","explanation":"one line what it does","filename":"name.html","content":"COMPLETE file content here"}
-
-IMPORTANT: content must be the full file as a JSON string. Escape all quotes inside content with \".
-When MODE: CREATE NEW FILE is set — you MUST use this action type. No other type is allowed.
-
-CRITICAL RULES:
-- Always read the FULL code before responding.
-- Never guess or hallucinate line content — copy from what you see.
-- Respond in same language as user (English/Hindi/Hinglish).
-- Do not add unrequested changes.
-- Preserve all existing functionality unless explicitly asked to change it.
-- If the message contains "── OPEN FILE: filename ──" sections, those are OTHER files currently open in the editor. Use them as reference/context. If user asks to create something "like" another file or "similar to" another file — study those open files for style, structure, and patterns.
-
-════ ACTION TYPE 5: reorganize ════
-User wants to restructure, reorder, or reorganize the code layout (move sections, reorder CSS, restructure HTML, etc.)
-→ Return ONLY valid JSON with the COMPLETE reorganized file — every single line:
-{
-  "type": "reorganize",
-  "explanation": "What was reorganized and why",
-  "content": "COMPLETE full file content — no omissions"
-}
-
-⚠️ ANTI-TRUNCATION — ABSOLUTE RULE:
-- NEVER use "..." or "[rest of code]" or "[same as before]" or "[truncated]" or "[content continues]" or ANY placeholder.
-- NEVER omit any part of the file. Write every single line.
-- If the file is long, write it ALL. Do not summarize or skip any section.
-- If you cannot return the full content, use "edit" with fewer edits instead — but NEVER truncate.`;
+STRICT RULES:
+- Return ONLY JSON for edit/new_file/reorganize — no markdown fences, no text outside JSON
+- Never truncate content — write every line
+- Never hallucinate line numbers — use only what you see
+- In JSON strings: escape " as \\" and newlines as \\n`;
 
     // ── Robust JSON parser — shared across all agent response handlers ──
     function _tryParseJSON(str) {
@@ -6022,17 +5996,23 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
             parsed = _tryParseJSON(raw);
 
             // ── If new_file mode and first response has code block — extract immediately ──
+            // Text outside the code block = explanation → show in chat
+            // Code inside ``` ``` = actual file content → paste in editor
             if (_isNewFileMode && (!parsed || parsed.type !== 'new_file')) {
-                const fenceMatch = raw.match(/```(?:html|css|js|javascript)?\s*([\s\S]*?)```/);
+                const fenceMatch = raw.match(/```(?:html|css|js|javascript|typescript)?\s*([\s\S]*?)```/);
                 if (fenceMatch) {
                     const extractedCode = fenceMatch[1].trim();
+                    // Everything outside the code block = AI's explanation/comments
+                    const textOutside = raw
+                        .replace(/```(?:html|css|js|javascript|typescript)?[\s\S]*?```/g, '')
+                        .trim();
                     const guessExt = /<!DOCTYPE|<html/i.test(extractedCode) ? 'html'
-                        : /{[\s\S]*}/i.test(extractedCode) ? 'css' : 'js';
+                        : /^[\s\S]*\{[\s\S]*\}/.test(extractedCode) && !/</.test(extractedCode) ? 'css' : 'js';
                     parsed = {
                         type: 'new_file',
                         filename: `new-file.${guessExt}`,
                         content: extractedCode,
-                        explanation: ''
+                        explanation: textOutside || ''
                     };
                 }
             }
@@ -6049,31 +6029,52 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
                 if (retryParsed && retryParsed.type === 'new_file') {
                     parsed = retryParsed;
                 } else {
-                    // Last resort — extract raw code from markdown fences if present
-                    const fenceMatch = retryRaw.match(/```(?:html|css|js|javascript)?\s*([\s\S]*?)```/);
+                    // Last resort — extract code from markdown fences, text outside = explanation
+                    const fenceMatch = retryRaw.match(/```(?:html|css|js|javascript|typescript)?\s*([\s\S]*?)```/);
                     const extractedCode = fenceMatch ? fenceMatch[1].trim() : retryRaw.trim();
-                    // Guess filename from content
+                    const textOutside = fenceMatch
+                        ? retryRaw.replace(/```(?:html|css|js|javascript|typescript)?[\s\S]*?```/g, '').trim()
+                        : '';
                     const guessExt = /<!DOCTYPE|<html/i.test(extractedCode) ? 'html'
-                        : /<style|{[\s\S]*}/i.test(extractedCode) ? 'css' : 'js';
+                        : /^[\s\S]*\{[\s\S]*\}/.test(extractedCode) && !/</.test(extractedCode) ? 'css' : 'js';
                     parsed = {
                         type: 'new_file',
                         filename: `new-file.${guessExt}`,
                         content: extractedCode,
-                        explanation: 'Generated file'
+                        explanation: textOutside || ''
                     };
                 }
             }
 
             if (!parsed || !parsed.type) {
-                // Plain text response — just show it
-                // Only warn if it strongly looks like JSON that failed to parse
-                const stronglyLooksLikeJSON = raw.trim().startsWith('{') && raw.trim().endsWith('}');
-                if (stronglyLooksLikeJSON) {
-                    // Show truncated raw for debugging + retry hint
-                    const preview = raw.trim().slice(0, 120).replace(/</g,'&lt;');
-                    _inlineAppendMsg('agent', `⚠️ AI response looks like JSON but could not be parsed. Try again or switch to a smarter model.\n\nRaw preview: ${preview}...`);
+                // ── Plain text — but check if it contains a code block ──
+                const fenceMatch = raw.match(/```(?:html|css|js|javascript|typescript)?\s*([\s\S]*?)```/);
+                if (fenceMatch && targetTab) {
+                    // AI gave explanation + code block — show text in chat, apply code to editor
+                    const extractedCode = fenceMatch[1].trim();
+                    const textOutside = raw.replace(/```(?:html|css|js|javascript|typescript)?[\s\S]*?```/g, '').trim();
+                    if (textOutside) _inlineAppendMsg('agent', textOutside);
+                    // Save undo snapshot and apply
+                    _agentUndoStack.push(targetTab.content || editor.getValue());
+                    if (_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
+                    targetTab.content = extractedCode;
+                    if (targetTab.id === activeTabId) {
+                        editor.setValue(extractedCode, -1);
+                    } else {
+                        switchFileTab(targetTab.id);
+                        editor.setValue(extractedCode, -1);
+                    }
+                    _inlineAppendMsg('agent', `✅ Code applied to ${targetTab.name}.`);
+                    _inlineChatHistory.push({ role: 'assistant', content: `[APPLIED CODE TO ${targetTab.name}]` });
                 } else {
-                    _inlineAppendMsg('agent', raw.trim());
+                    // Pure text — explanation or question answer
+                    const stronglyLooksLikeJSON = raw.trim().startsWith('{') && raw.trim().endsWith('}');
+                    if (stronglyLooksLikeJSON) {
+                        const preview = raw.trim().slice(0, 120).replace(/</g,'&lt;');
+                        _inlineAppendMsg('agent', `⚠️ AI returned malformed JSON. Try again or switch to Gemini/OpenAI.\n\nPreview: ${preview}...`);
+                    } else {
+                        _inlineAppendMsg('agent', raw.trim());
+                    }
                 }
 
             } else if (parsed.type === 'edit') {
@@ -6081,7 +6082,9 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
                 if (!Array.isArray(parsed.edits) || parsed.edits.length === 0) {
                     _inlineAppendMsg('agent', parsed.explanation || 'No changes were needed.');
                 } else {
-                    _inlineAppendMsg('agent', parsed.explanation || `${parsed.edits.length} edit${parsed.edits.length!==1?'s':''} ready — review below.`);
+                    if (parsed.explanation && parsed.explanation.trim()) {
+                        _inlineAppendMsg('agent', parsed.explanation.trim());
+                    }
                     const card = _buildInlineEditCard(parsed.edits, targetTab);
                     _inlineAppendMsg('agent', '', card);
                 }
@@ -6134,20 +6137,21 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
                     // Replace content in current tab
                     if (curActiveTab) curActiveTab.content = newContent;
                     editor.setValue(newContent, -1);
-                    _inlineAppendMsg('agent',
-                        `✅ Code pasted into current file.` +
-                        (parsed.explanation ? '\n' + parsed.explanation : '')
-                    );
+                    // Show AI's explanation/comments in chat first (if any), then success
+                    if (parsed.explanation && parsed.explanation.trim()) {
+                        _inlineAppendMsg('agent', parsed.explanation.trim());
+                    }
+                    _inlineAppendMsg('agent', `✅ Code pasted into editor.`);
                     // Reset to normal file mode
                     _inlineSelectedTabId = activeTabId;
                     _agentTargetTabId = activeTabId;
                     _inlineRenderFileDropdown();
                 } else {
                     openFileInTab(parsed.filename, parsed.content || '', true);
-                    _inlineAppendMsg('agent',
-                        `✅ "${parsed.filename}" created and opened.` +
-                        (parsed.explanation ? '\n' + parsed.explanation : '')
-                    );
+                    if (parsed.explanation && parsed.explanation.trim()) {
+                        _inlineAppendMsg('agent', parsed.explanation.trim());
+                    }
+                    _inlineAppendMsg('agent', `✅ "${parsed.filename}" created and opened.`);
                     _inlineSelectedTabId = activeTabId;
                     _agentTargetTabId = activeTabId;
                     _inlineRenderFileDropdown();
@@ -6183,10 +6187,10 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
                         editor.setValue(parsed.content, -1);
                     }
                     const newLineCount = parsed.content.split('\n').length;
-                    _inlineAppendMsg('agent',
-                        `✅ File reorganized (${newLineCount} lines). You can undo if needed.` +
-                        (parsed.explanation ? '\n' + parsed.explanation : '')
-                    );
+                    if (parsed.explanation && parsed.explanation.trim()) {
+                        _inlineAppendMsg('agent', parsed.explanation.trim());
+                    }
+                    _inlineAppendMsg('agent', `✅ File reorganized (${newLineCount} lines). Undo available.`);
                     _inlineChatHistory.push({
                         role: 'assistant',
                         content: `[REORGANIZED FILE — ${newLineCount} lines] ${parsed.explanation || ''}`
