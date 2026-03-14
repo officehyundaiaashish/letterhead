@@ -1726,10 +1726,27 @@
             <!-- AGENT BAR — legacy compat, hidden -->
 
     <div class="bottom-wrapper no-select" id="bottom-panel">
-        <!-- Arrow sits on top border of bottom-area: half outside half inside -->
+        <!-- Arrow pill sits on top border of bottom-area: half outside half inside -->
         <div style="position:relative;height:0;overflow:visible;display:flex;justify-content:center;z-index:51;">
-            <button id="nav-toggle-btn" onclick="toggleNavSize()" style="background:var(--accent);border:2px solid var(--bg-color);border-radius:50%;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;box-shadow:none;transition:opacity 0.2s;position:absolute;top:-18px;">
-                <span class="material-icons-round" id="nav-toggle-icon" style="font-size:22px;pointer-events:none;transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">expand_more</span>
+            <button id="nav-toggle-btn" onclick="toggleNavSize()" style="
+                background:var(--glass-bg);
+                border:1.5px solid var(--accent);
+                border-radius:999px;
+                cursor:pointer;
+                color:white;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                width:52px;
+                height:26px;
+                flex-shrink:0;
+                box-shadow:none;
+                transition:opacity 0.2s;
+                position:absolute;
+                top:-13px;
+                padding:0;
+            ">
+                <span class="material-icons-round" id="nav-toggle-icon" style="font-size:20px;pointer-events:none;transition:transform 0.35s cubic-bezier(0.4,0,0.2,1);">expand_more</span>
             </button>
         </div>
         <div class="bottom-area">
