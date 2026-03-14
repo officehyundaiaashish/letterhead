@@ -5815,13 +5815,11 @@ User wants to break the file into multiple separate files/modules.
 
 ════ ACTION TYPE 4: new_file ════
 User wants a brand new file created from scratch.
-→ Return ONLY valid JSON:
-{
-  "type": "new_file",
-  "explanation": "What this file does",
-  "filename": "descriptive-name.html",
-  "content": "complete file content"
-}
+→ Return ONLY valid JSON — NO explanation text before or after, NO markdown fences:
+{"type":"new_file","explanation":"one line what it does","filename":"name.html","content":"COMPLETE file content here"}
+
+IMPORTANT: content must be the full file as a JSON string. Escape all quotes inside content with \".
+When MODE: CREATE NEW FILE is set — you MUST use this action type. No other type is allowed.
 
 CRITICAL RULES:
 - Always read the FULL code before responding.
@@ -5866,15 +5864,20 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
             }
         }
 
-        // Strategy 3: fix common AI JSON mistakes — trailing commas, single quotes
+        // Strategy 3: only fix trailing commas — no other replacements (they corrupt HTML/CSS content)
         try {
-            const fixed = str
-                .replace(/,\s*([}\]])/g, '$1')
-                .replace(/:\s*'([^']*)'/g, ':"$1"');
-            const s2 = fixed.indexOf('{'), e2 = fixed.lastIndexOf('}');
-            if (s2 !== -1 && e2 !== -1) {
-                const p = JSON.parse(fixed.slice(s2, e2 + 1));
-                if (p && p.type) return p;
+            const s3 = str.indexOf('{');
+            if (s3 !== -1) {
+                let d3 = 0, e3 = -1;
+                for (let i = s3; i < str.length; i++) {
+                    if (str[i] === '{') d3++;
+                    else if (str[i] === '}') { d3--; if (d3 === 0) { e3 = i; break; } }
+                }
+                if (e3 !== -1) {
+                    const fixed = str.slice(s3, e3 + 1).replace(/,(\s*[}\]])/g, '$1');
+                    const p = JSON.parse(fixed);
+                    if (p && p.type) return p;
+                }
             }
         } catch(_) {}
 
@@ -5995,7 +5998,7 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
 
         // In new-file mode: don't send any existing code as target — just context files + request
         const newFileModePrefix = _isNewFileMode
-            ? `── MODE: CREATE NEW FILE ──\nUser wants a brand new file created from scratch. Do NOT edit any existing file. Respond ONLY with action type "new_file".\n\n`
+            ? `── MODE: CREATE NEW FILE ──\nYou MUST respond with ONLY this JSON and nothing else — no explanation, no markdown, no text before or after:\n{"type":"new_file","explanation":"...","filename":"name.ext","content":"COMPLETE file content"}\n\n`
             : '';
 
         const codeBlock = _isNewFileMode
@@ -6017,6 +6020,23 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
             // ── Robust JSON extraction ──
             let parsed = null;
             parsed = _tryParseJSON(raw);
+
+            // ── New file mode fallback — if AI didn't return new_file type, retry once ──
+            if (_isNewFileMode && (!parsed || parsed.type !== 'new_file')) {
+                _inlineShowTyping();
+                const retryRaw = await _callAgentAPI(
+                    'You are a code generator. Respond with ONLY valid JSON, no markdown, no text. Format: {"type":"new_file","explanation":"brief description","filename":"name.ext","content":"complete file content here"}',
+                    `Create this: ${userRequest}${otherFilesCtx ? '\n\nReference files for style/structure:' + otherFilesCtx : ''}`
+                );
+                _inlineHideTyping();
+                const retryParsed = _tryParseJSON(retryRaw);
+                if (retryParsed && retryParsed.type === 'new_file') {
+                    parsed = retryParsed;
+                } else if (!parsed) {
+                    // Last resort — treat entire response as file content
+                    parsed = { type: 'new_file', filename: 'new-file.html', content: retryRaw.trim(), explanation: 'Generated file' };
+                }
+            }
 
             if (!parsed || !parsed.type) {
                 // Plain text response — just show it
