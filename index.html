@@ -728,6 +728,22 @@
         .chat-time {
             font-size: 9px; opacity: 0.4; margin-top: 3px; font-weight: 600;
         }
+        .chat-msg-footer {
+            display: flex; align-items: center; gap: 6px; margin-top: 3px;
+        }
+        .chat-copy-btn {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-color); opacity: 0; padding: 2px 5px;
+            border-radius: 6px; display: flex; align-items: center; gap: 3px;
+            font-size: 9px; font-weight: 600; font-family: 'Poppins', sans-serif;
+            transition: opacity 0.15s, background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .chat-copy-btn .material-icons-round { font-size: 12px; pointer-events: none; }
+        .chat-msg:hover .chat-copy-btn,
+        .chat-msg:active .chat-copy-btn { opacity: 0.6; }
+        .chat-copy-btn:active { opacity: 1 !important; background: var(--accent-dim); color: var(--accent); }
+        .chat-copy-btn.copied { opacity: 1 !important; color: var(--accent); }
 
         /* Typing indicator bubble */
         .chat-typing-bubble {
@@ -3328,7 +3344,7 @@
     async function _callAgentAPI(systemPrompt, userMsg) {
         const cfg = _activeAgent();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
+        const timeoutId = setTimeout(() => controller.abort(), 180000);
 
         // ── Helper: extract best JSON array from raw text ──
         function _extractJSON(raw) {
@@ -3395,7 +3411,7 @@
                 return text.trim();
             }
         } catch (e) {
-            if (e.name === 'AbortError') throw new Error('Request timed out (90s). Free servers are busy, try again.');
+            if (e.name === 'AbortError') throw new Error('timeout');
             throw e;
         } finally {
             clearTimeout(timeoutId);
@@ -3535,8 +3551,8 @@ RULES (STRICT):
                 errMsg = 'Quota exceeded';
                 errHint = 'Free tier limit hit. Wait a bit or use a different API key.';
             } else if(/timeout|abort|timed out/i.test(raw)) {
-                errMsg = 'Request timed out';
-                errHint = 'Check your internet and try again.';
+                errMsg = 'AI took too long';
+                errHint = 'Free models are slow with large code. Try a shorter prompt or smaller file.';
             } else if(/401|403|invalid.*key|api.?key/i.test(raw)) {
                 errMsg = 'Invalid API key';
                 errHint = 'Reconnect agent with a valid key.';
@@ -4189,7 +4205,6 @@ RULES (STRICT):
     // ── Append a message bubble ──
     function _appendChatMsg(role, text, time, extraEl) {
         const box = document.getElementById('agent-chat-messages');
-        // Remove empty state on first message
         const empty = document.getElementById('chat-empty-state');
         if (empty) empty.remove();
 
@@ -4198,16 +4213,36 @@ RULES (STRICT):
 
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble';
-        // Render text with newlines
         bubble.innerHTML = text.replace(/\n/g, '<br>').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/&lt;br&gt;/g,'<br>');
+
+        // Footer: timestamp + copy button
+        const footer = document.createElement('div');
+        footer.className = 'chat-msg-footer';
 
         const ts = document.createElement('div');
         ts.className = 'chat-time';
         ts.textContent = time || _chatTime();
 
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'chat-copy-btn';
+        copyBtn.innerHTML = '<span class="material-icons-round">content_copy</span>';
+        copyBtn.title = 'Copy';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = '<span class="material-icons-round">check</span>';
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = '<span class="material-icons-round">content_copy</span>';
+                }, 1500);
+            });
+        };
+
+        footer.appendChild(ts);
+        footer.appendChild(copyBtn);
         wrap.appendChild(bubble);
         if (extraEl) bubble.appendChild(extraEl);
-        wrap.appendChild(ts);
+        wrap.appendChild(footer);
         box.appendChild(wrap);
         _chatScrollBottom();
         return bubble;
@@ -4604,7 +4639,7 @@ Rules:
             const raw = err.message || 'Something went wrong.';
             let errMsg;
             if (/quota|rate.?limit|exceeded/i.test(raw))      errMsg = 'Quota exceeded — wait a bit or switch agent.';
-            else if (/timeout|abort|timed out/i.test(raw))    errMsg = 'Request timed out — check your connection.';
+            else if (/timeout|abort|timed out/i.test(raw))    errMsg = 'AI is still thinking... took too long. Try again with a shorter request.';
             else if (/401|403|invalid.*key|api.?key/i.test(raw)) errMsg = 'Invalid API key — reconnect your agent.';
             else if (/network|fetch|failed to fetch/i.test(raw)) errMsg = 'Network error — check your internet.';
             else errMsg = raw.slice(0, 100);
@@ -4723,13 +4758,34 @@ Rules:
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
             .replace(/\n/g, '<br>');
 
+        // Footer: timestamp + copy button
+        const footer = document.createElement('div');
+        footer.className = 'chat-msg-footer';
+
         const ts = document.createElement('div');
         ts.className = 'chat-time';
         ts.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'chat-copy-btn';
+        copyBtn.innerHTML = '<span class="material-icons-round">content_copy</span>';
+        copyBtn.title = 'Copy';
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.classList.add('copied');
+                copyBtn.innerHTML = '<span class="material-icons-round">check</span>';
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                    copyBtn.innerHTML = '<span class="material-icons-round">content_copy</span>';
+                }, 1500);
+            });
+        };
+
+        footer.appendChild(ts);
+        footer.appendChild(copyBtn);
         wrap.appendChild(bubble);
         if (extraEl) bubble.appendChild(extraEl);
-        wrap.appendChild(ts);
+        wrap.appendChild(footer);
         box.appendChild(wrap);
         _inlineChatScroll();
         return bubble;
@@ -4879,7 +4935,7 @@ Only JSON after FIXES: — nothing else after it.`;
             const raw = err.message || 'Something went wrong.';
             let msg;
             if (/quota|rate.?limit|exceeded/i.test(raw))         msg = 'Quota exceeded — wait or switch agent.';
-            else if (/timeout|abort|timed out/i.test(raw))       msg = 'Request timed out — check connection.';
+            else if (/timeout|abort|timed out/i.test(raw))       msg = 'AI is still thinking... took too long. Try again with a shorter request.';
             else if (/401|403|invalid.*key|api.?key/i.test(raw)) msg = 'Invalid API key — reconnect agent.';
             else if (/network|fetch|failed to fetch/i.test(raw)) msg = 'Network error — check internet.';
             else msg = raw.slice(0, 100);
