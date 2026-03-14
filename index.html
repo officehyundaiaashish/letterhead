@@ -5531,7 +5531,22 @@ CRITICAL RULES:
 - Never guess or hallucinate line content — copy from what you see.
 - Respond in same language as user (English/Hindi/Hinglish).
 - Do not add unrequested changes.
-- Preserve all existing functionality unless explicitly asked to change it.`;
+- Preserve all existing functionality unless explicitly asked to change it.
+
+════ ACTION TYPE 5: reorganize ════
+User wants to restructure, reorder, or reorganize the code layout (move sections, reorder CSS, restructure HTML, etc.)
+→ Return ONLY valid JSON with the COMPLETE reorganized file — every single line:
+{
+  "type": "reorganize",
+  "explanation": "What was reorganized and why",
+  "content": "COMPLETE full file content — no omissions"
+}
+
+⚠️ ANTI-TRUNCATION — ABSOLUTE RULE:
+- NEVER use "..." or "[rest of code]" or "[same as before]" or "[truncated]" or "[content continues]" or ANY placeholder.
+- NEVER omit any part of the file. Write every single line.
+- If the file is long, write it ALL. Do not summarize or skip any section.
+- If you cannot return the full content, use "edit" with fewer edits instead — but NEVER truncate.`;
 
     async function sendInlineChat() {
         if (!_activeAgent()) {
@@ -5599,21 +5614,52 @@ CRITICAL RULES:
                 _inlineAppendMsg('agent', raw.trim());
 
             } else if (parsed.type === 'edit') {
-                // Show explanation + Apply card
                 _inlineAppendMsg('agent', parsed.explanation || 'Ready to apply edits.');
                 const card = _buildInlineEditCard(parsed.edits, targetTab);
                 _inlineAppendMsg('agent', '', card);
 
             } else if (parsed.type === 'split') {
-                // Split files card
+                const truncated = _detectTruncation(parsed.files?.map(f => f.content).join(''));
+                if (truncated) {
+                    _inlineAppendMsg('agent', '⚠️ AI truncated the output. Retrying with explicit instruction...');
+                    _inlineShowTyping();
+                    const retryRaw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg + '\n\nCRITICAL: Return the COMPLETE content for every file. Do NOT truncate or use placeholders. Write every single line.');
+                    _inlineHideTyping();
+                    try {
+                        const m2 = retryRaw.match(/\{[\s\S]*\}/);
+                        if (m2) parsed = JSON.parse(m2[0]);
+                    } catch(_) {}
+                }
                 _inlineAppendMsg('agent', parsed.explanation || `Splitting into ${parsed.files?.length} files.`);
                 const card = _buildInlineSplitCard(parsed.files);
                 _inlineAppendMsg('agent', '', card);
 
             } else if (parsed.type === 'new_file') {
-                // New file card
+                const truncated = _detectTruncation(parsed.content);
+                if (truncated) {
+                    _inlineAppendMsg('agent', '⚠️ AI truncated the output. Retrying...');
+                    _inlineShowTyping();
+                    const retryRaw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg + '\n\nCRITICAL: Return COMPLETE file content. No truncation, no placeholders.');
+                    _inlineHideTyping();
+                    try { const m2 = retryRaw.match(/\{[\s\S]*\}/); if (m2) parsed = JSON.parse(m2[0]); } catch(_) {}
+                }
                 _inlineAppendMsg('agent', parsed.explanation || `Creating ${parsed.filename}`);
                 const card = _buildInlineNewFileCard(parsed.filename, parsed.content);
+                _inlineAppendMsg('agent', '', card);
+
+            } else if (parsed.type === 'reorganize') {
+                // Check truncation — reorganize must have FULL content
+                const truncated = _detectTruncation(parsed.content);
+                if (truncated) {
+                    _inlineAppendMsg('agent', '⚠️ AI truncated the reorganized file. Retrying with full content request...');
+                    _inlineShowTyping();
+                    const retryRaw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT,
+                        userMsg + '\n\nCRITICAL: Your previous response was truncated. Return the COMPLETE reorganized file — every single line, no shortcuts, no "rest remains same", no ellipsis.');
+                    _inlineHideTyping();
+                    try { const m2 = retryRaw.match(/\{[\s\S]*\}/); if (m2) parsed = JSON.parse(m2[0]); } catch(_) {}
+                }
+                _inlineAppendMsg('agent', parsed.explanation || 'Reorganized file ready.');
+                const card = _buildInlineReorganizeCard(parsed.content, targetTab);
                 _inlineAppendMsg('agent', '', card);
             }
 
@@ -5634,20 +5680,171 @@ CRITICAL RULES:
     }
 
     // ── Build Apply card for edits ──
+    // ── Detect if AI truncated the output ──
+    function _detectTruncation(content) {
+        if (!content) return false;
+        const patterns = [
+            /\.\.\./,
+            /\[rest.*?(same|before|continues|omitted|unchanged)\]/i,
+            /\[truncated\]/i,
+            /\[content continues\]/i,
+            /\/\/ rest of (the )?(code|file|content)/i,
+            /\/\* rest of/i,
+            /same as (before|above|original)/i,
+            /<!-- rest of/i,
+            /\[same as (before|original|above)\]/i,
+        ];
+        return patterns.some(p => p.test(content));
+    }
+
+    // ── Build Reorganize card with full file diff ──
+    function _buildInlineReorganizeCard(newContent, targetTab) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;margin-top:4px;';
+
+        const oldContent = targetTab ? targetTab.content : editor.getValue();
+        const oldLines = oldContent.split('\n');
+        const newLines = (newContent || '').split('\n');
+
+        // Count changed lines for summary
+        const oldSet = new Set(oldLines);
+        const newSet = new Set(newLines);
+        const moved = newLines.filter(l => oldSet.has(l)).length;
+        const added = newLines.filter(l => !oldSet.has(l)).length;
+        const removed = oldLines.filter(l => !newSet.has(l)).length;
+
+        // Build compact diff — show first 40 lines of diff
+        const { html } = _buildDiffHTML(oldLines.slice(0, 60), newLines.slice(0, 60));
+        const tabId = targetTab ? targetTab.id : 'null';
+        const contentJson = JSON.stringify(newContent).replace(/"/g, '&quot;');
+
+        card.innerHTML = `
+            <div style="background:rgba(16,185,129,0.08);padding:9px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">reorder</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">Reorganized file — ${newLines.length} lines</span>
+                <span style="font-size:9px;font-weight:600;font-family:'Poppins',sans-serif;color:var(--text-color);opacity:0.45;">
+                    <span style="color:#ef4444;">-${removed}</span> &nbsp;<span style="color:#10b981;">+${added}</span>
+                </span>
+            </div>
+            <div style="max-height:200px;overflow-y:auto;background:rgba(0,0,0,0.15);">${html}<div style="padding:4px 8px;font-size:9px;opacity:0.4;font-family:'Courier New',monospace;">... preview shows first 60 lines</div></div>
+            <div style="padding:8px 12px;display:flex;gap:7px;border-top:1px solid var(--glass-border);">
+                <button onclick="_applyInlineReorganize(this, ${contentJson}, ${tabId})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                    <span class="material-icons-round" style="font-size:14px;pointer-events:none;">check</span>Apply Reorganize
+                </button>
+                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 14px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">Cancel</button>
+            </div>`;
+        return card;
+    }
+
+    function _applyInlineReorganize(btn, newContent, tabId) {
+        if (!newContent) return;
+        const snapTab = fileTabs.find(t => t.id === (tabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
+        const original = snapTab ? snapTab.content : editor.getValue();
+        // Save undo snapshot
+        _agentUndoStack.push(original);
+        if (_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
+        // Apply full file replacement
+        if (snapTab) snapTab.content = newContent;
+        if (!tabId || tabId === activeTabId) editor.setValue(newContent, -1);
+        const undoCount = _agentUndoStack.length;
+        btn.closest('div').parentElement.innerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);border-radius:12px;">
+            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">Reorganized successfully</span>
+            <button onclick="_agentUndoLast(this)" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
+                Undo (${undoCount})
+            </button>
+        </div>`;
+        showToast('File reorganized', 'reorder');
+    }
+    function _buildDiffHTML(oldLines, newLines) {
+        // Simple line-level diff using LCS approach
+        const escHtml = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        let html = '';
+        let i = 0, j = 0;
+        const m = oldLines.length, n = newLines.length;
+
+        // Build LCS table
+        const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+        for (let r = 1; r <= m; r++)
+            for (let c = 1; c <= n; c++)
+                dp[r][c] = oldLines[r-1] === newLines[c-1] ? dp[r-1][c-1]+1 : Math.max(dp[r-1][c], dp[r][c-1]);
+
+        // Trace back
+        const ops = [];
+        let r = m, c = n;
+        while (r > 0 || c > 0) {
+            if (r > 0 && c > 0 && oldLines[r-1] === newLines[c-1]) { ops.unshift({t:'=', l:oldLines[r-1]}); r--; c--; }
+            else if (c > 0 && (r === 0 || dp[r][c-1] >= dp[r-1][c])) { ops.unshift({t:'+', l:newLines[c-1]}); c--; }
+            else { ops.unshift({t:'-', l:oldLines[r-1]}); r--; }
+        }
+
+        let hasChanges = false;
+        ops.forEach(op => {
+            if (op.t === '=') {
+                html += `<div style="padding:1px 8px;font-family:'Courier New',monospace;font-size:10px;color:var(--text-color);opacity:0.45;white-space:pre;overflow:hidden;text-overflow:ellipsis;"> ${escHtml(op.l)}</div>`;
+            } else if (op.t === '-') {
+                hasChanges = true;
+                html += `<div style="padding:1px 8px;font-family:'Courier New',monospace;font-size:10px;color:#ef4444;background:rgba(239,68,68,0.1);white-space:pre;overflow:hidden;text-overflow:ellipsis;">-${escHtml(op.l)}</div>`;
+            } else {
+                hasChanges = true;
+                html += `<div style="padding:1px 8px;font-family:'Courier New',monospace;font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);white-space:pre;overflow:hidden;text-overflow:ellipsis;">+${escHtml(op.l)}</div>`;
+            }
+        });
+        return { html, hasChanges };
+    }
+
     function _buildInlineEditCard(edits, targetTab) {
         const card = document.createElement('div');
         card.style.cssText = 'border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;margin-top:4px;';
         const count = edits ? edits.length : 0;
+
+        // Build diff preview for each edit
+        const currentCode = (targetTab ? targetTab.content : editor.getValue()).split('\n');
+        let diffHTML = '';
+
+        (edits || []).forEach((edit, idx) => {
+            let oldLines = [], newLines = [];
+
+            if (edit.line_start != null) {
+                const s = Math.max(0, (edit.line_start || 1) - 1);
+                const e = Math.min(currentCode.length - 1, (edit.line_end || edit.line_start || 1) - 1);
+                // Show 2 lines context before/after
+                const ctxBefore = currentCode.slice(Math.max(0, s-2), s);
+                const ctxAfter  = currentCode.slice(e+1, Math.min(currentCode.length, e+3));
+                oldLines = [...ctxBefore, ...currentCode.slice(s, e+1), ...ctxAfter];
+                newLines = [...ctxBefore, ...(edit.replace || '').split('\n'), ...ctxAfter];
+            } else if (edit.find) {
+                oldLines = edit.find.split('\n');
+                newLines = (edit.replace || '').split('\n');
+            }
+
+            const { html, hasChanges } = _buildDiffHTML(oldLines, newLines);
+            if (hasChanges) {
+                if (count > 1) diffHTML += `<div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.4;padding:4px 8px 2px;font-family:'Poppins',sans-serif;text-transform:uppercase;letter-spacing:0.4px;">Edit ${idx+1}</div>`;
+                diffHTML += html;
+                if (idx < count - 1) diffHTML += `<div style="height:1px;background:var(--glass-border);margin:2px 0;"></div>`;
+            }
+        });
+
+        const editsJson = JSON.stringify(edits).replace(/"/g,'&quot;');
+        const tabId = targetTab ? targetTab.id : 'null';
+
         card.innerHTML = `
             <div style="background:rgba(16,185,129,0.08);padding:9px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
-                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">edit</span>
-                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${count} surgical edit${count!==1?'s':''} ready</span>
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">difference</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${count} edit${count!==1?'s':''} — review changes</span>
+                <span style="font-size:9px;font-weight:600;font-family:'Poppins',sans-serif;color:var(--text-color);opacity:0.45;display:flex;align-items:center;gap:3px;">
+                    <span style="color:#ef4444;">●</span> removed &nbsp;
+                    <span style="color:#10b981;">●</span> added
+                </span>
             </div>
-            <div style="padding:8px 12px;display:flex;gap:7px;">
-                <button onclick="_applyInlineEdits(this, ${JSON.stringify(edits).replace(/"/g,'&quot;')}, ${targetTab ? targetTab.id : 'null'})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+            <div style="max-height:180px;overflow-y:auto;background:rgba(0,0,0,0.15);">${diffHTML || '<div style="padding:10px 12px;font-size:11px;opacity:0.5;font-family:Poppins,sans-serif;">No preview available</div>'}</div>
+            <div style="padding:8px 12px;display:flex;gap:7px;border-top:1px solid var(--glass-border);">
+                <button onclick="_applyInlineEdits(this, ${editsJson}, ${tabId})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
                     <span class="material-icons-round" style="font-size:14px;pointer-events:none;">check</span>Apply
                 </button>
-                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">
+                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 14px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">
                     Cancel
                 </button>
             </div>`;
