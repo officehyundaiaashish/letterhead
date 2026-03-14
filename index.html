@@ -6021,20 +6021,46 @@ User wants to restructure, reorder, or reorganize the code layout (move sections
             let parsed = null;
             parsed = _tryParseJSON(raw);
 
+            // ── If new_file mode and first response has code block — extract immediately ──
+            if (_isNewFileMode && (!parsed || parsed.type !== 'new_file')) {
+                const fenceMatch = raw.match(/```(?:html|css|js|javascript)?\s*([\s\S]*?)```/);
+                if (fenceMatch) {
+                    const extractedCode = fenceMatch[1].trim();
+                    const guessExt = /<!DOCTYPE|<html/i.test(extractedCode) ? 'html'
+                        : /{[\s\S]*}/i.test(extractedCode) ? 'css' : 'js';
+                    parsed = {
+                        type: 'new_file',
+                        filename: `new-file.${guessExt}`,
+                        content: extractedCode,
+                        explanation: ''
+                    };
+                }
+            }
+
             // ── New file mode fallback — if AI didn't return new_file type, retry once ──
             if (_isNewFileMode && (!parsed || parsed.type !== 'new_file')) {
                 _inlineShowTyping();
                 const retryRaw = await _callAgentAPI(
-                    'You are a code generator. Respond with ONLY valid JSON, no markdown, no text. Format: {"type":"new_file","explanation":"brief description","filename":"name.ext","content":"complete file content here"}',
-                    `Create this: ${userRequest}${otherFilesCtx ? '\n\nReference files for style/structure:' + otherFilesCtx : ''}`
+                    'You are a code generator. Respond with ONLY a raw JSON object — no markdown, no explanation, no text outside the JSON. Use this exact format:\n{"type":"new_file","explanation":"what it does","filename":"name.ext","content":"full file content with \\" for quotes inside"}',
+                    `Create this: ${userRequest}${otherFilesCtx ? '\n\nReference files:' + otherFilesCtx : ''}`
                 );
                 _inlineHideTyping();
                 const retryParsed = _tryParseJSON(retryRaw);
                 if (retryParsed && retryParsed.type === 'new_file') {
                     parsed = retryParsed;
-                } else if (!parsed) {
-                    // Last resort — treat entire response as file content
-                    parsed = { type: 'new_file', filename: 'new-file.html', content: retryRaw.trim(), explanation: 'Generated file' };
+                } else {
+                    // Last resort — extract raw code from markdown fences if present
+                    const fenceMatch = retryRaw.match(/```(?:html|css|js|javascript)?\s*([\s\S]*?)```/);
+                    const extractedCode = fenceMatch ? fenceMatch[1].trim() : retryRaw.trim();
+                    // Guess filename from content
+                    const guessExt = /<!DOCTYPE|<html/i.test(extractedCode) ? 'html'
+                        : /<style|{[\s\S]*}/i.test(extractedCode) ? 'css' : 'js';
+                    parsed = {
+                        type: 'new_file',
+                        filename: `new-file.${guessExt}`,
+                        content: extractedCode,
+                        explanation: 'Generated file'
+                    };
                 }
             }
 
