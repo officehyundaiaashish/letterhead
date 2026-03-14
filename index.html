@@ -2117,7 +2117,7 @@
             return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
                 url:'https://api.groq.com/openai/v1/chat/completions',
                 model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free ⚡' };
-        if (/^sk-or-[A-Za-z0-9]{10,}/.test(key))
+        if (/^sk-or-/i.test(key))
             return { provider:'openrouter', providerName:'OpenRouter – Mistral 7B',
                 url:'https://openrouter.ai/api/v1/chat/completions',
                 model:'mistralai/mistral-7b-instruct:free', label:'OpenRouter – Mistral 7B · Free' };
