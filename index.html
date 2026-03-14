@@ -5472,57 +5472,66 @@ No markdown, no backticks, no explanation outside the array.`;
     //  No regex intent detection — AI handles everything
     // ══════════════════════════════════════════════════
 
-    const _AGENT_SYSTEM_PROMPT = `You are an expert HTML/CSS/JS code assistant inside a mobile code editor called CodX.
+    const _AGENT_SYSTEM_PROMPT = `You are an expert HTML/CSS/JS code assistant inside CodX mobile editor.
 
-The user will give you a request about their code. You will receive the FULL file content.
+You will receive the full file with LINE NUMBERS in format: "N| code"
 
-DECIDE what the user needs — do NOT ask the user to clarify intent:
+━━━ YOUR JOB: Read the request carefully, then decide the action type yourself ━━━
+Do NOT rely on keywords. Understand the INTENT.
 
-━━━ CASE 1: Question / Explanation ━━━
-User asks what something does, why there's a bug, how to improve, etc.
+════ ACTION TYPE 1: explain ════
+User is asking a question, wants explanation, debugging help, review, or suggestion.
 → Reply in plain conversational text. SHORT. Match user language (English/Hindi/Hinglish).
 → Do NOT return JSON.
 
-━━━ CASE 2: Edit existing code ━━━
-User wants to fix, change, improve, or add something to existing code.
-→ Return ONLY this JSON (no markdown, no text outside JSON):
+════ ACTION TYPE 2: edit ════
+User wants to change, fix, add, remove, or improve something in the existing code.
+→ Return ONLY valid JSON — no markdown fences, no text before or after:
 {
   "type": "edit",
-  "explanation": "One line: what changed and why",
+  "explanation": "What changed and why — one line",
   "edits": [
-    { "find": "EXACT verbatim string from code (30+ chars, must be unique)", "replace": "new string" }
+    {
+      "line_start": 42,
+      "line_end": 45,
+      "replace": "exact new code to put here"
+    }
   ]
 }
-RULES for edits:
-- find = copy-paste exact characters from the code. Must be unique in the file.
-- replace = only the changed part. Surgical. Never rewrite whole file.
+RULES:
+- line_start and line_end are the line numbers from the provided code (inclusive).
+- replace is the COMPLETE new content for those lines.
+- Be surgical — only change what is needed. Do not touch unrelated lines.
+- Preserve indentation style of the file. Do not add extra blank lines.
 - Max 5 edits per request.
 
-━━━ CASE 3: Split code into multiple files ━━━
-User wants to break one file into multiple modules/files.
-→ Return ONLY this JSON:
+════ ACTION TYPE 3: split ════
+User wants to break the file into multiple separate files/modules.
+→ Return ONLY valid JSON:
 {
   "type": "split",
-  "explanation": "What you split and why",
+  "explanation": "What was split and why",
   "files": [
-    { "filename": "index.html", "content": "full file content here" }
+    { "filename": "index.html", "content": "complete file content" }
   ]
 }
 
-━━━ CASE 4: Create new file ━━━
-User wants a new file/component/page created from scratch.
-→ Return ONLY this JSON:
+════ ACTION TYPE 4: new_file ════
+User wants a brand new file created from scratch.
+→ Return ONLY valid JSON:
 {
   "type": "new_file",
   "explanation": "What this file does",
-  "filename": "relevant-name.html",
+  "filename": "descriptive-name.html",
   "content": "complete file content"
 }
 
-IMPORTANT:
-- Be precise. Never guess. If find string might not be unique, make it longer.
-- Never apply more changes than asked.
-- Respond in the same language the user wrote in.`;
+CRITICAL RULES:
+- Always read the FULL code before responding.
+- Never guess or hallucinate line content — copy from what you see.
+- Respond in same language as user (English/Hindi/Hinglish).
+- Do not add unrequested changes.
+- Preserve all existing functionality unless explicitly asked to change it.`;
 
     async function sendInlineChat() {
         if (!_activeAgent()) {
@@ -5563,13 +5572,16 @@ IMPORTANT:
         const code = targetTab ? targetTab.content : editor.getValue();
         const filename = targetTab ? targetTab.name : 'untitled';
 
+        // Add line numbers so AI can reference precise locations
+        const numberedCode = code.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
+
         // Attachment context
         const attachCtx = _inlineAttachment
             ? `\n\nAttached file (${_inlineAttachment.name}):\n${_inlineAttachment.content.slice(0, 2000)}`
             : '';
         _inlineClearAttach();
 
-        const userMsg = `File: ${filename}\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+        const userMsg = `File: ${filename}\n\`\`\`\n${numberedCode}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
         try {
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg);
@@ -5644,39 +5656,78 @@ IMPORTANT:
 
     function _applyInlineEdits(btn, edits, tabId) {
         if (!edits || !edits.length) return;
-        // Save undo snapshot
         const snapTab = fileTabs.find(t => t.id === (tabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
-        const snapshot = snapTab ? snapTab.content : editor.getValue();
-        _agentUndoStack.push(snapshot);
+        const original = snapTab ? snapTab.content : editor.getValue();
+
+        // Save undo snapshot
+        _agentUndoStack.push(original);
         if (_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
 
-        let content = snapTab ? snapTab.content : editor.getValue();
+        const lines = original.split('\n');
         let applied = 0, failed = 0;
 
-        edits.forEach(edit => {
-            if (!edit.find && edit.find !== '') return;
-            if (edit.find === '') {
-                // Insert at end
-                content += '\n' + (edit.replace || '');
+        // Sort edits bottom-to-top so line numbers stay valid after each replacement
+        const sorted = [...edits].sort((a, b) => (b.line_start || 0) - (a.line_start || 0));
+
+        sorted.forEach(edit => {
+            // ── Line-based edit ──
+            if (edit.line_start != null) {
+                const s = Math.max(0, (edit.line_start || 1) - 1);
+                const e = Math.min(lines.length - 1, (edit.line_end || edit.line_start || 1) - 1);
+
+                // Detect indentation from first replaced line
+                const origIndent = (lines[s] || '').match(/^(\s*)/)?.[1] || '';
+
+                // Apply replacement — preserve indentation style
+                const newLines = (edit.replace || '').split('\n').map((l, i) => {
+                    if (i === 0) return l; // first line keeps AI's indent
+                    // Subsequent lines — strip leading whitespace collapse
+                    return l.replace(/^\t/, '  '); // normalize tabs to spaces
+                });
+
+                lines.splice(s, e - s + 1, ...newLines);
                 applied++;
-            } else if (content.includes(edit.find)) {
-                content = content.replace(edit.find, edit.replace || '');
-                applied++;
+
+            } else if (edit.find != null) {
+                // ── Fallback: find-based with whitespace normalization ──
+                const normalize = str => str.replace(/\r\n/g, '\n').replace(/\t/g, '  ').replace(/ +/g, ' ').trim();
+                const normContent = normalize(lines.join('\n'));
+                const normFind    = normalize(edit.find || '');
+
+                if (normFind && normContent.includes(normFind)) {
+                    // Reconstruct with replacement on normalized match
+                    const fullContent = lines.join('\n');
+                    // Try exact first
+                    if (fullContent.includes(edit.find)) {
+                        const updated = fullContent.replace(edit.find, edit.replace || '');
+                        lines.splice(0, lines.length, ...updated.split('\n'));
+                    } else {
+                        // Whitespace-tolerant replace — rebuild with regex
+                        const escaped = edit.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+                        try {
+                            const rx = new RegExp(escaped);
+                            const updated = fullContent.replace(rx, edit.replace || '');
+                            lines.splice(0, lines.length, ...updated.split('\n'));
+                        } catch(_) { failed++; return; }
+                    }
+                    applied++;
+                } else {
+                    failed++;
+                }
             } else {
                 failed++;
             }
         });
 
-        // Write back
-        if (snapTab) snapTab.content = content;
-        if (!tabId || tabId === activeTabId) {
-            editor.setValue(content, -1);
-        }
+        // Remove accidental consecutive blank lines (max 2 allowed)
+        const cleaned = lines.join('\n').replace(/\n{3,}/g, '\n\n');
 
-        // Update button
+        if (snapTab) snapTab.content = cleaned;
+        if (!tabId || tabId === activeTabId) editor.setValue(cleaned, -1);
+
         btn.closest('div').parentElement.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border-radius:12px;">
             <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
-            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${applied} applied${failed?' · '+failed+' not found':''}</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${applied} applied${failed ? ' · ' + failed + ' not found' : ''}</span>
         </div>`;
         showToast(`${applied} edit${applied!==1?'s':''} applied`, 'check_circle');
     }
