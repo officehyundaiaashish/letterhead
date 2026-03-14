@@ -163,8 +163,8 @@
         .bottom-wrapper.nav-mini .toolbar-rows { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; margin: 0; overflow: hidden; }
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
-            background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
-            padding-top: 4px;
+            background: var(--glass-bg); border-top: 2px solid var(--accent); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+            padding-top: 10px;
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
             box-shadow: none; 
         }
@@ -172,7 +172,7 @@
         .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
 
         /* Cursor nav row — compact */
-        .cursor-nav { display: flex; overflow-x: auto; padding: 0 8px 4px 8px; gap: 5px; }
+        .cursor-nav { display: flex; overflow-x: auto; padding: 4px 8px 6px 8px; gap: 5px; }
         .cursor-nav::-webkit-scrollbar { display: none; }
         .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
@@ -1044,8 +1044,8 @@
         /* Removed drag-handle-area hide rule so arrow stays visible */
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
-            background: var(--glass-bg); border-top: 1px solid var(--glass-border); border-radius: var(--panel-round) var(--panel-round) 0 0; 
-            padding-top: 4px;
+            background: var(--glass-bg); border-top: 2px solid var(--accent); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+            padding-top: 10px;
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
             box-shadow: none; 
         }
@@ -1053,7 +1053,7 @@
         .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
 
         /* Cursor nav row — compact */
-        .cursor-nav { display: flex; overflow-x: auto; padding: 0 8px 4px 8px; gap: 5px; }
+        .cursor-nav { display: flex; overflow-x: auto; padding: 4px 8px 6px 8px; gap: 5px; }
         .cursor-nav::-webkit-scrollbar { display: none; }
         .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
@@ -1914,17 +1914,17 @@
 
         <!-- Create + Load row -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;" id="gh-create-bar">
-            <button onclick="createGhFile()" id="gh-new-file-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
-                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">add_circle_outline</span>New File
+            <button onclick="createGhFile()" id="gh-new-file-btn" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.1);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" ontouchstart="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" ontouchend="this.style.background='rgba(128,128,128,0.1)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
+                <span class="material-icons-round" style="font-size:17px;pointer-events:none;">add_circle_outline</span>New File
             </button>
-            <button onclick="createGhFolder()" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseenter="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseleave="this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
-                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">create_new_folder</span>New Folder
+            <button onclick="createGhFolder()" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.1);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;" ontouchstart="this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" ontouchend="this.style.background='rgba(128,128,128,0.1)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)'">
+                <span class="material-icons-round" style="font-size:17px;pointer-events:none;">create_new_folder</span>New Folder
             </button>
-            <button id="gh-load-btn" onclick="loadGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.07);color:var(--accent);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.45;" onmouseenter="if(!this.disabled){this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.opacity='1'}" onmouseleave="if(!this.disabled){this.style.background='rgba(16,185,129,0.07)';this.style.borderColor='rgba(16,185,129,0.3)';this.style.opacity='1'}">
-                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">file_open</span>Load Selected
+            <button id="gh-load-btn" onclick="loadGhFile()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 8px;border-radius:12px;border:1.5px solid rgba(16,185,129,0.5);background:rgba(16,185,129,0.12);color:var(--accent);font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;opacity:0.4;" ontouchstart="if(!this.disabled){this.style.background='rgba(16,185,129,0.25)';}" ontouchend="if(!this.disabled){this.style.background='rgba(16,185,129,0.12)';}">
+                <span class="material-icons-round" style="font-size:17px;pointer-events:none;">file_open</span>Load Selected
             </button>
-            <button id="gh-load-repo-btn" onclick="loadGhRepo()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.07);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.45;" onmouseenter="if(!this.disabled){this.style.background='var(--accent-dim)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';this.style.opacity='1'}" onmouseleave="if(!this.disabled){this.style.background='rgba(128,128,128,0.07)';this.style.borderColor='var(--glass-border)';this.style.color='var(--text-color)';this.style.opacity='1'}">
-                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">folder_zip</span>Load All
+            <button id="gh-load-repo-btn" onclick="loadGhRepo()" disabled style="display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 8px;border-radius:12px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.1);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;opacity:0.4;" ontouchstart="if(!this.disabled){this.style.background='var(--accent-dim)';this.style.color='var(--accent)';}" ontouchend="if(!this.disabled){this.style.background='rgba(128,128,128,0.1)';this.style.color='var(--text-color)';}">
+                <span class="material-icons-round" style="font-size:17px;pointer-events:none;">folder_zip</span>Load All
             </button>
         </div>
 
