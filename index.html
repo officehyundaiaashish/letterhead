@@ -1934,7 +1934,7 @@
 
         <!-- Commit button -->
         <button class="modal-btn" id="gh-commit-btn" onclick="commitGhFile()" disabled style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;padding:11px;background:linear-gradient(135deg,#10b981,#059669);">
-            <span class="material-icons-round" style="font-size:16px;pointer-events:none;">upload</span>Commit to GitHub
+            <span class="material-icons-round" style="font-size:16px;pointer-events:none;">upload</span>Select/Save Commit
         </button>
     </div>
 </div>
@@ -2946,6 +2946,12 @@
         document.getElementById('gh-dl-btn').disabled = type !== 'blob';
         document.getElementById('gh-rename-btn').disabled = false;
         document.getElementById('gh-delete-btn').disabled = false;
+        // Enable commit button and notify user when a file is selected
+        if (type === 'blob') {
+            const commitBtn = document.getElementById('gh-commit-btn');
+            if (commitBtn) commitBtn.disabled = false;
+            showToast(`"${name}" selected — tap Select/Save Commit to push`, 'cloud_upload');
+        }
     }
 
     function _ghDisableFileActions() {
