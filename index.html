@@ -3344,7 +3344,7 @@
     async function _callAgentAPI(systemPrompt, userMsg) {
         const cfg = _activeAgent();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000);
+        const timeoutId = setTimeout(() => controller.abort(), 600000);
 
         // ── Helper: extract best JSON array from raw text ──
         function _extractJSON(raw) {
@@ -3487,7 +3487,7 @@ Rules:
 - Link them correctly (e.g. <link rel="stylesheet"> in HTML, <script src="..."> in HTML)
 - Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
 
-                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
                 const files = _safeExtractJSON(raw);
@@ -3500,18 +3500,33 @@ Rules:
                 }
             } else {
                 // EDIT MODE — surgical edits
-                const systemPrompt = `You are CodX AI Agent — a precise surgical code editor. You receive code and a user request.
+                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
 
-RULES (STRICT):
-1. Analyse the ENTIRE code first before making any changes.
-2. Make ONLY the minimal, targeted edits to satisfy the request. Never rewrite the whole file.
-3. Return a JSON array of edit objects. Each object: {"find": "exact string", "replace": "new string", "reason": "brief explanation"}
-4. "find" MUST be an exact verbatim substring from the code — copy-paste accurate, including whitespace and newlines.
-5. Each "find" must be unique enough to identify exactly one location. Include surrounding context if needed.
-6. If nothing needs changing: return [].
-7. Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
+GENERAL RULES:
+1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
+2. Never guess — identify the root cause first.
+3. Only perform the task requested. Do not add extra features.
+4. Avoid silly mistakes. Maintain professional coding standards.
+5. Keep code clean, organised, and readable.
+6. Preserve original structure unless modification is required.
 
-                const userMsg = `Code:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+PROCESS:
+STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
+STEP 2 – Load and analyse full code: structure, related components, problem areas.
+STEP 3 – Find root cause: never modify without identifying the exact reason.
+STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
+STEP 5 – Apply edit: precise corrected code, no full rewrites.
+STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
+
+OUTPUT FORMAT — Return ONLY a JSON array:
+[{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
+Rules:
+- "find" must be exact copy-paste accurate substring including whitespace/newlines.
+- Each "find" must be unique — include surrounding context if needed.
+- Return [] if nothing needs changing.
+- ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
+
+                const userMsg = `Code:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
                 const edits = _safeExtractJSON(raw);
@@ -4561,16 +4576,32 @@ RULES (STRICT):
 
             if (isChatIntent) {
                 // ── CHAT MODE: explain / diagnose ──
-                const systemPrompt = `You are CodX AI — a friendly, expert code assistant. 
-You are talking to the developer directly inside a chat interface (like WhatsApp).
-Keep responses SHORT, clear, and conversational. Use plain English (or match the user's language if they write in Hindi/Hinglish).
-If you spot a bug or problem, explain it clearly and tell them exactly what to fix.
-If the user asks what's wrong, diagnose the code and describe the issue in 2-3 sentences max.
+                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+
+GENERAL RULES:
+1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
+2. Never guess — identify the root cause first.
+3. Only perform the task requested. Do not add extra features.
+4. Avoid silly mistakes. Maintain professional coding standards.
+5. Keep code clean, organised, and readable.
+6. Preserve original structure unless modification is required.
+
+PROCESS:
+STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
+STEP 2 – Load and analyse full code: structure, related components, problem areas.
+STEP 3 – Find root cause: never modify without identifying the exact reason.
+STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
+STEP 5 – Apply edit: precise corrected code, no full rewrites.
+STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
+
+You are talking to the developer directly in a chat interface.
+Keep responses SHORT, clear, and conversational. Match the user's language (English or Hindi/Hinglish).
+Diagnose problems clearly — explain root cause and exact fix in 2-3 sentences max.
 Do NOT return JSON. Just talk naturally.`;
                 const foundCtx = _searchSections.length > 0
                     ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH:\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
                     : '';
-                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}`;
+                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}`;
                 agentText = await _callAgentAPI(systemPrompt, userMsg);
 
             } else if (isSplitIntent) {
@@ -4579,7 +4610,7 @@ Do NOT return JSON. Just talk naturally.`;
 Analyse the code and split it logically. Return ONLY a JSON array:
 [{"filename":"name.ext","content":"full content","reason":"brief reason"}]
 No markdown, no backticks, no explanation outside the array.`;
-                const userMsg = `Code to split:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
                 const files = _safeExtractJSON(raw);
                 if (!files || !files.length) throw new Error('Agent could not split the code. Try again.');
@@ -4588,18 +4619,36 @@ No markdown, no backticks, no explanation outside the array.`;
 
             } else {
                 // ── EDIT MODE: surgical fixes ──
-                const systemPrompt = `You are CodX AI Agent — a surgical code editor AND a helpful assistant.
-FIRST, write 1-2 sentences explaining what you are changing and why (in the user's language — English or Hindi/Hinglish).
-THEN on a new line write exactly: FIXES:
-THEN return a JSON array of edits: [{"find":"exact string","replace":"new string","reason":"brief"}]
+                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+
+GENERAL RULES:
+1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
+2. Never guess — identify the root cause first.
+3. Only perform the task requested. Do not add extra features.
+4. Avoid silly mistakes. Maintain professional coding standards.
+5. Keep code clean, organised, and readable.
+6. Preserve original structure unless modification is required.
+
+PROCESS:
+STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
+STEP 2 – Load and analyse full code: structure, related components, problem areas.
+STEP 3 – Find root cause: never modify without identifying the exact reason.
+STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
+STEP 5 – Apply edit: precise corrected code, no full rewrites.
+STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
+
+RESPONSE FORMAT:
+FIRST write 1-2 sentences explaining what you are changing and why (in user's language — English or Hindi/Hinglish).
+THEN write exactly: FIXES:
+THEN return a JSON array: [{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
 Rules:
-- "find" must be exact verbatim substring from the code.
+- "find" must be exact copy-paste accurate substring from the code.
 - Return [] if no changes needed.
-- Only the JSON array after FIXES: — no extra text after it.`;
+- Only the JSON array after FIXES: — nothing else after it.`;
                 const foundCtx = _searchSections.length > 0
                     ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH (focus edits here):\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
                     : '';
-                const userMsg = `Code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${attachCtx}${foundCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code}\n\`\`\`${attachCtx}${foundCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
 
                 // Split explanation from JSON
@@ -4871,10 +4920,28 @@ Rules:
 
             if (isChatIntent) {
                 // CHAT MODE
-                const systemPrompt = `You are CodX AI — a friendly expert code assistant inside a split-screen chat.
+                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+
+GENERAL RULES:
+1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
+2. Never guess — identify the root cause first.
+3. Only perform the task requested. Do not add extra features.
+4. Avoid silly mistakes. Maintain professional coding standards.
+5. Keep code clean, organised, and readable.
+6. Preserve original structure unless modification is required.
+
+PROCESS:
+STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
+STEP 2 – Load and analyse full code: structure, related components, problem areas.
+STEP 3 – Find root cause: never modify without identifying the exact reason.
+STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
+STEP 5 – Apply edit: precise corrected code, no full rewrites.
+STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
+
+You are talking to the developer in a split-screen chat.
 Keep responses SHORT and conversational. Match the user's language (English or Hindi/Hinglish).
 Diagnose problems clearly. Do NOT return JSON. Just talk naturally.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${foundCtx}\n\nUser: ${userRequest}`;
+                const userMsg = `Code (${filename}):\n\`\`\`\n${code}\n\`\`\`${foundCtx}\n\nUser: ${userRequest}`;
                 agentText = await _callAgentAPI(systemPrompt, userMsg);
 
             } else if (isSplitIntent) {
@@ -4882,7 +4949,7 @@ Diagnose problems clearly. Do NOT return JSON. Just talk naturally.`;
                 const splitPrompt = `You are CodX AI. Split the code into multiple files.
 Return ONLY a JSON array: [{"filename":"name.ext","content":"full content","reason":"brief"}]
 No markdown, no backticks.`;
-                const userMsg = `Code:\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code:\n\`\`\`\n${code}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(splitPrompt, userMsg);
                 let match = raw.match(/\[[\s\S]*\]/);
                 if (!match) throw new Error('Could not split code. Try again.');
@@ -4892,13 +4959,31 @@ No markdown, no backticks.`;
 
             } else {
                 // EDIT MODE — explanation + FIXES JSON
-                const systemPrompt = `You are CodX AI — a surgical code editor inside a split-screen chat.
+                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+
+GENERAL RULES:
+1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
+2. Never guess — identify the root cause first.
+3. Only perform the task requested. Do not add extra features.
+4. Avoid silly mistakes. Maintain professional coding standards.
+5. Keep code clean, organised, and readable.
+6. Preserve original structure unless modification is required.
+
+PROCESS:
+STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
+STEP 2 – Load and analyse full code: structure, related components, problem areas.
+STEP 3 – Find root cause: never modify without identifying the exact reason.
+STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
+STEP 5 – Apply edit: precise corrected code, no full rewrites.
+STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
+
+RESPONSE FORMAT:
 FIRST write 1-2 sentences explaining what you will change and why (in user's language).
 THEN write exactly: FIXES:
-THEN return JSON array: [{"find":"exact string","replace":"new string","reason":"brief"}]
-Rules: find must be exact verbatim substring. Return [] if no changes needed.
+THEN return JSON array: [{"find":"exact verbatim substring","replace":"new string","reason":"brief"}]
+Rules: find must be exact copy-paste accurate substring. Return [] if no changes needed.
 Only JSON after FIXES: — nothing else after it.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code.slice(0,7000)}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code (${filename}):\n\`\`\`\n${code}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
                 let raw = await _callAgentAPI(systemPrompt, userMsg);
 
                 const fixIdx = raw.indexOf('FIXES:');
