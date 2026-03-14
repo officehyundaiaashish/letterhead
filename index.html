@@ -5043,10 +5043,16 @@ No markdown, no backticks, no explanation outside the array.`;
         _inlineChatOpen = true;
 
         const chatPanel = document.getElementById('inline-chat-panel');
+        const nav       = document.getElementById('bottom-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        // Show chat panel inside bottom-area (above nav rows)
-        chatPanel.style.display = 'flex';
+        // Hide navigation, show chat above it
+        if (nav) nav.style.visibility = 'hidden';
+
+        // Position chat at bottom (where nav was)
+        const navH = nav ? nav.offsetHeight : 0;
+        chatPanel.style.bottom = navH + 'px';
+        chatPanel.classList.add('chat-open');
         if (aiBtn) aiBtn.classList.add('chat-active');
 
         // Sync agent name
@@ -5066,10 +5072,15 @@ No markdown, no backticks, no explanation outside the array.`;
         _inlineChatOpen = false;
 
         const chatPanel = document.getElementById('inline-chat-panel');
+        const nav       = document.getElementById('bottom-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        chatPanel.style.display = 'none';
+        // Slide chat down
+        chatPanel.classList.remove('chat-open');
+        // Restore navigation
+        if (nav) nav.style.visibility = 'visible';
         if (aiBtn) aiBtn.classList.remove('chat-active');
+        setTimeout(() => { chatPanel.style.bottom = '0'; }, 360);
     }
 
     // ── Auto resize textarea ──
