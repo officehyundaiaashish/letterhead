@@ -2404,7 +2404,15 @@
         const splitKeywords = /\b(split|divide|separate|extract|break\s*up|break\s*into|multiple\s*files?|alag|vibhajit|tod|tod\s*do|file\s*mein|files\s*mein|parts?)\b/i;
         const isSplitIntent = splitKeywords.test(userRequest);
 
+        let contextFiles = '';
+        fileTabs.forEach(t => {
+            if (t.id !== (_agentWorkTab ? _agentWorkTab.id : activeTabId)) {
+                contextFiles += `\n--- Context File: ${t.name} ---\n\`\`\`\n${t.content.slice(0, 4000)}\n\`\`\`\n`;
+            }
+        });
+
         let attachCtx = agentAttachment ? `\n\nAttached file (${agentAttachment.name}):\n${agentAttachment.content.slice(0,3000)}` : '';
+        attachCtx = contextFiles + attachCtx; // Feed all open tabs to the AI
 
         try {
             if(isSplitIntent) {
@@ -2458,7 +2466,13 @@ RULES (STRICT):
                 if(!Array.isArray(edits) || edits.length === 0) {
                     cdAlert('Agent', 'No changes needed for this request.', 'info');
                 } else {
-                    const valid = edits.filter(e => e.find && code.includes(e.find));
+                    const valid = edits.filter(e => {
+                        if (!e.find) return false;
+                        if (code.includes(e.find)) return true;
+                        let trimmed = e.find.trim(); // Fallback: ignore invisible spaces
+                        if (trimmed && code.includes(trimmed)) { e.find = trimmed; return true; }
+                        return false;
+                    });
                     const invalid = edits.length - valid.length;
                     if(valid.length === 0) {
                         cdAlert('Agent', 'Could not locate the code sections to edit. Try a more specific request.', 'warn');
