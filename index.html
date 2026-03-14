@@ -2003,20 +2003,24 @@
     <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text;-webkit-user-select:text;resize:none;height:46px;font-family:'Poppins',sans-serif;font-size:12px;margin-bottom:7px;"></textarea>
     <!-- Options + Actions in one row -->
     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-        <div style="display:flex;gap:10px;flex-shrink:0;">
-            <label class="find-check-label"><input type="checkbox" id="find-case"> Case</label>
-            <label class="find-check-label"><input type="checkbox" id="find-regex"> Regex</label>
-        </div>
         <div style="display:flex;gap:5px;">
-            <button class="modal-btn secondary" onclick="clearFind()" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
+            <button class="modal-btn" onclick="clearFind()" style="background:#ef4444;color:#fff;padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;border:none;">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Clear
             </button>
-            <button class="modal-btn secondary" onclick="findText(true)" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find
-            </button>
-            <button class="modal-btn" onclick="replaceText()" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>Replace
-            </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;gap:10px;flex-shrink:0;">
+                <label class="find-check-label"><input type="checkbox" id="find-case"> Case</label>
+                <label class="find-check-label"><input type="checkbox" id="find-regex"> Regex</label>
+            </div>
+            <div style="display:flex;gap:5px;">
+                <button class="modal-btn secondary" onclick="findText(true)" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find
+                </button>
+                <button class="modal-btn" onclick="replaceText()" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>Replace
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -3034,7 +3038,7 @@
         let useRegex = document.getElementById('find-regex').checked;
         editor.find(searchStr, { wrap: true, caseSensitive: caseSensitive, wholeWord: false, regExp: useRegex }); 
         let match = editor.getSelectionRange();
-        if(match.isEmpty() && showErrorAlert) { cdAlert('Find', 'No exact match found.', 'warn'); editor.clearSelection(); } 
+        if(match.isEmpty() && showErrorAlert) { showToast('No exact match found.', 'error_outline'); editor.clearSelection(); } 
         else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); }
     }
     function replaceText() { 
