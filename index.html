@@ -5467,10 +5467,65 @@ No markdown, no backticks, no explanation outside the array.`;
         if (t) t.remove();
     }
 
-    // ── Main send function — reuses all existing agent logic ──
+    // ══════════════════════════════════════════════════
+    //  NEW AGENT WORKFLOW — Single API call, AI decides
+    //  No regex intent detection — AI handles everything
+    // ══════════════════════════════════════════════════
+
+    const _AGENT_SYSTEM_PROMPT = `You are an expert HTML/CSS/JS code assistant inside a mobile code editor called CodX.
+
+The user will give you a request about their code. You will receive the FULL file content.
+
+DECIDE what the user needs — do NOT ask the user to clarify intent:
+
+━━━ CASE 1: Question / Explanation ━━━
+User asks what something does, why there's a bug, how to improve, etc.
+→ Reply in plain conversational text. SHORT. Match user language (English/Hindi/Hinglish).
+→ Do NOT return JSON.
+
+━━━ CASE 2: Edit existing code ━━━
+User wants to fix, change, improve, or add something to existing code.
+→ Return ONLY this JSON (no markdown, no text outside JSON):
+{
+  "type": "edit",
+  "explanation": "One line: what changed and why",
+  "edits": [
+    { "find": "EXACT verbatim string from code (30+ chars, must be unique)", "replace": "new string" }
+  ]
+}
+RULES for edits:
+- find = copy-paste exact characters from the code. Must be unique in the file.
+- replace = only the changed part. Surgical. Never rewrite whole file.
+- Max 5 edits per request.
+
+━━━ CASE 3: Split code into multiple files ━━━
+User wants to break one file into multiple modules/files.
+→ Return ONLY this JSON:
+{
+  "type": "split",
+  "explanation": "What you split and why",
+  "files": [
+    { "filename": "index.html", "content": "full file content here" }
+  ]
+}
+
+━━━ CASE 4: Create new file ━━━
+User wants a new file/component/page created from scratch.
+→ Return ONLY this JSON:
+{
+  "type": "new_file",
+  "explanation": "What this file does",
+  "filename": "relevant-name.html",
+  "content": "complete file content"
+}
+
+IMPORTANT:
+- Be precise. Never guess. If find string might not be unique, make it longer.
+- Never apply more changes than asked.
+- Respond in the same language the user wrote in.`;
+
     async function sendInlineChat() {
         if (!_activeAgent()) {
-            // Show friendly banner inside chat instead of abruptly opening modal
             const box = document.getElementById('inline-chat-messages');
             if (box && !document.getElementById('inline-no-agent-banner')) {
                 const banner = document.createElement('div');
@@ -5493,21 +5548,14 @@ No markdown, no backticks, no explanation outside the array.`;
         const userRequest = ta.value.trim();
         if (!userRequest) return;
 
-        // Show user bubble
         _inlineAppendMsg('user', userRequest);
+        ta.value = ''; ta.style.height = 'auto';
 
-        // Clear input
-        ta.value = '';
-        ta.style.height = 'auto';
-
-        // Disable send
         const sendBtn = document.getElementById('inline-chat-send-btn');
         sendBtn.disabled = true;
-
-        // Show typing
         _inlineShowTyping();
 
-        // Get target tab — use custom file selector
+        // Get target file content
         if (_inlineSelectedTabId) _agentTargetTabId = _inlineSelectedTabId;
         const targetTab = fileTabs.find(t => t.id === (_agentTargetTabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
         const curTab = fileTabs.find(t => t.id === activeTabId);
@@ -5515,135 +5563,184 @@ No markdown, no backticks, no explanation outside the array.`;
         const code = targetTab ? targetTab.content : editor.getValue();
         const filename = targetTab ? targetTab.name : 'untitled';
 
-        // Detect intents — same logic as sendChatMessage
-        const splitKeywords = /\b(split|divide|separate|extract|break\s*up|break\s*into|multiple\s*files?|alag|vibhajit|tod|tod\s*do|file\s*mein|files\s*mein|parts?)\b/i;
-        const chatKeywords  = /\b(explain|what|why|how|problem|issue|error|bug|help|bata|kya|kyon|samjhao|dekho|check|analyse|analyze|review|tell me|isko|isme|kaise|kyun|sahi|galat|thik|dikkat|suggest|better|improve|optimize)\b/i;
-        const isSplitIntent = splitKeywords.test(userRequest);
-        const isChatIntent  = chatKeywords.test(userRequest) && !isSplitIntent;
+        // Attachment context
+        const attachCtx = _inlineAttachment
+            ? `\n\nAttached file (${_inlineAttachment.name}):\n${_inlineAttachment.content.slice(0, 2000)}`
+            : '';
+        _inlineClearAttach();
+
+        const userMsg = `File: ${filename}\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
 
         try {
-            const msgId = ++_chatMsgCounter;
-            let agentText = '';
-            let extraEl   = null;
-
-            // STEP 1: SEARCH — scan code for relevant sections
-            const searchResult = await _searchCodeSections(code, userRequest, filename);
+            const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg);
             _inlineHideTyping();
-            _inlineAppendMsg('agent', searchResult.summary);
-            await new Promise(r => setTimeout(r, 280));
-            _inlineShowTyping();
 
-            // Include inline attachment if present
-            const attachCtxInline = _inlineAttachment
-                ? `\n\nAttached (${_inlineAttachment.name}):\n${_inlineAttachment.content.slice(0,2000)}`
-                : '';
-            // Clear attachment after use
-            _inlineClearAttach();
+            // Try parse JSON
+            let parsed = null;
+            try {
+                const jsonMatch = raw.match(/\{[\s\S]*\}/);
+                if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+            } catch(e) { parsed = null; }
 
-            const foundCtx = searchResult.sections.length > 0
-                ? '\n\nRELEVANT SECTIONS:\n' + searchResult.sections.slice(0,4).map(s => s.snippet).join('\n---\n')
-                : '';
-            const allCtx = foundCtx + attachCtxInline;
+            if (!parsed || !parsed.type) {
+                // Plain text — chat/explain mode
+                _inlineAppendMsg('agent', raw.trim());
 
-            if (isChatIntent) {
-                // CHAT MODE
-                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+            } else if (parsed.type === 'edit') {
+                // Show explanation + Apply card
+                _inlineAppendMsg('agent', parsed.explanation || 'Ready to apply edits.');
+                const card = _buildInlineEditCard(parsed.edits, targetTab);
+                _inlineAppendMsg('agent', '', card);
 
-GENERAL RULES:
-1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
-2. Never guess — identify the root cause first.
-3. Only perform the task requested. Do not add extra features.
-4. Avoid silly mistakes. Maintain professional coding standards.
-5. Keep code clean, organised, and readable.
-6. Preserve original structure unless modification is required.
+            } else if (parsed.type === 'split') {
+                // Split files card
+                _inlineAppendMsg('agent', parsed.explanation || `Splitting into ${parsed.files?.length} files.`);
+                const card = _buildInlineSplitCard(parsed.files);
+                _inlineAppendMsg('agent', '', card);
 
-PROCESS:
-STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
-STEP 2 – Load and analyse full code: structure, related components, problem areas.
-STEP 3 – Find root cause: never modify without identifying the exact reason.
-STEP 4 – Plan minimal fix: decide which block to change, avoid touching unrelated code.
-STEP 5 – Apply edit: precise corrected code, no full rewrites.
-STEP 6 – Verify: no syntax errors, no broken structure, change fully implemented.
-
-You are talking to the developer in a split-screen chat.
-Keep responses SHORT and conversational. Match the user's language (English or Hindi/Hinglish).
-Diagnose problems clearly. Do NOT return JSON. Just talk naturally.`;
-                const userMsg = `Code (${filename}):\n\`\`\`\n${code}\n\`\`\`${foundCtx}\n\nUser: ${userRequest}`;
-                agentText = await _callAgentAPI(systemPrompt, userMsg);
-
-            } else if (isSplitIntent) {
-                // SPLIT MODE
-                const splitPrompt = `You are CodX AI. Split the code into multiple files.
-Return ONLY a JSON array: [{"filename":"name.ext","content":"full content","reason":"brief"}]
-No markdown, no backticks.`;
-                const userMsg = `Code:\n\`\`\`\n${code}\n\`\`\`${allCtx}\n\nRequest: ${userRequest}`;
-                let raw = await _callAgentAPI(splitPrompt, userMsg);
-                let match = raw.match(/\[[\s\S]*\]/);
-                if (!match) throw new Error('Could not split code. Try again.');
-                const files = JSON.parse(match[0]);
-                agentText = `Split into ${files.length} files:`;
-                extraEl = _buildSplitCard(files, msgId);
-
-            } else {
-                // EDIT MODE — 3-step Analyse → Plan → Execute
-                _inlineHideTyping();
-
-                await _runThreeStepAgent({
-                    code, userRequest,
-                    attachCtx: allCtx || '',
-                    appendMsg: (role, text, card) => {
-                        _inlineAppendMsg(role, text || '', card || null);
-                    },
-                    showTyping: (msg) => {
-                        _inlineHideTyping();
-                        const box = document.getElementById('inline-chat-messages');
-                        const wrap = document.createElement('div');
-                        wrap.className = 'chat-msg agent';
-                        wrap.id = 'inline-step-typing';
-                        wrap.innerHTML = `<div class="chat-bubble" style="font-size:11px;opacity:0.7;">${msg}</div>`;
-                        box.appendChild(wrap);
-                        _inlineChatScroll();
-                    },
-                    hideTyping: () => {
-                        const t = document.getElementById('inline-step-typing');
-                        if (t) t.remove();
-                    },
-                    scrollBottom: _inlineChatScroll,
-                    onApply: (valid) => {
-                        const msgIdLocal = ++_chatMsgCounter;
-                        _chatPendingEditsMap[msgIdLocal] = valid;
-                        const card = _buildFixCard(valid, msgIdLocal);
-                        _inlineAppendMsg('agent', `Ready to apply ${valid.length} change${valid.length>1?'s':''}.`, card);
-                        _inlineChatScroll();
-                    }
-                }).catch(e => {
-                    const t = document.getElementById('inline-step-typing');
-                    if (t) t.remove();
-                    if (e.message !== '__REJECTED__') {
-                        _inlineAppendMsg('agent', '⚠️ ' + (e.message || 'Something went wrong.'));
-                    }
-                });
-
-                sendBtn.disabled = false;
-                return;
+            } else if (parsed.type === 'new_file') {
+                // New file card
+                _inlineAppendMsg('agent', parsed.explanation || `Creating ${parsed.filename}`);
+                const card = _buildInlineNewFileCard(parsed.filename, parsed.content);
+                _inlineAppendMsg('agent', '', card);
             }
 
-            _inlineHideTyping();
-            _inlineAppendMsg('agent', agentText, extraEl);
-
-        } catch (err) {
+        } catch(err) {
             _inlineHideTyping();
             const raw = err.message || 'Something went wrong.';
             let msg;
             if (/quota|rate.?limit|exceeded/i.test(raw))         msg = 'Quota exceeded — wait or switch agent.';
-            else if (/timeout|abort|timed out/i.test(raw))       msg = 'AI is still thinking... took too long. Try again with a shorter request.';
+            else if (/timeout|abort|timed out/i.test(raw))       msg = 'Request timed out. Try a shorter request.';
             else if (/401|403|invalid.*key|api.?key/i.test(raw)) msg = 'Invalid API key — reconnect agent.';
             else if (/network|fetch|failed to fetch/i.test(raw)) msg = 'Network error — check internet.';
-            else msg = raw.slice(0, 100);
+            else msg = raw.slice(0, 120);
             _inlineAppendMsg('agent', '⚠️ ' + msg);
         } finally {
             sendBtn.disabled = false;
+            _inlineChatScroll();
         }
+    }
+
+    // ── Build Apply card for edits ──
+    function _buildInlineEditCard(edits, targetTab) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;margin-top:4px;';
+        const count = edits ? edits.length : 0;
+        card.innerHTML = `
+            <div style="background:rgba(16,185,129,0.08);padding:9px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">edit</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${count} surgical edit${count!==1?'s':''} ready</span>
+            </div>
+            <div style="padding:8px 12px;display:flex;gap:7px;">
+                <button onclick="_applyInlineEdits(this, ${JSON.stringify(edits).replace(/"/g,'&quot;')}, ${targetTab ? targetTab.id : 'null'})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                    <span class="material-icons-round" style="font-size:14px;pointer-events:none;">check</span>Apply
+                </button>
+                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">
+                    Cancel
+                </button>
+            </div>`;
+        return card;
+    }
+
+    function _applyInlineEdits(btn, edits, tabId) {
+        if (!edits || !edits.length) return;
+        // Save undo snapshot
+        const snapTab = fileTabs.find(t => t.id === (tabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId);
+        const snapshot = snapTab ? snapTab.content : editor.getValue();
+        _agentUndoStack.push(snapshot);
+        if (_agentUndoStack.length > AGENT_UNDO_LIMIT) _agentUndoStack.shift();
+
+        let content = snapTab ? snapTab.content : editor.getValue();
+        let applied = 0, failed = 0;
+
+        edits.forEach(edit => {
+            if (!edit.find && edit.find !== '') return;
+            if (edit.find === '') {
+                // Insert at end
+                content += '\n' + (edit.replace || '');
+                applied++;
+            } else if (content.includes(edit.find)) {
+                content = content.replace(edit.find, edit.replace || '');
+                applied++;
+            } else {
+                failed++;
+            }
+        });
+
+        // Write back
+        if (snapTab) snapTab.content = content;
+        if (!tabId || tabId === activeTabId) {
+            editor.setValue(content, -1);
+        }
+
+        // Update button
+        btn.closest('div').parentElement.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border-radius:12px;">
+            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${applied} applied${failed?' · '+failed+' not found':''}</span>
+        </div>`;
+        showToast(`${applied} edit${applied!==1?'s':''} applied`, 'check_circle');
+    }
+
+    // ── Build Split card ──
+    function _buildInlineSplitCard(files) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;margin-top:4px;';
+        const listHTML = (files||[]).map(f =>
+            `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--glass-border);">
+                <span class="material-icons-round" style="font-size:14px;color:var(--accent);">insert_drive_file</span>
+                <span style="font-size:11px;font-weight:600;color:var(--text-color);font-family:'Poppins',sans-serif;flex:1;">${f.filename}</span>
+            </div>`
+        ).join('');
+        card.innerHTML = `
+            <div style="background:rgba(16,185,129,0.08);padding:9px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">call_split</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">Split into ${(files||[]).length} files</span>
+            </div>
+            ${listHTML}
+            <div style="padding:8px 12px;display:flex;gap:7px;">
+                <button onclick="_applyInlineSplit(this, ${JSON.stringify(files).replace(/"/g,'&quot;')})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                    <span class="material-icons-round" style="font-size:14px;pointer-events:none;">check</span>Create Files
+                </button>
+                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">Cancel</button>
+            </div>`;
+        return card;
+    }
+
+    function _applyInlineSplit(btn, files) {
+        if (!files || !files.length) return;
+        files.forEach(f => openFileInTab(f.filename, f.content, true));
+        btn.closest('div').parentElement.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border-radius:12px;">
+            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${files.length} files created</span>
+        </div>`;
+        showToast(`${files.length} files created`, 'call_split');
+    }
+
+    // ── Build New File card ──
+    function _buildInlineNewFileCard(filename, content) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;margin-top:4px;';
+        card.innerHTML = `
+            <div style="background:rgba(16,185,129,0.08);padding:9px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
+                <span class="material-icons-round" style="font-size:15px;color:var(--accent);">add_circle</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">New file: ${filename}</span>
+            </div>
+            <div style="padding:8px 12px;display:flex;gap:7px;">
+                <button onclick="_applyInlineNewFile(this, '${filename.replace(/'/g,"\\'")}', ${JSON.stringify(content).replace(/"/g,'&quot;')})" style="flex:1;padding:8px;border-radius:9px;border:none;background:var(--accent);color:white;font-size:11px;font-weight:700;font-family:'Poppins',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                    <span class="material-icons-round" style="font-size:14px;pointer-events:none;">add</span>Create
+                </button>
+                <button onclick="this.closest('div').parentElement.remove()" style="padding:8px 12px;border-radius:9px;border:1px solid var(--glass-border);background:none;color:var(--text-color);font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;cursor:pointer;opacity:0.6;">Cancel</button>
+            </div>`;
+        return card;
+    }
+
+    function _applyInlineNewFile(btn, filename, content) {
+        openFileInTab(filename, content, true);
+        btn.closest('div').parentElement.innerHTML = `<div style="padding:9px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.08);border-radius:12px;">
+            <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;">${filename} created</span>
+        </div>`;
+        showToast(`${filename} created`, 'add_circle');
     }
 
     // ── Inline chat: populate model dropdown ──
