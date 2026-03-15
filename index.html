@@ -5783,7 +5783,7 @@ No markdown, no backticks, no explanation outside the array.`;
     // Each entry: {role: 'user'|'assistant', content: string}
     // Special entries use role 'user' with content starting with [APPLIED] or [CONFIRMED] or [REJECTED]
     let _inlineChatHistory = [];
-    const _HISTORY_MAX_TURNS = 12; // keep last 12 exchanges (24 messages)
+    const _HISTORY_MAX_TURNS = 6; // keep last 6 exchanges (12 messages) — less quota pressure
 
     // ── Build history for API call ──
     // Strips old code blocks from older turns but keeps ALL events: applied changes, feedback, rejections
@@ -6199,6 +6199,9 @@ STRICT FORMAT RULES:
     // ── Robust JSON parser — shared across all agent response handlers ──
     function _tryParseJSON(str) {
         if (!str) return null;
+        // Quick guard — if no "type" key, this is not an agent JSON response
+        if (!str.includes('"type"')) return null;
+
         // Strategy 1: strip markdown fences then parse whole string
         let clean = str.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
         try { const p = JSON.parse(clean); if (p && p.type) return p; } catch(_) {}
