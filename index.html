@@ -1836,6 +1836,10 @@
             <button class="icon-btn no-select" id="install-btn" style="display:none; width:30px; height:30px; background:var(--accent-dim); min-width:30px; border: 1px solid var(--accent); margin-right: 5px;">
                 <span class="material-icons-round" style="color:var(--accent); font-size:16px;">download</span>
             </button>
+            <!-- Find & Replace shortcut -->
+            <button class="icon-btn no-select" id="header-find-btn" style="width:30px;height:30px;background:none;min-width:30px;" onclick="toggleFindReplace()" title="Find &amp; Replace">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+            </button>
             <!-- Nav hide/show toggle -->
             <button class="icon-btn no-select" id="nav-hide-btn" style="width:30px;height:30px;background:none;min-width:30px;" onclick="toggleNavVisibility()" title="Hide/Show toolbar">
                 <svg id="nav-hide-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.25s ease;">
@@ -1946,6 +1950,9 @@
             <div id="inline-chat-input-row">
                 <button onclick="_inlineTriggerAttach()" title="Attach file" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
                     <span class="material-icons-round" style="font-size:16px;pointer-events:none;">attach_file</span>
+                </button>
+                <button id="inline-chat-mode-btn" onclick="_toggleChatMode()" title="Chat Mode — only chat, no edits" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.2s,color 0.2s;">
+                    <svg id="chat-mode-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 </button>
                 <textarea id="inline-chat-textarea" placeholder="Ask agent..." rows="1"></textarea>
                 <button id="inline-chat-send-btn" onclick="sendInlineChat()">
@@ -6296,7 +6303,17 @@ STRICT FORMAT RULES:
 
         try {
             _inlineLogActivity('Calling ' + (_activeAgent()?.providerName || 'AI') + '...');
-            const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI, _inlineAbortCtrl);
+            // ── Chat Mode: use a pure-conversation system prompt ──
+            const activeSystemPrompt = _inlineChatModeOn
+                ? `You are a helpful coding assistant in CHAT ONLY mode.
+Rules:
+1. NEVER return JSON. NEVER return edit/new_file/split/reorganize JSON objects.
+2. Only respond in plain conversational text.
+3. If you need to show code, wrap it in fenced code blocks (triple backticks with language tag) — these render as Canvas cards the user can copy.
+4. If the user says "give me old block and new block", show them as two separate fenced code blocks labelled clearly: first the OLD block, then the NEW block so they can copy and manually replace.
+5. Keep responses clear, helpful, and to the point. Match the user's language (English or Hindi/Hinglish).`
+                : _AGENT_SYSTEM_PROMPT;
+            const raw = await _callAgentAPI(activeSystemPrompt, userMsg, historyForAPI, _inlineAbortCtrl);
             _inlineLogActivity('Response: ' + (raw.length/1024).toFixed(1) + 'k received');
             _inlineHideTyping();
 
@@ -6310,6 +6327,12 @@ STRICT FORMAT RULES:
             _inlineChatHistory.push({ role: 'assistant', content: raw });
 
             const parsed = _tryParseJSON(raw);
+
+            // ── CHAT MODE OVERRIDE: no edits, just show text + code canvas ──
+            if (_inlineChatModeOn) {
+                _inlineAppendMsg('agent', raw.trim());
+                return;
+            }
 
             // ── Plain text / explanation ──
             if (!parsed || !parsed.type) {
@@ -7475,6 +7498,31 @@ Use only line numbers visible in the context. Be precise.`;
         _inlineAttachment = null;
         const bar = document.getElementById('inline-attach-bar');
         if (bar) bar.style.display = 'none';
+    }
+
+    // ── Chat Mode ──
+    // When enabled: AI only chats (explains/analyses), never edits.
+    // All code in response goes to canvas. No apply/edit cards shown.
+    let _inlineChatModeOn = false;
+
+    function _toggleChatMode() {
+        _inlineChatModeOn = !_inlineChatModeOn;
+        const btn  = document.getElementById('inline-chat-mode-btn');
+        const icon = document.getElementById('chat-mode-icon');
+        const ta   = document.getElementById('inline-chat-textarea');
+        if (_inlineChatModeOn) {
+            // Active state — accent coloured
+            if (btn)  { btn.style.background = 'var(--accent)'; btn.style.color = 'white'; }
+            if (icon) icon.setAttribute('stroke', 'white');
+            if (ta)   ta.placeholder = 'Chat only mode — ask anything...';
+            showToast('Chat Mode ON — no edits', 'chat');
+        } else {
+            // Inactive state
+            if (btn)  { btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
+            if (icon) icon.setAttribute('stroke', 'currentColor');
+            if (ta)   ta.placeholder = 'Ask agent...';
+            showToast('Chat Mode OFF', 'edit');
+        }
     }
 
 </script>
