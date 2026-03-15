@@ -2570,9 +2570,9 @@
     window.addEventListener('pagehide', saveSession);
 
     editor.session.on("change", function() {
+        _updateEditorPlaceholder();
         if(_changeDebounce) return;
         _changeDebounce = setTimeout(() => { checkScrollable(); saveSession(); _changeDebounce = null; }, 250);
-        _updateEditorPlaceholder();
     });
 
     // ── Editor placeholder ──
@@ -7878,13 +7878,16 @@ Use only line numbers visible in the context. Be precise.`;
     }
 
     // ── Run Python code ──
+    let _pyRunning = false;
     async function _pyRunCode() {
+        if (_pyRunning) return; // prevent concurrent runs
         const body    = document.getElementById('py-out-body');
         const loadEl  = document.getElementById('py-loading');
         const timeEl  = document.getElementById('py-run-time');
         if (!body) return;
 
-        body.innerHTML = '';
+        _pyRunning = true;
+        body.innerHTML = '';  // clear output every single run
         const code = editor.getValue();
         if (!code.trim()) {
             _pyAppendLine('# No code to run', 'dim'); return;
@@ -7902,12 +7905,13 @@ Use only line numbers visible in the context. Be precise.`;
         } catch (err) {
             _pyAppendLine('⚠ Could not load Python runtime.', 'error');
             _pyAppendLine(err.message, 'error');
+            _pyRunning = false;
             return;
         }
 
         if (loadEl) loadEl.style.display = 'none';
 
-        // Redirect stdout/stderr into our output div
+        // Redirect stdout/stderr — always fresh StringIO, never reuse
         py.runPython(`
 import sys, io
 _codx_stdout = io.StringIO()
@@ -7928,8 +7932,16 @@ sys.stderr = _codx_stderr
             errText = errText || py.runPython('_codx_stderr.getvalue()');
         } catch(e) {}
 
-        // Restore stdout/stderr
-        try { py.runPython('sys.stdout = sys.__stdout__\nsys.stderr = sys.__stderr__'); } catch(e) {}
+        // Restore stdout/stderr — use original references saved before redirect
+        try {
+            py.runPython(`
+import sys, io
+sys.stdout = sys.__stdout__ if hasattr(sys, '__stdout__') and sys.__stdout__ is not None else io.StringIO()
+sys.stderr = sys.__stderr__ if hasattr(sys, '__stderr__') and sys.__stderr__ is not None else io.StringIO()
+_codx_stdout = None
+_codx_stderr = None
+`);
+        } catch(e) {}
 
         const elapsed = ((Date.now() - t0) / 1000).toFixed(2);
         if (timeEl) timeEl.textContent = elapsed + 's';
@@ -7946,6 +7958,7 @@ sys.stderr = _codx_stderr
 
         // Scroll to bottom
         body.scrollTop = body.scrollHeight;
+        _pyRunning = false;
     }
 
     // ── Append a line to output ──
