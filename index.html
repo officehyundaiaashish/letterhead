@@ -2029,9 +2029,30 @@
 
 
     function _showPerfBadge(msg) {
-        let icon = msg.includes('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>') ? 'check_circle' : 'speed';
-        let cleanMsg = msg.replace('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> ', '').replace('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> ', '');
-        showToast(cleanMsg, icon);
+        // Always center screen — not related to nav or modals
+        let toast = document.getElementById('action-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'action-toast';
+            toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-color);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:99999;opacity:0;transition:opacity 0.25s ease,transform 0.25s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 12px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;';
+            document.body.appendChild(toast);
+        }
+        // Force center
+        toast.style.top = '50%';
+        toast.style.bottom = 'auto';
+        toast.style.transform = 'translateX(-50%) translateY(-50%)';
+
+        const iconSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+        const isSuccess = msg.includes('✓') || msg.toLowerCase().includes('loaded');
+        const checkSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>';
+        const usedSvg = isSuccess ? checkSvg : iconSvg;
+
+        // Strip any existing SVG from msg
+        const cleanMsg = msg.replace(/<svg[^>]*>.*?<\/svg>\s*/gs, '').replace(/[⚡✓]\s*/g, '').trim();
+        toast.innerHTML = `${usedSvg} ${cleanMsg}`;
+        toast.style.opacity = '1';
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => { toast.style.opacity = '0'; }, 2800);
     }
 
     // ── STEP 5: Fast value setter — freeze renderer during large loads ──
@@ -2128,25 +2149,45 @@
         if (!toast) {
             toast = document.createElement('div');
             toast.id = 'action-toast';
-            toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-color);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:9999;opacity:0;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 12px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;';
+            toast.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-color);padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:99999;opacity:0;transition:opacity 0.25s ease,transform 0.25s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 4px 12px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;max-width:88vw;overflow:hidden;text-overflow:ellipsis;';
             document.body.appendChild(toast);
         }
-        // Determine position: if any modal/dialog open → top of screen; else → above nav panel
-        const anyModalOpen = document.querySelector('.modal.active, #github-modal.active, #agent-modal.active, #custom-dialog-overlay.active, #commit-modal-overlay');
-        if (anyModalOpen) {
-            // Top area — sits just below the header, won't cover editor or dialogs
-            toast.style.top = '60px';
-            toast.style.bottom = 'auto';
-            toast.style.transform = 'translateX(-50%) translateY(0)';
+
+        const chatPanel   = document.getElementById('inline-chat-panel');
+        const commitModal = document.getElementById('commit-modal-overlay');
+        const anyModal    = document.querySelector('.modal.active, #github-modal.active, #agent-modal.active, #custom-dialog-overlay.active, #new-project-overlay.active');
+        const panel       = document.getElementById('bottom-panel');
+
+        // Reset all position props cleanly each call
+        toast.style.top    = 'auto';
+        toast.style.bottom = 'auto';
+        toast.style.transform = 'translateX(-50%)';
+
+        if (commitModal) {
+            // Commit modal open → center vertically
+            toast.style.top = '50%';
+            toast.style.transform = 'translateX(-50%) translateY(-50%)';
+        } else if (anyModal) {
+            // Modal open → just below header with 16px gap
+            const hh = (document.getElementById('header') || {}).offsetHeight || 48;
+            toast.style.top = (hh + 16) + 'px';
+        } else if (_chatIsFullscreen) {
+            // Chat fullscreen → dead center of screen
+            toast.style.top = '50%';
+            toast.style.transform = 'translateX(-50%) translateY(-50%)';
+        } else if (_inlineChatOpen && chatPanel && chatPanel.classList.contains('chat-open')) {
+            // Chat panel open → 20px above chat panel top edge
+            const chatTop = chatPanel.getBoundingClientRect().top;
+            toast.style.bottom = (window.innerHeight - chatTop + 20) + 'px';
+        } else if (!_navHidden && !_inPreview && panel && panel.style.transform !== 'translateY(100%)') {
+            // Nav visible → 20px above nav panel
+            toast.style.bottom = (panel.offsetHeight + 20) + 'px';
         } else {
-            // Above nav panel
-            toast.style.top = 'auto';
-            const panel = document.getElementById('bottom-panel');
-            const navVisible = !_navHidden && panel && panel.style.transform !== 'translateY(100%)';
-            const offset = navVisible ? (panel.offsetHeight || 180) + 12 : 20;
-            toast.style.bottom = offset + 'px';
-            toast.style.transform = 'translateX(-50%) translateY(0)';
+            // Preview mode or nav hidden → center screen
+            toast.style.top = '50%';
+            toast.style.transform = 'translateX(-50%) translateY(-50%)';
         }
+
         toast.innerHTML = `<span class="material-icons-round" style="font-size:16px;color:var(--accent);flex-shrink:0;">${iconName}</span> ${msg}`;
         toast.style.opacity = '1';
         clearTimeout(toast.timer);
@@ -6790,36 +6831,98 @@ Use only line numbers visible in the context. Be precise.`;
     // All code in response goes to canvas. No apply/edit cards shown.
     let _inlineChatModeOn = false;
 
-    function _showChatPanelToast(msg, color) {
-        const t    = document.getElementById('chat-panel-toast');
-        const dot  = document.getElementById('cpt-dot');
-        const text = document.getElementById('cpt-text');
-        if (!t) return;
-        if (dot)  dot.style.background = color;
-        if (text) text.textContent = msg;
+
+
+    // Chat mode switch toast — centered, animated icon swap
+    function _showChatModeToast(isChatMode) {
+        let t = document.getElementById('chat-mode-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'chat-mode-toast';
+            t.style.cssText = [
+                'position:fixed',
+                'left:50%',
+                'top:50%',
+                'transform:translate(-50%,-50%) scale(0.85)',
+                'background:var(--glass-bg)',
+                'border:1px solid var(--glass-border)',
+                'color:var(--text-color)',
+                'padding:14px 24px',
+                'border-radius:20px',
+                'font-size:13px',
+                'font-weight:700',
+                'font-family:Poppins,sans-serif',
+                'display:flex',
+                'align-items:center',
+                'gap:10px',
+                'z-index:99999',
+                'opacity:0',
+                'pointer-events:none',
+                'white-space:nowrap',
+                'box-shadow:0 8px 32px rgba(0,0,0,0.35)',
+                'transition:opacity 0.22s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1)'
+            ].join(';');
+            document.body.appendChild(t);
+        }
+
+        // Animated swap: icon flips out, new one flips in
+        const iconWrap = document.createElement('span');
+        iconWrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;flex-shrink:0;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);';
+
+        if (isChatMode) {
+            iconWrap.style.background = 'rgba(16,185,129,0.18)';
+            iconWrap.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+            t.style.borderColor = 'rgba(16,185,129,0.35)';
+        } else {
+            iconWrap.style.background = 'rgba(245,158,11,0.18)';
+            iconWrap.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+            t.style.borderColor = 'rgba(245,158,11,0.35)';
+        }
+
+        const label = document.createElement('span');
+        label.textContent = isChatMode ? 'Chat Mode ON' : 'Edit Mode ON';
+        label.style.color = isChatMode ? '#10b981' : '#f59e0b';
+
+        t.innerHTML = '';
+        t.appendChild(iconWrap);
+        t.appendChild(label);
+
+        // Animate in: scale up + fade in
         clearTimeout(t._timer);
-        t.classList.add('show');
-        t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+        requestAnimationFrame(() => {
+            t.style.opacity = '1';
+            t.style.transform = 'translate(-50%,-50%) scale(1)';
+        });
+
+        // Animate icon: small bounce
+        setTimeout(() => { iconWrap.style.transform = 'scale(1.2) rotate(8deg)'; }, 60);
+        setTimeout(() => { iconWrap.style.transform = 'scale(1) rotate(0deg)'; }, 200);
+
+        // Animate out after 1.8s
+        t._timer = setTimeout(() => {
+            t.style.opacity = '0';
+            t.style.transform = 'translate(-50%,-50%) scale(0.9)';
+        }, 1800);
     }
 
-    function _toggleChatMode() {
+        function _toggleChatMode() {
         _inlineChatModeOn = !_inlineChatModeOn;
         const btn  = document.getElementById('inline-chat-mode-btn');
         const icon = document.getElementById('chat-mode-icon');
         const ta   = document.getElementById('inline-chat-textarea');
+
         if (_inlineChatModeOn) {
-            // Active state — glow ring via CSS class
             if (btn)  { btn.classList.add('mode-on'); btn.style.background = ''; btn.style.color = ''; }
             if (icon) { icon.setAttribute('stroke', 'white'); icon.setAttribute('fill', 'rgba(255,255,255,0.15)'); }
             if (ta)   ta.placeholder = 'Chat only — no edits...';
-            _showChatPanelToast('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Chat Mode ON — no edits', '#10b981');
         } else {
-            // Inactive state
             if (btn)  { btn.classList.remove('mode-on'); btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
             if (icon) { icon.setAttribute('stroke', 'currentColor'); icon.setAttribute('fill', 'none'); }
             if (ta)   ta.placeholder = 'Ask agent...';
-            _showChatPanelToast('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Mode ON — AI will apply changes', '#f59e0b');
         }
+
+        // Show centered mode-switch toast
+        _showChatModeToast(_inlineChatModeOn);
     }
 
     // ── Inline chat: fullscreen toggle ──
@@ -6829,19 +6932,13 @@ Use only line numbers visible in the context. Be precise.`;
         const panel  = document.getElementById('inline-chat-panel');
         const icon   = document.getElementById('fs-icon');
         const header = document.getElementById('header');
-        const toast  = document.getElementById('chat-panel-toast');
         const hh     = header ? header.offsetHeight : 48;
         if (_chatIsFullscreen) {
-            // Set CSS var so padding-top matches real header height
             document.documentElement.style.setProperty('--header-h', hh + 'px');
             panel.classList.add('chat-fullscreen');
-            // Toast: center of screen (below header)
-            if (toast) { toast.style.bottom = ''; toast.style.top = (hh + 16) + 'px'; toast.style.transform = 'translateX(-50%) translateY(0)'; }
             if (icon) icon.innerHTML = '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>';
         } else {
             panel.classList.remove('chat-fullscreen');
-            // Toast: back to above panel
-            if (toast) { toast.style.top = ''; toast.style.bottom = '46vh'; toast.style.transform = 'translateX(-50%) translateY(8px)'; }
             if (icon) icon.innerHTML = '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
         }
     }
