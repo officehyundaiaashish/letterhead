@@ -3875,6 +3875,13 @@
             if (ag.provider === 'gemini' && _GEMINI_LIMITS[ag.model]) {
                 const lim = _GEMINI_LIMITS[ag.model];
                 const usageKey = '_geminiUsage_' + ag.model.replace(/\./g,'_');
+                // Load from localStorage if not yet in memory (survives refresh)
+                if (!window[usageKey]) {
+                    try {
+                        const _s = localStorage.getItem(usageKey);
+                        window[usageKey] = _s ? JSON.parse(_s) : { rpm: [], rpd: [] };
+                    } catch(e) { window[usageKey] = { rpm: [], rpd: [] }; }
+                }
                 const usage = window[usageKey] || { rpm: [], rpd: [] };
                 const now = Date.now();
                 const rpmUsed = (usage.rpm || []).filter(t => now - t < 60000).length;
@@ -4102,7 +4109,13 @@
 
                 const _now = Date.now();
                 const _usageKey = '_geminiUsage_' + cfg.model.replace(/\./g,'_');
-                if (!window[_usageKey]) window[_usageKey] = { rpm: [], rpd: [] };
+                // Restore from localStorage on first access (survives page refresh)
+                if (!window[_usageKey]) {
+                    try {
+                        const _stored = localStorage.getItem(_usageKey);
+                        window[_usageKey] = _stored ? JSON.parse(_stored) : { rpm: [], rpd: [] };
+                    } catch(e) { window[_usageKey] = { rpm: [], rpd: [] }; }
+                }
                 const _g = window[_usageKey];
                 _g.rpm = _g.rpm.filter(t => _now - t < 60000);
                 _g.rpd = _g.rpd.filter(t => _now - t < 86400000);
@@ -4130,6 +4143,8 @@
                 // Record this request
                 _g.rpm.push(_now);
                 _g.rpd.push(_now);
+                // Persist to localStorage so thresholds survive page refresh
+                try { localStorage.setItem(_usageKey, JSON.stringify(_g)); } catch(e) {}
                 // Gemini: history roles must be 'user' or 'model' (not 'assistant')
                 // System prompt injected into first user message
                 const geminiHistory = conversationHistory.map(m => ({
