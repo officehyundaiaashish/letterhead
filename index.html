@@ -1794,7 +1794,7 @@
     </div>
 </div>
 
-<input type="file" id="file-input" accept=".html,.js,.css,.txt,.py,.json,.md" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
+<input type="file" id="file-input" accept=".html,.htm,.css,.js,.ts,.jsx,.tsx,.json,.md,.txt,.xml,.svg" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
 
 <div class="modal no-select" id="find-modal">
     <!-- Header -->
@@ -2960,6 +2960,21 @@
     let currentFileName = "index.html";
     function loadFile(event) {
         const file = event.target.files[0]; if (!file) return;
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        // Mode-based file format enforcement
+        if (_pythonMode && ext !== 'py') {
+            cdAlert('Python Mode', `Only .py files can be opened in Python mode.\n"${file.name}" is not allowed.`, 'warn');
+            event.target.value = '';
+            return;
+        }
+        const _webExts = ['html','htm','css','js','ts','jsx','tsx','json','md','txt','xml','svg'];
+        if (!_pythonMode && !_webExts.includes(ext)) {
+            cdAlert('HTML Mode', `"${file.name}" is not a supported web file.\nSupported: ${_webExts.join(', ')}`, 'warn');
+            event.target.value = '';
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = e => {
             const content = e.target.result;
@@ -4944,6 +4959,14 @@ Rules:
     async function createNewProject() {
         const fname = (document.getElementById('np-filename').value || '').trim();
         if (!fname) { cdAlert('New Project', 'Please enter a file name.', 'warn'); return; }
+        const ext = fname.split('.').pop().toLowerCase();
+        const _webExts = ['html','htm','css','js','ts','jsx','tsx','json','md','txt','xml','svg'];
+        if (_pythonMode && ext !== 'py') {
+            cdAlert('Python Mode', 'Only .py files allowed in Python mode.', 'warn'); return;
+        }
+        if (!_pythonMode && !_webExts.includes(ext)) {
+            cdAlert('HTML Mode', `".${ext}" is not a supported web file type.`, 'warn'); return;
+        }
         const blankContent = _getBlankContentForFile(fname);
         closeNewProjectModal();
         // Ask user: new tab or current tab
@@ -7751,6 +7774,9 @@ Use only line numbers visible in the context. Be precise.`;
 
         renderFileTabs();
         _updateEditorPlaceholder();
+        // Update file input accept for current mode
+        const fi = document.getElementById('file-input');
+        if (fi) fi.accept = _pythonMode ? '.py' : '.html,.htm,.css,.js,.ts,.jsx,.tsx,.json,.md,.txt,.xml,.svg';
     }
 
     // ── Override switchTab to handle Python preview ──
