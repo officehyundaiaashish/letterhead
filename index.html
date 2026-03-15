@@ -5877,7 +5877,7 @@ No markdown, no backticks, no explanation outside the array.`;
         return bubble;
     }
 
-    // ── Typing indicator + live prompt preview ──
+    // ── Typing indicator + live activity log ──
     let _statusTimer = null;
 
     function _inlineShowTyping() {
@@ -5893,26 +5893,26 @@ No markdown, no backticks, no explanation outside the array.`;
 
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble';
-        bubble.style.cssText = 'padding:0;overflow:hidden;min-width:200px;max-width:100%;';
+        bubble.style.cssText = 'padding:0;overflow:hidden;min-width:220px;max-width:100%;';
 
-        // ── Header row with status + dots ──
+        // Header: icon + status text + dots
         const hdr = document.createElement('div');
         hdr.id = 'ipt-header';
         hdr.style.cssText = 'display:flex;align-items:center;gap:7px;padding:8px 11px;';
 
         const icon = document.createElement('span');
         icon.id = 'inline-status-icon';
-        icon.style.cssText = 'font-size:13px;';
-        icon.textContent = '⚙️';
+        icon.style.cssText = 'font-size:13px;flex-shrink:0;';
+        icon.textContent = '📤';
 
         const txt = document.createElement('span');
         txt.id = 'inline-status-text';
         txt.style.cssText = 'font-size:10px;font-weight:700;font-family:Poppins,sans-serif;color:var(--accent);flex:1;';
-        txt.textContent = 'Building prompt...';
+        txt.textContent = 'Generating...';
 
         const dots = document.createElement('div');
         dots.id = 'ipt-dots';
-        dots.style.cssText = 'display:flex;gap:3px;';
+        dots.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
         for (let i = 0; i < 3; i++) {
             const d = document.createElement('span');
             d.style.cssText = 'width:4px;height:4px;border-radius:50%;background:var(--accent);animation:agentBounce 0.8s ' + (i*0.2) + 's infinite;display:inline-block;';
@@ -5923,102 +5923,67 @@ No markdown, no backticks, no explanation outside the array.`;
         hdr.appendChild(txt);
         hdr.appendChild(dots);
 
-        // ── Prompt preview body (existing) ──
-        const body = document.createElement('div');
-        body.id = 'ipt-body';
-        body.style.cssText = 'display:none;border-top:1px solid var(--glass-border);padding:5px 11px 6px;';
-
-        // ── Live activity log ──
+        // Live activity log — always visible, taller
         const log = document.createElement('div');
         log.id = 'ipt-log';
-        log.style.cssText = 'border-top:1px solid var(--glass-border);max-height:72px;overflow-y:auto;padding:4px 11px 5px;display:flex;flex-direction:column;gap:1px;scroll-behavior:smooth;';
-        log.innerHTML = '<div style="font-size:9px;color:var(--accent);opacity:0.5;font-family:Poppins,sans-serif;font-weight:700;padding-bottom:2px;letter-spacing:0.5px;">ACTIVITY</div>';
-
-        // Toggle prompt preview on header click
-        hdr.style.cursor = 'pointer';
-        hdr.addEventListener('click', function() {
-            body.style.display = body.style.display === 'none' ? 'block' : 'none';
-        });
+        log.style.cssText = 'border-top:1px solid var(--glass-border);max-height:110px;overflow-y:auto;padding:5px 11px 6px;display:flex;flex-direction:column;gap:2px;';
 
         bubble.appendChild(hdr);
-        bubble.appendChild(body);
         bubble.appendChild(log);
         wrap.appendChild(bubble);
         box.appendChild(wrap);
+        // First log line — immediately visible
+        const _initLine = document.createElement('div');
+        _initLine.style.cssText = 'font-size:9px;font-family:"Courier New",monospace;color:var(--accent);opacity:0.55;';
+        _initLine.textContent = '› Building prompt...';
+        log.appendChild(_initLine);
         _inlineChatScroll();
     }
 
-    // ── Push a line to the live activity log ──
+    // Push a timestamped line to the live activity log
     function _inlineLogActivity(text) {
         const log = document.getElementById('ipt-log');
         if (!log) return;
+        const now = new Date();
+        const ts = now.getSeconds().toString().padStart(2,'0') + '.' + Math.floor(now.getMilliseconds()/100);
         const line = document.createElement('div');
-        line.style.cssText = 'font-size:9px;font-family:"Courier New",monospace;color:var(--text-color);opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:activityFadeIn 0.2s ease;';
-        line.textContent = '› ' + text;
+        line.style.cssText = 'font-size:9px;font-family:"Courier New",monospace;color:var(--text-color);opacity:0.75;display:flex;gap:5px;line-height:1.4;';
+        const tsEl = document.createElement('span');
+        tsEl.style.cssText = 'color:var(--accent);opacity:0.45;flex-shrink:0;';
+        tsEl.textContent = ':' + ts;
+        const msgEl = document.createElement('span');
+        msgEl.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        msgEl.textContent = text;
+        line.appendChild(tsEl);
+        line.appendChild(msgEl);
         log.appendChild(line);
-        // Auto-scroll to bottom
         log.scrollTop = log.scrollHeight;
         _inlineChatScroll();
     }
 
-
     function _inlineUpdateTypingStatus(icon, text, promptChars) {
         const iconEl = document.getElementById('inline-status-icon');
         const textEl = document.getElementById('inline-status-text');
-        const dotsEl = document.getElementById('ipt-dots');
         if (!textEl) return;
         if (iconEl) iconEl.textContent = icon;
-        const displayText = text + (promptChars != null ? '  ' + (promptChars/1024).toFixed(1) + 'k' : '');
-        textEl.textContent = displayText;
-        if (dotsEl) dotsEl.style.display = 'flex';
-        // Also push to live log
+        textEl.textContent = text + (promptChars != null ? '  ' + (promptChars/1024).toFixed(1) + 'k' : '');
         _inlineLogActivity(text + (promptChars != null ? ' (' + (promptChars/1024).toFixed(1) + 'k)' : ''));
     }
 
     function _inlineFillPromptPreview(data) {
-        const body = document.getElementById('ipt-body');
-        if (!body) return;
-        const rows = [];
-        if (data.request) rows.push(['Request', data.request.length > 140 ? data.request.slice(0,140) + '…' : data.request]);
-        if (data.targetFile) rows.push(['Target', data.targetFile]);
-        if (data.codeSize) rows.push(['Code', data.codeSize]);
-        if (data.contextFiles && data.contextFiles.length) data.contextFiles.forEach(f => rows.push(['Context', f]));
-        if (data.attachment) rows.push(['Attachment', data.attachment]);
-        if (data.history) rows.push(['History', data.history]);
-        if (data.totalSize) rows.push(['Prompt size', data.totalSize]);
-        body.innerHTML = rows.map(r => {
-            const row = document.createElement('div');
-            row.style.cssText = 'display:flex;gap:8px;padding:2px 0;font-size:9px;border-bottom:1px solid var(--glass-border);';
-            const lbl = document.createElement('span');
-            lbl.style.cssText = 'color:var(--accent);font-weight:700;opacity:0.7;min-width:60px;flex-shrink:0;font-family:Poppins,sans-serif;';
-            lbl.textContent = r[0];
-            const val = document.createElement('span');
-            val.style.cssText = 'color:var(--text-color);opacity:0.85;word-break:break-word;line-height:1.4;font-family:Poppins,sans-serif;';
-            val.textContent = r[1];
-            row.appendChild(lbl);
-            row.appendChild(val);
-            return row.outerHTML;
-        }).join('');
-        // Log key steps to activity window
         if (data.targetFile) _inlineLogActivity('Target: ' + data.targetFile);
         if (data.codeSize)   _inlineLogActivity('Code: ' + data.codeSize);
-        if (data.contextFiles && data.contextFiles.length) _inlineLogActivity('Context: ' + data.contextFiles.join(', '));
-        if (data.totalSize)  _inlineLogActivity('Prompt ready: ' + data.totalSize);
+        if (data.history)    _inlineLogActivity('History: ' + data.history);
+        if (data.totalSize)  _inlineLogActivity('Prompt: ' + data.totalSize);
         _inlineChatScroll();
     }
 
     function _inlineHideTyping() {
         clearInterval(_statusTimer);
         _statusTimer = null;
+        // Fully remove typing indicator — prevents content overlap
         const wrap = document.getElementById('inline-typing');
-        if (!wrap) return;
-        wrap.removeAttribute('id');
-        const dotsEl = document.getElementById('ipt-dots');
-        if (dotsEl) dotsEl.remove();
-        const statusText = document.getElementById('inline-status-text');
-        if (statusText) { statusText.textContent = '✓ Prompt sent'; statusText.style.opacity = '0.5'; }
-        const statusIcon = document.getElementById('inline-status-icon');
-        if (statusIcon) statusIcon.textContent = '📤';
+        if (wrap) wrap.remove();
     }
 
     // ══════════════════════════════════════════════════
@@ -6134,6 +6099,8 @@ STRICT FORMAT RULES:
         const sendBtn = document.getElementById('inline-chat-send-btn');
         sendBtn.disabled = true;
         _inlineShowTyping();
+        // Yield one frame so browser paints the typing bubble before heavy work
+        await new Promise(r => setTimeout(r, 0));
 
         // ── Target file ──
         const _isNewFileMode = _inlineSelectedTabId === 'new';
@@ -6154,6 +6121,7 @@ STRICT FORMAT RULES:
             const t2 = Math.floor(_MAX_CHARS * 0.30 / 80);
             numberedCode = lines.slice(0,h).join('\n') + `\n\n// ⚠️ [${lines.length-h-t2} lines omitted — too large for ${_provider} free tier]\n\n` + lines.slice(-t2).join('\n');
         }
+        _inlineLogActivity('Code: ' + (numberedCode.length/1024).toFixed(1) + 'k (' + code.split('\n').length + ' lines)');
 
         // ── Context files (user explicitly ticked) ──
         const _CTX_PER_FILE = Math.floor(_MAX_CHARS * 0.15);
@@ -6182,20 +6150,17 @@ STRICT FORMAT RULES:
         const codeBlock = (!_isNewFileMode && numberedCode) ? `\n\n── FULL CODE (with line numbers) ──\n\`\`\`\n${numberedCode}\n\`\`\`` : '';
         const userMsg = `── CONTEXT ──${sessionBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}`;
 
-        // ── Show prompt preview ──
+        // ── Show prompt info in live log ──
         const historyForAPI = _buildHistoryForAPI();
-        _inlineFillPromptPreview({
-            request: userRequest,
-            targetFile: (!_isNewFileMode && targetTab) ? targetTab.name + ' (' + ((targetTab.content?.length||0)/1024).toFixed(1) + 'k)' : null,
-            codeSize: !_isNewFileMode ? (numberedCode.length/1024).toFixed(1) + 'k (' + code.split('\n').length + ' lines)' : null,
-            history: historyForAPI.length > 0 ? historyForAPI.length + ' msgs' : null,
-            totalSize: (userMsg.length/1024).toFixed(1) + 'k chars',
-        });
-        _inlineUpdateTypingStatus('📤', 'Sending to AI...', userMsg.length);
+        if (!_isNewFileMode && targetTab) _inlineLogActivity('Target: ' + targetTab.name + ' (' + ((targetTab.content?.length||0)/1024).toFixed(1) + 'k)');
+        if (historyForAPI.length > 0)     _inlineLogActivity('History: ' + historyForAPI.length + ' msgs');
+        _inlineLogActivity('Prompt ready: ' + (userMsg.length/1024).toFixed(1) + 'k chars');
+        _inlineUpdateTypingStatus('📤', 'Generating...', userMsg.length);
 
         try {
+            _inlineLogActivity('Calling ' + (_activeAgent()?.providerName || 'AI') + '...');
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI);
-            _inlineLogActivity('Response received (' + (raw.length/1024).toFixed(1) + 'k)');
+            _inlineLogActivity('Response: ' + (raw.length/1024).toFixed(1) + 'k received');
             _inlineHideTyping();
 
             if (!raw?.trim()) {
