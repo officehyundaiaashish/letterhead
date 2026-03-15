@@ -290,9 +290,10 @@
             transform: translate(-50%, -50%) scale(1);
         }
         #gh-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 105; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 105; opacity: 0; pointer-events: none !important; transition: opacity 0.2s ease;
         }
-        #gh-overlay.active { opacity: 1; pointer-events: auto; }
+        #gh-overlay.active { opacity: 1; pointer-events: auto !important; }
+        #github-modal:not(.active) { pointer-events: none !important; }
         .gh-select-wrap { position: relative; margin-bottom: 8px; }
         .gh-select-wrap select {
             width: 100%; padding: 11px 36px 11px 12px; border-radius: 10px;
@@ -2141,6 +2142,9 @@
     // GitHub modal refs — declared early so closeGithubModal() never hits TDZ
     const ghModal = document.getElementById('github-modal');
     const ghOverlay = document.getElementById('gh-overlay');
+    // Force clean closed state on init — prevent any stale pointer-events
+    if (ghModal)   { ghModal.classList.remove('active');   ghModal.style.pointerEvents   = 'none'; }
+    if (ghOverlay) { ghOverlay.classList.remove('active'); ghOverlay.style.pointerEvents = 'none'; }
     // Declared early — used in visualViewport resize handler before full init
     var _inlineChatOpen = false;
     // Declared early — used before their definition blocks to prevent TDZ crash
@@ -3094,15 +3098,23 @@
     }
 
     function openGithubModal() {
-        findModal.classList.remove('active'); 
+        findModal.classList.remove('active');
+        // Explicit state — never rely on CSS transition for pointer-events
         ghOverlay.classList.add('active');
+        ghOverlay.style.pointerEvents = 'auto';
         ghModal.classList.add('active');
-        if(!bottomPanel.classList.contains('collapsed')) { bottomPanel.classList.add('collapsed'); }
+        ghModal.style.pointerEvents = 'auto';
         checkGhLogin();
     }
-    function closeGithubModal() { 
-        ghModal.classList.remove('active'); 
+    function closeGithubModal() {
+        ghModal.classList.remove('active');
+        ghModal.style.pointerEvents = 'none';
         ghOverlay.classList.remove('active');
+        // Immediately kill pointer-events — don't wait for opacity transition
+        ghOverlay.style.pointerEvents = 'none';
+        // Hide commit history dropdown
+        const hist = document.getElementById('gh-commit-history');
+        if (hist) hist.style.display = 'none';
     }
 
     let _ghReposLoaded = false;
@@ -3615,7 +3627,7 @@
             _ghTree = [];
             const overlay = document.getElementById('commit-modal-overlay');
             if(overlay) { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 200); }
-            // Auto-dismiss commit success — no OK button needed
+            closeGithubModal();
             _showCommitToast(`"${ghCurrentFile.split('/').pop()}" pushed to ${ghCurrentRepo.split('/').pop()}`);
             if(document.getElementById('gh-repo-select')?._value) fetchGhFiles();
         } catch(e) {
