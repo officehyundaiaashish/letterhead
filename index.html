@@ -1979,7 +1979,7 @@
                 </div>
                 <div style="display: flex; justify-content: center; width: 100%; margin-top: 4px; gap: 6px;">
                     <button class="toolbar-btn" id="ai-agent-btn" onclick="toggleInlineChat()" style="width: 80px;"><span class="material-icons-round">smart_toy</span>AI Agent</button>
-                    <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
+                    <button class="toolbar-btn" onclick="_softRefresh()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
                 </div>
             </div>
         </div>
@@ -2249,7 +2249,7 @@
     <!-- Connected agents list -->
     <div id="agent-connected-section" style="display:none; margin-bottom:10px;">
         <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Connected Agents — tap to switch active</div>
-        <div id="agent-list-container"></div>
+        <div id="agent-list-container" style="max-height:220px;overflow-y:auto;overflow-x:hidden;"></div>
         <div style="display:flex;gap:8px;margin-top:8px;">
             <button class="modal-btn secondary" onclick="disconnectAgent()" style="flex:1;font-size:11px;padding:8px;">
                 <span style="display:flex;align-items:center;justify-content:center;gap:4px;"><span class="material-icons-round" style="font-size:14px;">logout</span>Remove All</span>
@@ -2535,6 +2535,21 @@
     }
 
     // Small perf badge shown when mode is downgraded
+    function _softRefresh() {
+        // Save current content before refresh
+        const curTab = fileTabs.find(t => t.id === activeTabId);
+        if (curTab) curTab.content = editor.getValue();
+        // Re-set editor value in place — no DOM teardown, no white flash
+        const val = editor.getValue();
+        const pos = editor.getCursorPosition();
+        editor.setValue(val, -1);
+        editor.moveCursorToPosition(pos);
+        editor.clearSelection();
+        // Re-apply syntax mode
+        _setEditorMode(curTab ? curTab.name : '', val);
+        showToast('Refreshed', 'refresh');
+    }
+
     function _showPerfBadge(msg) {
         let icon = msg.includes('✓') ? 'check_circle' : 'speed';
         let cleanMsg = msg.replace('⚡ ', '').replace('✓ ', '');
@@ -3739,12 +3754,6 @@
         key = (key || '').trim();
         if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))
             return [
-                { provider:'gemini', providerName:'Gemini 3.1 Pro Preview',
-                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent',
-                  model:'gemini-3.1-pro-preview', label:'Google – Gemini 3.1 Pro Preview · Free tier' },
-                { provider:'gemini', providerName:'Gemini 2.5 Pro',
-                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
-                  model:'gemini-2.5-pro', label:'Google – Gemini 2.5 Pro · Free (100/day)' },
                 { provider:'gemini', providerName:'Gemini 2.5 Flash',
                   url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
                   model:'gemini-2.5-flash', label:'Google – Gemini 2.5 Flash · Free (250/day)' },
@@ -3840,8 +3849,6 @@
         list.innerHTML = '';
 
         const _GEMINI_LIMITS = {
-            'gemini-3.1-pro-preview':{ rpm: 5,  rpd: 25   },
-            'gemini-2.5-pro':        { rpm: 5,  rpd: 100  },
             'gemini-2.5-flash':      { rpm: 10, rpd: 250  },
             'gemini-2.5-flash-lite': { rpm: 15, rpd: 1000 },
         };
@@ -4068,8 +4075,6 @@
             } else if (cfg.provider === 'gemini') {
                 // ── Per-model limits (free tier) ──
                 const _GEMINI_LIMITS = {
-                    'gemini-3.1-pro-preview':{ rpm: 5,  rpd: 25   },
-                    'gemini-2.5-pro':        { rpm: 5,  rpd: 100  },
                     'gemini-2.5-flash':      { rpm: 10, rpd: 250  },
                     'gemini-2.5-flash-lite': { rpm: 15, rpd: 1000 },
                 };
@@ -6372,21 +6377,28 @@ STRICT FORMAT RULES:
                 } else {
                     const fenceMatch = raw.match(/```(?:html|css|js|javascript|typescript)?\s*([\s\S]*?)```/);
                     if (fenceMatch && targetTab) {
+                        // AI gave code block — show in confirm card, never auto-apply
                         const extractedCode = fenceMatch[1].trim();
                         const textOutside = raw.replace(/```(?:html|css|js|javascript|typescript)?[\s\S]*?```/g, '').trim();
                         if (textOutside) _inlineAppendMsg('agent', textOutside);
-                        _agentUndoStack.push(targetTab.content || editor.getValue());
-                        if (_agentUndoStack.length > 5) _agentUndoStack.shift();
-                        targetTab.content = extractedCode;
-                        if (targetTab.id === activeTabId) {
-                            editor.setValue(extractedCode, -1);
-                        } else {
-                            switchFileTab(targetTab.id);
-                            editor.setValue(extractedCode, -1);
-                        }
-                        _inlineAppendMsg('agent', `✅ Code applied to ${targetTab.name}.`);
-                        _inlineChatHistory.push({ role: 'assistant', content: `[APPLIED CODE TO ${targetTab.name}]` });
+                        const snapTab = targetTab;
+                        _inlineAppendMsg('agent', '', _buildConfirmCard({
+                            type: 'edit',
+                            icon: 'code',
+                            title: `Apply code to ${snapTab.name}`,
+                            lines: [extractedCode.split('\n').length + ' lines'],
+                            onApply: () => {
+                                _agentUndoStack.push({ type: 'edit_content', tab: snapTab, content: snapTab.content || editor.getValue() });
+                                if (_agentUndoStack.length > 5) _agentUndoStack.shift();
+                                const cleaned = extractedCode.split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+                                snapTab.content = cleaned;
+                                if (snapTab.id === activeTabId) editor.setValue(cleaned, -1);
+                                else { switchFileTab(snapTab.id); editor.setValue(cleaned, -1); }
+                                _inlineChatHistory.push({ role: 'assistant', content: `[APPLIED CODE TO ${snapTab.name}]` });
+                            }
+                        }));
                     } else {
+                        // Pure text — just show in chat
                         _inlineAppendMsg('agent', raw.trim());
                     }
                 }
@@ -6455,16 +6467,24 @@ STRICT FORMAT RULES:
                 }));
 
             } else if (parsed.type === 'reorganize') {
-                const truncated = _detectTruncation(parsed.content);
-                if (truncated) {
-                    _inlineShowTyping();
-                    const retryRaw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg + '\n\nCRITICAL: Return COMPLETE reorganized file — every single line.');
-                    _inlineHideTyping();
-                    const p2 = _tryParseJSON(retryRaw); if (p2) parsed = p2;
-                }
-                if (!parsed.content) {
-                    _inlineAppendMsg('agent', '⚠️ AI returned empty content. Try again.');
+                // Guard: if content looks like plain text (not code), show in chat
+                const _looksLikeCode = c => c && (
+                    /<[a-z][\s\S]*>/i.test(c) ||    // HTML tags
+                    /[{};]\s*$/.test(c) ||            // CSS/JS braces
+                    /function |const |let |var |=>/.test(c) ||
+                    c.split('\n').length > 3           // multi-line = code
+                );
+                if (!parsed.content || !_looksLikeCode(parsed.content)) {
+                    // Flash returning conversational text as reorganize — show in chat
+                    _inlineAppendMsg('agent', parsed.explanation || parsed.content || 'No changes needed.');
                 } else {
+                    const truncated = _detectTruncation(parsed.content);
+                    if (truncated) {
+                        _inlineShowTyping();
+                        const retryRaw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg + '\n\nCRITICAL: Return COMPLETE reorganized file — every single line.');
+                        _inlineHideTyping();
+                        const p2 = _tryParseJSON(retryRaw); if (p2) parsed = p2;
+                    }
                     const reorgContent = parsed.content;
                     const reorgTab = targetTab;
                     const oldContent = reorgTab ? reorgTab.content : editor.getValue();
