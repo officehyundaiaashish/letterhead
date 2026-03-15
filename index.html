@@ -2282,10 +2282,10 @@
     // GitHub modal refs — declared early so closeGithubModal() never hits TDZ
     const ghModal = document.getElementById('github-modal');
     const ghOverlay = document.getElementById('gh-overlay');
+    // Declared early — used in visualViewport resize handler before full init
+    var _inlineChatOpen = false;
 
     function _setBodyHeight() {
-        // When inline chat is open, keyboard resize should NOT shrink the body
-        // — chat panel handles its own positioning via CSS safe-area
         if (_inlineChatOpen) return;
         const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         document.body.style.height = h + 'px';
@@ -5746,7 +5746,7 @@ No markdown, no backticks, no explanation outside the array.`;
     // ═══════════════════ INLINE SPLIT CHAT ═══════════════════
     // Editor upar (50%), chat neeche (50%) — seedha split screen
 
-    let _inlineChatOpen = false;
+    // _inlineChatOpen declared at script top (var) to avoid TDZ in visualViewport handler
 
     // ── Conversation history for inline chat ──
     // Each entry: {role: 'user'|'assistant', content: string}
