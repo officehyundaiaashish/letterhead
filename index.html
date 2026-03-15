@@ -1553,7 +1553,7 @@
     <!-- LOGIN SECTION -->
     <div id="gh-login-section">
         <div style="background:var(--accent-dim);border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:12px;margin-bottom:12px;font-size:11px;line-height:1.7;color:var(--text-color);font-family:'Poppins',sans-serif;">
-            <div style="font-weight:700;color:var(--accent);margin-bottom:3px;">🔑 GitHub Personal Access Token</div>
+            <div style="font-weight:700;color:var(--accent);margin-bottom:3px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> GitHub Personal Access Token</div>
             <div style="opacity:0.7;">Generate at github.com → Settings → Developer settings → Personal access tokens</div>
         </div>
         <input type="text" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" style="user-select:text;-webkit-user-select:text;margin-bottom:10px;">
@@ -1733,7 +1733,7 @@
 
     <!-- Free providers tip -->
     <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:10px;line-height:1.7;color:var(--text-color);opacity:0.85;">
-        <span style="font-weight:700;color:var(--accent);">⚡ Best Free AI:</span>
+        <span style="font-weight:700;color:var(--accent);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Best Free AI:</span>
         <span style="font-weight:600;"> Groq</span> — console.groq.com · No quota · Super fast<br>
         <span style="font-weight:600;"> OpenRouter</span> — openrouter.ai · Many free models<br>
         <span style="font-weight:600;"> Gemini</span> — aistudio.google.com · Has daily limits
@@ -2019,7 +2019,7 @@
         const lines = editor.session.getLength();
         if(size > 200000 || lines > 1000) {
             editor.session.setMode('ace/mode/text');
-            _showPerfBadge('⚡ Plain text mode (large file)');
+            _showPerfBadge('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Plain text mode (large file)');
             return;
         }
         const mode = _modeMap[ext] || 'text';
@@ -2029,8 +2029,8 @@
 
 
     function _showPerfBadge(msg) {
-        let icon = msg.includes('✓') ? 'check_circle' : 'speed';
-        let cleanMsg = msg.replace('⚡ ', '').replace('✓ ', '');
+        let icon = msg.includes('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>') ? 'check_circle' : 'speed';
+        let cleanMsg = msg.replace('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> ', '').replace('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> ', '');
         showToast(cleanMsg, icon);
     }
 
@@ -2938,7 +2938,7 @@
             _ghTree = [];
             const overlay = document.getElementById('commit-modal-overlay');
             if(overlay) { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 200); }
-            cdAlert('Committed ✓', `"${ghCurrentFile.split('/').pop()}" pushed to ${ghCurrentRepo.split('/').pop()}`, 'success');
+            cdAlert('Committed <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>', `"${ghCurrentFile.split('/').pop()}" pushed to ${ghCurrentRepo.split('/').pop()}`, 'success');
             if(document.getElementById('gh-repo-select')?._value) fetchGhFiles();
         } catch(e) {
             const sp = document.getElementById('commit-spinner');
@@ -3003,7 +3003,7 @@
                 projects[projectName] = { repo: ghCurrentRepo, loadedAt: Date.now(), fileCount: loaded };
                 await CodXStore.set('codx_projects', projects);
                 _hideRepoProgress();
-                _showPerfBadge(`✓ "${projectName}" — ${loaded} files loaded`);
+                _showPerfBadge(`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> "${projectName}" — ${loaded} files loaded`);
                 if(failed > 0) cdAlert('Load Repo', `${loaded} loaded, ${failed} failed.`, 'info');
             } catch(e) { _hideRepoProgress(); cdAlert('Load Repo', 'Failed to load repository.', 'error'); }
         });
@@ -3159,7 +3159,7 @@
         if (/^gsk_[A-Za-z0-9]{20,}/.test(key))
             return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
                 url:'https://api.groq.com/openai/v1/chat/completions',
-                model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free ⚡' };
+                model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' };
         if (/^sk-or-/i.test(key))
             return { provider:'openrouter', providerName:'OpenRouter – Auto Free',
                 url:'https://openrouter.ai/api/v1/chat/completions',
@@ -3202,7 +3202,7 @@
         const d = _detectProviderFromKey(key);
         if (!d) {
             cdAlert('Agent',
-                'Key format not recognised.\n\nGroq (FREE ⚡): gsk_...\nGemini (free): AIza...\nOpenRouter (free): sk-or-...\nOpenAI: sk-...\nAnthropic: sk-ant-...', 'warn');
+                'Key format not recognised.\n\nGroq (FREE <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>): gsk_...\nGemini (free): AIza...\nOpenRouter (free): sk-or-...\nOpenAI: sk-...\nAnthropic: sk-ant-...', 'warn');
             return;
         }
         // d can be array (Gemini — 3 models) or single object
@@ -3599,7 +3599,7 @@
 
         // STEP 1+2 MERGED: Analyse code AND identify problem blocks
         // One call — AI gets full picture, returns analysis + blocks
-        showTyping('🔍 Analysing code and planning fixes...');
+        showTyping('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analysing code and planning fixes...');
 
         const mergedPrompt = `You are a professional software engineering agent.
 
@@ -3653,7 +3653,7 @@ Rules:
 
         } catch(e) {
             hideTyping();
-            appendMsg('agent', '⚠️ ' + (e.message || 'Analysis failed.'));
+            appendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' + (e.message || 'Analysis failed.'));
             return;
         }
 
@@ -3666,7 +3666,7 @@ Rules:
                             '<div class="agent-plan-num">' + p.num + '.</div>' +
                             '<div>' +
                                 '<strong>' + (p.problem||'Fix') + '</strong>' +
-                                '<br><span style="opacity:0.6;font-size:10px;">📌 ' + p.location + '</span>' +
+                                '<br><span style="opacity:0.6;font-size:10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + p.location + '</span>' +
                                 '<br><span style="opacity:0.55;font-size:10px;">→ ' + (p.what_to_do||'') + '</span>' +
                             '</div>' +
                         '</div>'
@@ -3692,7 +3692,7 @@ Rules:
                         '<button class="agent-step-accept" id="sp-accept">' +
                             '<span class="material-icons-round">check</span> Looks right' +
                         '</button>' +
-                        '<button class="agent-step-refine-btn" id="sp-refine">✏️ Refine</button>' +
+                        '<button class="agent-step-refine-btn" id="sp-refine"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Refine</button>' +
                         '<button class="agent-step-reject" id="sp-reject">Reject</button>' +
                     '</div>';
 
@@ -3700,12 +3700,12 @@ Rules:
                 scrollBottom();
 
                 document.getElementById('sp-accept').onclick = () => {
-                    document.getElementById('sp-actions').outerHTML = '<div class="agent-step-done">✓ Plan accepted</div>';
+                    document.getElementById('sp-actions').outerHTML = '<div class="agent-step-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> Plan accepted</div>';
                     resolve({ accepted: true, analysis: currentAnalysis, plan: currentPlan });
                 };
 
                 document.getElementById('sp-reject').onclick = () => {
-                    document.getElementById('sp-actions').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;">✗ Rejected — process stopped</div>';
+                    document.getElementById('sp-actions').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Rejected — process stopped</div>';
                     resolve({ accepted: false });
                 };
 
@@ -3721,7 +3721,7 @@ Rules:
                         const fb = inp.value.trim();
                         if (!fb) return;
                         document.getElementById('sp-refine-area').outerHTML = '<div class="agent-step-done" style="opacity:0.5;">↻ Re-analysing with your feedback...</div>';
-                        showTyping('🔍 Re-analysing...');
+                        showTyping('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Re-analysing...');
                         try {
                             const rePrompt = mergedPrompt + '\n\nUser feedback on previous analysis: ' + fb + '\nRevise both the analysis and the block plan accordingly.';
                             const reRaw = await _callAgentAPI(rePrompt, mergedMsg);
@@ -3748,7 +3748,7 @@ Rules:
         planItems = result.plan;
 
         if (!planItems.length) {
-            appendMsg('agent', '✓ No code changes needed — analysis complete.');
+            appendMsg('agent', '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> No code changes needed — analysis complete.');
             return;
         }
 
@@ -3786,11 +3786,11 @@ Rules:
 
             const oldBlock = _extractBlock(code, p.block_start);
             if (!oldBlock || !code.includes(oldBlock)) {
-                appendMsg('agent', '⚠️ Fix ' + (i+1) + ' (' + (p.location||'') + '): Block not found in code — skipping.');
+                appendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Fix ' + (i+1) + ' (' + (p.location||'') + '): Block not found in code — skipping.');
                 continue;
             }
 
-            showTyping('⚙️ Fix ' + (i+1) + ' of ' + planItems.length + ' — rewriting ' + (p.location||'block') + '...');
+            showTyping('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Fix ' + (i+1) + ' of ' + planItems.length + ' — rewriting ' + (p.location||'block') + '...');
 
             // Give AI FULL context — it must know everything about this fix
             const execPrompt =
@@ -3820,7 +3820,7 @@ Rules:
                 newBlock = newBlock.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
                 if (!newBlock || newBlock === oldBlock.trim()) {
-                    appendMsg('agent', 'ℹ️ Fix ' + (i+1) + ' (' + (p.location||'') + '): No change needed.');
+                    appendMsg('agent', '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Fix ' + (i+1) + ' (' + (p.location||'') + '): No change needed.');
                     continue;
                 }
 
@@ -3850,12 +3850,12 @@ Rules:
                     appendMsg('agent', '', card);
                     scrollBottom();
                     document.getElementById(uid+'-ok').onclick = () => {
-                        document.getElementById(uid+'-act').outerHTML = '<div class="agent-step-done">✓ Applied</div>';
+                        document.getElementById(uid+'-act').outerHTML = '<div class="agent-step-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> Applied</div>';
                         onApply([{ find: oldBlock, replace: newBlock, reason: fixLabel }]);
                         resolve();
                     };
                     document.getElementById(uid+'-skip').onclick = () => {
-                        document.getElementById(uid+'-act').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;">✗ Skipped</div>';
+                        document.getElementById(uid+'-act').outerHTML = '<div class="agent-step-done" style="color:#ef4444;opacity:0.7;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Skipped</div>';
                         resolve();
                     };
                 });
@@ -3863,7 +3863,7 @@ Rules:
             } catch(e) {
                 hideTyping();
                 if (e.message === '__REJECTED__') throw e;
-                appendMsg('agent', '⚠️ Fix ' + (i+1) + ': ' + (e.message||'Failed') + ' — skipping.');
+                appendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Fix ' + (i+1) + ': ' + (e.message||'Failed') + ' — skipping.');
             }
         }
 
@@ -3946,7 +3946,7 @@ Rules:
                         code, userRequest, attachCtx,
                         appendMsg: (role, text, card) => {
                             // Show result in agent bar area — reuse cdAlert for simple msgs
-                            if (!card && text) { cdAlert('Agent', text, text.startsWith('⚠️') ? 'warn' : 'info'); return; }
+                            if (!card && text) { cdAlert('Agent', text, text.startsWith('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>') ? 'warn' : 'info'); return; }
                             if (card) {
                                 // Show card in a floating panel above agent bar
                                 const existing = document.getElementById('agent-step-panel');
@@ -4138,11 +4138,11 @@ Rules:
         actions.style.cssText = 'display:flex;gap:8px;margin-top:8px;';
         const rejectBtn = document.createElement('button');
         rejectBtn.className = 'modal-btn secondary'; rejectBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        rejectBtn.innerHTML = '✕ Reject All';
+        rejectBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Reject All';
         rejectBtn.onclick = _cancelPendingEdits;
         const acceptBtn = document.createElement('button');
         acceptBtn.className = 'modal-btn'; acceptBtn.style.cssText = 'flex:1;padding:9px;font-size:12px;border-radius:8px;';
-        acceptBtn.innerHTML = '✓ Accept All';
+        acceptBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> Accept All';
         acceptBtn.onclick = _acceptPendingEdits;
         actions.appendChild(rejectBtn); actions.appendChild(acceptBtn);
         review.appendChild(actions);
@@ -4199,7 +4199,7 @@ Rules:
         const toast = document.createElement('div');
         toast.id = 'agent-undo-toast';
         toast.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:8px 12px;font-size:11px;font-family:Poppins,sans-serif;';
-        toast.innerHTML = `<span style="color:var(--accent);font-weight:600">✓ Applied ${count} edit${count>1?'s':''}</span>`;
+        toast.innerHTML = `<span style="color:var(--accent);font-weight:600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> Applied ${count} edit${count>1?'s':''}</span>`;
         const undoBtn = document.createElement('span');
         undoBtn.textContent = 'Undo';
         undoBtn.style.cssText = 'color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;margin-left:10px;';
@@ -4743,7 +4743,7 @@ Rules:
             openBtn.textContent = 'Open';
             openBtn.onclick = () => {
                 openFileInTab(f.filename, f.content, true);
-                openBtn.textContent = '✓';
+                openBtn.textContent = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>';
                 openBtn.style.background = 'var(--accent)';
                 openBtn.style.color = 'white';
             };
@@ -4797,7 +4797,7 @@ Rules:
         // Add undo toast in chat
         const undoWrap = document.createElement('div');
         undoWrap.style.cssText = 'margin-top:6px;display:flex;gap:6px;align-items:center;';
-        undoWrap.innerHTML = '<span style="font-size:10px;color:var(--accent);font-weight:600">✓ Applied to editor</span>';
+        undoWrap.innerHTML = '<span style="font-size:10px;color:var(--accent);font-weight:600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg> Applied to editor</span>';
         const undoSpan = document.createElement('span');
         undoSpan.textContent = 'Undo';
         undoSpan.style.cssText = 'font-size:10px;color:var(--accent);font-weight:700;cursor:pointer;text-decoration:underline;';
@@ -4873,14 +4873,14 @@ Rules:
         // Build summary bubble text
         let summary = '';
         if (sections.length === 0) {
-            summary = `🔍 Searched "${filename}" (${totalLines} lines) — no direct matches for your keywords.\nWill analyse the full file now.`;
+            summary = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Searched "${filename}" (${totalLines} lines) — no direct matches for your keywords.\nWill analyse the full file now.`;
         } else {
             const label = sections.length === 1 ? 'section' : 'sections';
-            summary = `🔍 Searched "${filename}" (${totalLines} lines) — found ${sections.length} relevant ${label}:\n`;
+            summary = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Searched "${filename}" (${totalLines} lines) — found ${sections.length} relevant ${label}:\n`;
             sections.slice(0, 3).forEach((s, idx) => {
                 const previewLines = s.snippet.split('\n').slice(0, 3).map(l => '  ' + l).join('\n');
                 const hasMore = s.snippet.split('\n').length > 3 ? '\n  ...' : '';
-                summary += `\n📌 Lines ${s.from}–${s.to}:\n${previewLines}${hasMore}\n`;
+                summary += `\n<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> Lines ${s.from}–${s.to}:\n${previewLines}${hasMore}\n`;
             });
             if (sections.length > 3) {
                 summary += `\n...and ${sections.length - 3} more section(s) found.`;
@@ -5052,7 +5052,7 @@ No markdown, no backticks, no explanation outside the array.`;
                     const t = document.getElementById('chat-step-typing');
                     if (t) t.remove();
                     if (e.message !== '__REJECTED__') {
-                        _appendChatMsg('agent', '⚠️ ' + (e.message || 'Something went wrong.'), _chatTime());
+                        _appendChatMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' + (e.message || 'Something went wrong.'), _chatTime());
                     }
                 });
 
@@ -5075,7 +5075,7 @@ No markdown, no backticks, no explanation outside the array.`;
             else if (/401|403|invalid.*key|api.?key/i.test(raw)) errMsg = 'Invalid API key — reconnect your agent.';
             else if (/network|fetch|failed to fetch/i.test(raw)) errMsg = 'Network error — check your internet.';
             else errMsg = raw.slice(0, 100);
-            _appendChatMsg('agent', '⚠️ ' + errMsg, _chatTime());
+            _appendChatMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' + errMsg, _chatTime());
         } finally {
             sendBtn.disabled = false;
         }
@@ -5330,7 +5330,7 @@ No markdown, no backticks, no explanation outside the array.`;
             const isThinking = meta.reasoning_tokens > 0;
             const badge = document.createElement('div');
             badge.style.cssText = 'font-size:9px;font-weight:600;color:var(--accent);opacity:0.75;font-family:Poppins,sans-serif;display:flex;align-items:center;gap:3px;';
-            badge.innerHTML = (isThinking ? '🧠 ' : '⚡ ') + shortModel + (isThinking ? ' · ' + meta.reasoning_tokens + ' think tokens' : '');
+            badge.innerHTML = (isThinking ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/></svg> ' : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> ') + shortModel + (isThinking ? ' · ' + meta.reasoning_tokens + ' think tokens' : '');
             footer.appendChild(badge);
         }
 
@@ -5385,7 +5385,7 @@ No markdown, no backticks, no explanation outside the array.`;
         const icon = document.createElement('span');
         icon.id = 'inline-status-icon';
         icon.style.cssText = 'font-size:13px;flex-shrink:0;';
-        icon.textContent = '📤';
+        icon.textContent = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
 
         const txt = document.createElement('span');
         txt.id = 'inline-status-text';
@@ -5630,7 +5630,7 @@ STRICT FORMAT RULES:
         if (!_isNewFileMode && targetTab) _inlineLogActivity('Target: ' + targetTab.name);
         if (historyForAPI.length > 0)     _inlineLogActivity('History: ' + historyForAPI.length + ' msgs');
         _inlineLogActivity('Prompt ready: ' + (userMsg.length/1024).toFixed(1) + 'k chars');
-        _inlineUpdateTypingStatus('📤', 'Generating...', userMsg.length);
+        _inlineUpdateTypingStatus('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>', 'Generating...', userMsg.length);
 
         try {
             _inlineLogActivity('Calling ' + (_activeAgent()?.providerName || 'AI') + '...');
@@ -5649,7 +5649,7 @@ Rules:
             _inlineHideTyping();
 
             if (!raw?.trim()) {
-                _inlineAppendMsg('agent', '⚠️ Empty response. Try again or switch model.');
+                _inlineAppendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Empty response. Try again or switch model.');
                 return;
             }
 
@@ -5702,7 +5702,7 @@ Rules:
             } else if (parsed.type === 'split') {
                 const files = parsed.files || [];
                 if (!files.length) {
-                    _inlineAppendMsg('agent', '⚠️ AI returned no files. Try again.');
+                    _inlineAppendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> AI returned no files. Try again.');
                 } else {
                     if (parsed.explanation?.trim()) _inlineAppendMsg('agent', parsed.explanation.trim());
                     _inlineAppendMsg('agent', '', _buildConfirmCard({
@@ -5720,7 +5720,7 @@ Rules:
             // ── Reorganize ──
             } else if (parsed.type === 'reorganize') {
                 if (!parsed.content) {
-                    _inlineAppendMsg('agent', '⚠️ AI returned empty content. Try again.');
+                    _inlineAppendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> AI returned empty content. Try again.');
                 } else {
                     const rTab = targetTab;
                     const oldContent = rTab ? rTab.content : editor.getValue();
@@ -5753,7 +5753,7 @@ Rules:
             const msg = err.message || '';
             if (msg === '__RATE_LIMIT_SHOWN__') return;
             if (msg === '__USER_ABORTED__') {
-                _inlineAppendMsg('agent', '⏹ Stopped.');
+                _inlineAppendMsg('agent', '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:inline;vertical-align:middle;pointer-events:none;"><rect x="4" y="4" width="16" height="16" rx="2"/></svg> Stopped.');
                 return;
             }
             let friendly;
@@ -5762,7 +5762,7 @@ Rules:
             else if (/401|403|invalid.*key|api.?key/i.test(msg))  friendly = 'Invalid API key — reconnect agent.';
             else if (/network|fetch|failed to fetch/i.test(msg))  friendly = 'Network error — check internet.';
             else friendly = msg.slice(0, 120);
-            _inlineAppendMsg('agent', '⚠️ ' + friendly);
+            _inlineAppendMsg('agent', '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ' + friendly);
         } finally {
             // Always restore send button
             sendBtn.disabled = false;
@@ -6304,7 +6304,7 @@ Use only line numbers visible in the context. Be precise.`;
             cardParent.innerHTML = `<div style="border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;">
                 <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.08);">
                     <span class="material-icons-round" style="font-size:15px;color:var(--accent);">check_circle</span>
-                    <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${applied} edit${applied!==1?'s':''} applied ✓</span>
+                    <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">${applied} edit${applied!==1?'s':''} applied <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg></span>
                     <button onclick="_agentUndoLast(this)" title="Undo" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
                         Undo (${undoCount})
@@ -6399,7 +6399,7 @@ Use only line numbers visible in the context. Be precise.`;
             const headLines = Math.floor(_MAX_CHARS * 0.65 / 80);
             const tailLines = Math.floor(_MAX_CHARS * 0.30 / 80);
             const skipped = lines.length - headLines - tailLines;
-            numberedCode = lines.slice(0, headLines).join('\n') + `\n\n// ⚠️ [${skipped} lines omitted]\n\n` + lines.slice(-tailLines).join('\n');
+            numberedCode = lines.slice(0, headLines).join('\n') + `\n\n// <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> [${skipped} lines omitted]\n\n` + lines.slice(-tailLines).join('\n');
         }
 
         // Collect session events for context
@@ -6427,11 +6427,11 @@ Use only line numbers visible in the context. Be precise.`;
             if (!parsed || !parsed.type) {
                 _inlineAppendMsg('agent', raw.trim());
             } else if (parsed.type === 'edit') {
-                _inlineAppendMsg('agent', '🔁 ' + (parsed.explanation || 'Revised fix — review and apply:'));
+                _inlineAppendMsg('agent', '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> ' + (parsed.explanation || 'Revised fix — review and apply:'));
                 const newCard = _buildInlineEditCard(parsed.edits, targetTab);
                 _inlineAppendMsg('agent', '', newCard);
             } else if (parsed.type === 'reorganize') {
-                _inlineAppendMsg('agent', '🔁 ' + (parsed.explanation || 'Revised reorganize:'));
+                _inlineAppendMsg('agent', '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg> ' + (parsed.explanation || 'Revised reorganize:'));
                 const newCard = _buildInlineReorganizeCard(parsed.content, targetTab);
                 _inlineAppendMsg('agent', '', newCard);
             } else {
@@ -6439,7 +6439,7 @@ Use only line numbers visible in the context. Be precise.`;
             }
             _inlineChatScroll();
         }).catch(err => {
-            card.innerHTML = `<div style="padding:9px 12px;font-size:11px;color:#ef4444;font-family:'Poppins',sans-serif;">⚠️ Re-analysis failed: ${(err.message||'').slice(0,80)}</div>`;
+            card.innerHTML = `<div style="padding:9px 12px;font-size:11px;color:#ef4444;font-family:'Poppins',sans-serif;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Re-analysis failed: ${(err.message||'').slice(0,80)}</div>`;
         });
     }
 
@@ -6447,7 +6447,7 @@ Use only line numbers visible in the context. Be precise.`;
     function _inlineConfirmWorking(btn) {
         btn.closest('div').parentElement.innerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.06);border-radius:12px;border:1px solid rgba(16,185,129,0.2);">
             <span class="material-icons-round" style="font-size:15px;color:var(--accent);">verified</span>
-            <span style="font-size:11px;font-weight:600;color:var(--accent);font-family:'Poppins',sans-serif;">Fix confirmed ✓</span>
+            <span style="font-size:11px;font-weight:600;color:var(--accent);font-family:'Poppins',sans-serif;">Fix confirmed <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg></span>
         </div>`;
         _inlineChatHistory.push({ role: 'user', content: '[USER CONFIRMED: the fix worked correctly]' });
         showToast('Fix confirmed!', 'verified');
@@ -6510,7 +6510,7 @@ Use only line numbers visible in the context. Be precise.`;
             onApply();
             actRow.outerHTML = `<div style="padding:8px 12px;display:flex;align-items:center;gap:7px;background:rgba(16,185,129,0.06);">
                 <span class="material-icons-round" style="font-size:14px;color:var(--accent);">check_circle</span>
-                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">Applied ✓</span>
+                <span style="font-size:11px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;flex:1;">Applied <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg></span>
                 <button onclick="_agentUndoLast(this)" style="background:rgba(128,128,128,0.12);border:1px solid var(--glass-border);border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;font-family:'Poppins',sans-serif;color:var(--text-color);cursor:pointer;display:flex;align-items:center;gap:4px;">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
                     Undo
@@ -6685,14 +6685,14 @@ Use only line numbers visible in the context. Be precise.`;
         newRow.style.cssText = `display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--glass-border);transition:background 0.15s;background:${isNewSelected ? 'rgba(16,185,129,0.12)' : 'transparent'};`;
         newRow.innerHTML = `
             <span class="material-icons-round" style="font-size:14px;color:var(--accent);pointer-events:none;">add_circle</span>
-            <span style="flex:1;font-size:11px;font-weight:700;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;">✦ New File</span>
+            <span style="flex:1;font-size:11px;font-weight:700;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File</span>
             <span class="material-icons-round" style="font-size:14px;color:var(--accent);pointer-events:none;opacity:${isNewSelected ? '1' : '0'};">radio_button_checked</span>`;
         newRow.ontouchstart = () => newRow.style.background = 'rgba(16,185,129,0.12)';
         newRow.onclick = (e) => {
             e.stopPropagation();
             _inlineSelectedTabId = 'new';
             _agentTargetTabId = null;
-            if(label) label.textContent = '✦ New File';
+            if(label) label.textContent = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
             _inlineCloseFileDropdown();
             _inlineRenderFileDropdown();
         };
@@ -6739,14 +6739,14 @@ Use only line numbers visible in the context. Be precise.`;
         const ctxCount = _inlineContextTabIds.size;
         legend.style.cssText = 'padding:6px 12px;font-size:9px;color:var(--text-color);opacity:0.4;font-family:Poppins,sans-serif;border-top:1px solid var(--glass-border);';
         legend.innerHTML = ctxCount > 0
-            ? `<span style="color:var(--accent);opacity:0.8;">📚 ${ctxCount} context file${ctxCount>1?'s':''} added</span> &nbsp;— tap 🎯 to set target, tap 📚 to toggle context`
-            : `Tap row = set target &nbsp;|&nbsp; Tap 📚 = add as context`;
+            ? `<span style="color:var(--accent);opacity:0.8;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> ${ctxCount} context file${ctxCount>1?'s':''} added</span> &nbsp;— tap <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg> to set target, tap <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> to toggle context`
+            : `Tap row = set target &nbsp;|&nbsp; Tap <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> = add as context`;
         dd.appendChild(legend);
 
         // Update label
         if (label) {
             if (_inlineSelectedTabId === 'new') {
-                label.textContent = '✦ New File';
+                label.textContent = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
             } else {
                 const activeTab = fileTabs.find(t => t.id === _inlineSelectedTabId) || fileTabs.find(t => t.id === activeTabId);
                 const ctxTxt = ctxCount > 0 ? ` +${ctxCount}ctx` : '';
@@ -6812,13 +6812,13 @@ Use only line numbers visible in the context. Be precise.`;
             if (btn)  { btn.classList.add('mode-on'); btn.style.background = ''; btn.style.color = ''; }
             if (icon) { icon.setAttribute('stroke', 'white'); icon.setAttribute('fill', 'rgba(255,255,255,0.15)'); }
             if (ta)   ta.placeholder = 'Chat only — no edits...';
-            _showChatPanelToast('💬 Chat Mode ON — no edits', '#10b981');
+            _showChatPanelToast('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Chat Mode ON — no edits', '#10b981');
         } else {
             // Inactive state
             if (btn)  { btn.classList.remove('mode-on'); btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
             if (icon) { icon.setAttribute('stroke', 'currentColor'); icon.setAttribute('fill', 'none'); }
             if (ta)   ta.placeholder = 'Ask agent...';
-            _showChatPanelToast('✏️ Edit Mode ON — AI will apply changes', '#f59e0b');
+            _showChatPanelToast('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Mode ON — AI will apply changes', '#f59e0b');
         }
     }
 
