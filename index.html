@@ -5856,7 +5856,7 @@ No markdown, no backticks, no explanation outside the array.`;
         const chev = document.createElement('span');
         chev.id = 'ipt-chev';
         chev.className = 'material-icons-round';
-        chev.style.cssText = 'font-size:13px;opacity:0.5;transition:transform 0.2s;';
+        chev.style.cssText = 'font-size:13px;opacity:0.5;transition:transform 0.2s;transform:rotate(180deg);';
         chev.textContent = 'expand_more';
 
         hdr.appendChild(icon);
@@ -5866,7 +5866,7 @@ No markdown, no backticks, no explanation outside the array.`;
 
         const body = document.createElement('div');
         body.id = 'ipt-body';
-        body.style.cssText = 'display:none;border-top:1px solid var(--glass-border);padding:6px 11px 8px;';
+        body.style.cssText = 'display:block;border-top:1px solid var(--glass-border);padding:6px 11px 8px;';
 
         hdr.addEventListener('click', function() {
             const open = body.style.display !== 'none';
@@ -6047,6 +6047,11 @@ STRICT RULES:
 
         // Get target file content
         // 'new' = user wants AI to create a brand new file — don't send any existing code as target
+        // Detect multi-file intent — if prompt mentions multiple file types or split keywords
+        const _multiFilePattern = /(\.html.*\.css|\.css.*\.js|\.html.*\.js|index\.html.*style\.css|multiple\s+files?|separate\s+files?|split\s+into|alag\s+files?|teen\s+file|3\s+file)/i;
+        const _splitKeywordsInline = /(split|divide|separate|extract|break\s*into|multiple\s*files?|alag|tod\s*do|files\s*mein)/i;
+        const _isMultiFileIntent = (_multiFilePattern.test(userRequest) || _splitKeywordsInline.test(userRequest));
+
         const _isNewFileMode = _inlineSelectedTabId === 'new';
         if (!_isNewFileMode && _inlineSelectedTabId) _agentTargetTabId = _inlineSelectedTabId;
         const targetTab = _isNewFileMode ? null : (fileTabs.find(t => t.id === (_agentTargetTabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId));
@@ -6165,6 +6170,38 @@ STRICT RULES:
         })();
 
         _inlineUpdateTypingStatus('📤', 'Sending to AI...', userMsg.length);
+
+        // ── Multi-file / split mode in inline chat ──
+        if (_isMultiFileIntent) {
+            try {
+                const splitSP = `You are CodX AI Agent. The user wants to create or split code into multiple separate files.
+Analyse the request and produce all required files. Return ONLY a JSON array:
+[{"filename":"name.ext","content":"full content","reason":"brief reason"}]
+Only do what's requested. Senior-level quality. Minimal output, max stability. No comments in code.
+No markdown, no backticks, no explanation outside the array.`;
+                const splitMsg = _isNewFileMode
+                    ? `Create these files as requested:\n\nRequest: ${userRequest}\n\nRules: Only do what's requested. Senior-level quality. No comments in code.`
+                    : `Code to work with (${filename}):\n\`\`\`\n${code}\n\`\`\`\n\nRequest: ${userRequest}\n\nRules: Only do what's requested. Senior-level quality. No comments in code.`;
+                const splitRaw = await _callAgentAPI(splitSP, splitMsg, historyForAPI);
+                _inlineHideTyping();
+                _inlineChatHistory.push({ role: 'user', content: splitMsg });
+                _inlineChatHistory.push({ role: 'assistant', content: splitRaw });
+                const files = _safeExtractJSON(splitRaw);
+                if (files && files.length) {
+                    const msgId = Date.now();
+                    const card = _buildSplitCard(files, msgId);
+                    _inlineAppendMsg('agent', `✅ ${files.length} file${files.length>1?'s':''} ready — open each below:`, card);
+                } else {
+                    _inlineAppendMsg('agent', '⚠️ Could not generate files. Try rephrasing your request.');
+                }
+            } catch(err) {
+                _inlineHideTyping();
+                _inlineAppendMsg('agent', '⚠️ ' + (err.message || 'Something went wrong.'));
+            } finally {
+                document.getElementById('inline-chat-send-btn').disabled = false;
+            }
+            return;
+        }
 
         try {
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI);
