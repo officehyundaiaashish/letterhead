@@ -3726,8 +3726,8 @@
         key = (key || '').trim();
         if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))
             return { provider:'gemini', providerName:'Gemini 2.0 Flash',
-                url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-                model:'gemini-2.0-flash', label:'Google Gemini 2.0 Flash · Free' };
+                url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+                model:'gemini-2.5-flash', label:'Google Gemini 2.5 Flash · Free' };
         if (/^gsk_[A-Za-z0-9]{20,}/.test(key))
             return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
                 url:'https://api.groq.com/openai/v1/chat/completions',
@@ -3985,6 +3985,35 @@
                 return textBlock.text.trim();
 
             } else if (cfg.provider === 'gemini') {
+                // ── Gemini safety throttle (RPM: 12/15, RPD: 1400/1500) ──
+                const _now = Date.now();
+                if (!window._geminiUsage) window._geminiUsage = { rpm: [], rpd: [], warnedRpm: false, warnedRpd: false };
+                const _g = window._geminiUsage;
+                _g.rpm = _g.rpm.filter(t => _now - t < 60000);   // keep last 60s
+                _g.rpd = _g.rpd.filter(t => _now - t < 86400000); // keep last 24h
+                // Hard stop at 13 RPM (safety margin of 2 before Google's 15 limit)
+                if (_g.rpm.length >= 13) {
+                    const waitSec = Math.ceil((60000 - (_now - _g.rpm[0])) / 1000);
+                    throw new Error(`⚠️ Gemini rate limit safety: ${_g.rpm.length}/15 RPM reached. Wait ${waitSec}s before sending.`);
+                }
+                // Hard stop at 1400 RPD (safety margin of 100 before Google's 1500 limit)
+                if (_g.rpd.length >= 1400) {
+                    throw new Error(`⚠️ Gemini daily limit safety: ${_g.rpd.length}/1500 RPD reached. Quota resets at midnight Pacific time.`);
+                }
+                // Warn at 10 RPM
+                if (_g.rpm.length >= 10 && !_g.warnedRpm) {
+                    _g.warnedRpm = true;
+                    console.warn(`[CodX] Gemini RPM warning: ${_g.rpm.length}/15 used in last 60s`);
+                }
+                // Warn at 1200 RPD
+                if (_g.rpd.length >= 1200 && !_g.warnedRpd) {
+                    _g.warnedRpd = true;
+                    console.warn(`[CodX] Gemini RPD warning: ${_g.rpd.length}/1500 used today`);
+                }
+                // Record this request
+                _g.rpm.push(_now);
+                _g.rpd.push(_now);
+                _g.warnedRpm = _g.rpm.length < 10 ? false : _g.warnedRpm;
                 // Gemini: history roles must be 'user' or 'model' (not 'assistant')
                 // System prompt injected into first user message
                 const geminiHistory = conversationHistory.map(m => ({
