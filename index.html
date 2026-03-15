@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
     
     <meta name="theme-color" id="theme-color-meta" content="#0a0a0c">
     <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)">
@@ -1645,7 +1645,7 @@
             box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
             overflow: hidden;
             transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), height 0.2s ease;
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
             pointer-events: none;
         }
         #inline-chat-panel.chat-open {
@@ -2367,24 +2367,12 @@
     window.visualViewport && window.visualViewport.addEventListener('resize', () => {
         _positionFindModal();
         const vv = window.visualViewport;
-        // kbHeight = space occupied by keyboard at bottom of screen
-        // window.innerHeight - (vv.offsetTop + vv.height) = keyboard height
         const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
         let activeModal = document.querySelector('.modal.active:not(#github-modal):not(#find-modal)');
         if (activeModal) {
             activeModal.style.bottom = kbHeight > 10 ? (kbHeight + 10) + 'px' : '20px';
         }
-        // Inline chat — move panel above keyboard using transform (not bottom)
-        const chatPanel = document.getElementById('inline-chat-panel');
-        if (chatPanel && _inlineChatOpen) {
-            if (kbHeight > 50) {
-                chatPanel.style.transform = `translateY(-${kbHeight}px)`;
-                chatPanel.style.height = Math.floor(vv.height * 0.52) + 'px';
-            } else {
-                chatPanel.style.transform = 'translateY(0)';
-                chatPanel.style.height = '45vh';
-            }
-        }
+        // Chat panel keyboard handling done via CSS (interactive-widget=resizes-visual in meta viewport)
     });
 
     // --- PWA & SERVICE WORKER ---
@@ -5812,30 +5800,18 @@ No markdown, no backticks, no explanation outside the array.`;
         const chatPanel = document.getElementById('inline-chat-panel');
         const aiBtn     = document.getElementById('ai-agent-btn');
 
-        // Always reset position before opening — clears any stale values from keyboard/nav resize
+        // Reset any stale inline styles
         chatPanel.style.bottom = '';
         chatPanel.style.height = '';
         chatPanel.style.top = '';
         chatPanel.style.transform = '';
 
-        // Open chat panel and hide navigation panel
         chatPanel.classList.add('chat-open');
         if (aiBtn) aiBtn.classList.add('chat-active');
 
         const inner = document.getElementById('bottom-panel');
         if(inner) { inner.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)'; inner.style.transform = 'translateY(100%)'; }
 
-        // Re-apply keyboard position if keyboard is already open
-        const vv = window.visualViewport;
-        if (vv) {
-            const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-            if (kbHeight > 50) {
-                chatPanel.style.transform = `translateY(-${kbHeight}px)`;
-                chatPanel.style.height = Math.floor(vv.height * 0.52) + 'px';
-            }
-        }
-
-        // Sync agent name
         const ag = _activeAgent();
         if (ag) document.getElementById('inline-chat-name').textContent = ag.providerName;
 
