@@ -2979,7 +2979,7 @@
             _ghTree = [];
             const overlay = document.getElementById('commit-modal-overlay');
             if(overlay) { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 200); }
-            cdAlert('Committed <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>', `"${ghCurrentFile.split('/').pop()}" pushed to ${ghCurrentRepo.split('/').pop()}`, 'success');
+            cdAlert('Committed', `"${ghCurrentFile.split('/').pop()}" pushed to ${ghCurrentRepo.split('/').pop()}`, 'success');
             if(document.getElementById('gh-repo-select')?._value) fetchGhFiles();
         } catch(e) {
             const sp = document.getElementById('commit-spinner');
@@ -3987,7 +3987,7 @@ Rules:
                         code, userRequest, attachCtx,
                         appendMsg: (role, text, card) => {
                             // Show result in agent bar area — reuse cdAlert for simple msgs
-                            if (!card && text) { cdAlert('Agent', text, text.startsWith('<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>') ? 'warn' : 'info'); return; }
+                            if (!card && text) { cdAlert('Agent', text, (text.startsWith('<svg') || text.includes('warning') || text.includes('error')) ? 'warn' : 'info'); return; }
                             if (card) {
                                 // Show card in a floating panel above agent bar
                                 const existing = document.getElementById('agent-step-panel');
@@ -4784,7 +4784,7 @@ Rules:
             openBtn.textContent = 'Open';
             openBtn.onclick = () => {
                 openFileInTab(f.filename, f.content, true);
-                openBtn.textContent = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polyline points="20 6 9 17 4 12"/></svg>';
+                openBtn.innerHTML = '&#10003;';
                 openBtn.style.background = 'var(--accent)';
                 openBtn.style.color = 'white';
             };
@@ -5426,7 +5426,7 @@ No markdown, no backticks, no explanation outside the array.`;
         const icon = document.createElement('span');
         icon.id = 'inline-status-icon';
         icon.style.cssText = 'font-size:13px;flex-shrink:0;';
-        icon.textContent = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+        icon.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
 
         const txt = document.createElement('span');
         txt.id = 'inline-status-text';
@@ -6733,7 +6733,7 @@ Use only line numbers visible in the context. Be precise.`;
             e.stopPropagation();
             _inlineSelectedTabId = 'new';
             _agentTargetTabId = null;
-            if(label) label.textContent = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
+            if(label) label.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
             _inlineCloseFileDropdown();
             _inlineRenderFileDropdown();
         };
@@ -6787,7 +6787,7 @@ Use only line numbers visible in the context. Be precise.`;
         // Update label
         if (label) {
             if (_inlineSelectedTabId === 'new') {
-                label.textContent = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
+                label.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> New File';
             } else {
                 const activeTab = fileTabs.find(t => t.id === _inlineSelectedTabId) || fileTabs.find(t => t.id === activeTabId);
                 const ctxTxt = ctxCount > 0 ? ` +${ctxCount}ctx` : '';
