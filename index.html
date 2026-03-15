@@ -7573,7 +7573,11 @@ Use only line numbers visible in the context. Be precise.`;
             showToast('Plain Text ON', 'text_fields');
             localStorage.setItem('codx_plain_text', '1');
         } else {
-            _setEditorMode(currentFileName, editor.getValue());
+            if (_pythonMode) {
+                editor.session.setMode('ace/mode/python');
+            } else {
+                _setEditorMode(currentFileName, editor.getValue());
+            }
             if (btn) { btn.style.color = ''; btn.style.background = ''; }
             showToast('Syntax ON', 'code');
             localStorage.removeItem('codx_plain_text');
@@ -7599,15 +7603,14 @@ Use only line numbers visible in the context. Be precise.`;
         if (_pythonMode) {
             if (htmlBtn) { htmlBtn.style.background = 'transparent'; htmlBtn.style.color = 'var(--text-color)'; htmlBtn.style.opacity = '0.6'; }
             if (pyBtn)   { pyBtn.style.background   = 'var(--accent)'; pyBtn.style.color = 'white'; pyBtn.style.opacity = '1'; }
-            // Set editor to Python syntax
-            editor.session.setMode('ace/mode/python');
-            // If current tab is .html, suggest .py — but don't force rename
+            // Set editor to Python syntax (unless plain text is forced)
+            if (!_forcePlainText) editor.session.setMode('ace/mode/python');
             showToast('Python Mode', 'code');
         } else {
             if (htmlBtn) { htmlBtn.style.background = 'var(--accent)'; htmlBtn.style.color = 'white'; htmlBtn.style.opacity = '1'; }
             if (pyBtn)   { pyBtn.style.background   = 'transparent'; pyBtn.style.color = 'var(--text-color)'; pyBtn.style.opacity = '0.6'; }
-            // Restore syntax based on current filename
-            _setEditorMode(currentFileName, editor.getValue());
+            // Restore syntax based on current filename (unless plain text is forced)
+            if (!_forcePlainText) _setEditorMode(currentFileName, editor.getValue());
             // Hide python output if visible
             const po = document.getElementById('python-output');
             if (po) { po.style.visibility = 'hidden'; po.style.opacity = '0'; }
