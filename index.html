@@ -1452,12 +1452,32 @@
                 <div class="tab active" id="tab-code" onclick="switchTab('editor')">Code</div>
                 <div class="tab" id="tab-preview" onclick="switchTab('preview')">Preview</div>
             </div>
-            <!-- Language toggle pill -->
-            <div id="lang-toggle" style="display:flex;padding:2px;border-radius:16px;background:rgba(0,0,0,0.2);gap:0;border:1px solid var(--glass-border);">
-                <button id="lang-html-btn" onclick="_setLangMode('html')" style="padding:3px 10px;border-radius:14px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:10px;font-weight:700;cursor:pointer;transition:background 0.18s,color 0.18s;">HTML</button>
-                <button id="lang-py-btn" onclick="_setLangMode('python')" style="padding:3px 10px;border-radius:14px;border:none;background:transparent;color:var(--text-color);font-family:'Poppins',sans-serif;font-size:10px;font-weight:700;cursor:pointer;opacity:0.6;transition:background 0.18s,color 0.18s,opacity 0.18s;">PY</button>
-            </div>
         </div>
+
+        <!-- Language chip — centered absolutely -->
+        <button id="lang-chip" onclick="_toggleLangMode()" title="Switch language" style="
+            position:absolute;left:50%;transform:translateX(-50%);
+            display:flex;align-items:center;gap:5px;
+            padding:4px 10px 4px 8px;
+            border-radius:8px;
+            border:1px solid rgba(250,204,21,0.45);
+            background:rgba(250,204,21,0.08);
+            color:#facc15;
+            font-family:'Poppins',sans-serif;
+            font-size:10px;font-weight:700;
+            cursor:pointer;
+            transition:border-color 0.2s,background 0.2s,color 0.2s;
+            flex-shrink:0;
+            z-index:10;
+        ">
+            <span id="lang-chip-icon" style="display:flex;align-items:center;flex-shrink:0;">
+                <!-- HTML icon: </> -->
+                <svg id="lang-icon-html" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <!-- Python icon: snake -->
+                <svg id="lang-icon-py" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M6 4h5a3 3 0 0 1 3 3v3H9a3 3 0 0 0-3 3v3a3 3 0 0 0 3 3h1"/><path d="M18 20h-5a3 3 0 0 1-3-3v-3h5a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3h-1"/><circle cx="8.5" cy="6.5" r="1" fill="#facc15" stroke="none"/><circle cx="15.5" cy="17.5" r="1" fill="#facc15" stroke="none"/></svg>
+            </span>
+            <span id="lang-chip-label">HTML</span>
+        </button>
         
         <div style="display:flex; align-items:center; gap:4px;">
             <button class="icon-btn no-select" id="install-btn" style="display:none; width:30px; height:30px; background:var(--accent-dim); min-width:30px; border: 1px solid var(--accent); margin-right: 5px;">
@@ -7593,25 +7613,31 @@ Use only line numbers visible in the context. Be precise.`;
     let _pyodide    = null;    // Pyodide instance (lazy loaded)
     let _pyLoading  = false;   // loading in progress
 
+    // ── Toggle language (chip button) ──
+    function _toggleLangMode() {
+        _setLangMode(_pythonMode ? 'html' : 'python');
+    }
+
     // ── Switch language mode ──
     function _setLangMode(lang) {
         _pythonMode = (lang === 'python');
 
-        const htmlBtn = document.getElementById('lang-html-btn');
-        const pyBtn   = document.getElementById('lang-py-btn');
+        const chip       = document.getElementById('lang-chip');
+        const chipLabel  = document.getElementById('lang-chip-label');
+        const iconHtml   = document.getElementById('lang-icon-html');
+        const iconPy     = document.getElementById('lang-icon-py');
 
         if (_pythonMode) {
-            if (htmlBtn) { htmlBtn.style.background = 'transparent'; htmlBtn.style.color = 'var(--text-color)'; htmlBtn.style.opacity = '0.6'; }
-            if (pyBtn)   { pyBtn.style.background   = 'var(--accent)'; pyBtn.style.color = 'white'; pyBtn.style.opacity = '1'; }
-            // Set editor to Python syntax (unless plain text is forced)
+            if (iconHtml) iconHtml.style.display = 'none';
+            if (iconPy)   iconPy.style.display   = 'block';
+            if (chipLabel) chipLabel.textContent  = 'Python';
             if (!_forcePlainText) editor.session.setMode('ace/mode/python');
             showToast('Python Mode', 'code');
         } else {
-            if (htmlBtn) { htmlBtn.style.background = 'var(--accent)'; htmlBtn.style.color = 'white'; htmlBtn.style.opacity = '1'; }
-            if (pyBtn)   { pyBtn.style.background   = 'transparent'; pyBtn.style.color = 'var(--text-color)'; pyBtn.style.opacity = '0.6'; }
-            // Restore syntax based on current filename (unless plain text is forced)
+            if (iconHtml) iconHtml.style.display = 'block';
+            if (iconPy)   iconPy.style.display   = 'none';
+            if (chipLabel) chipLabel.textContent  = 'HTML';
             if (!_forcePlainText) _setEditorMode(currentFileName, editor.getValue());
-            // Hide python output if visible
             const po = document.getElementById('python-output');
             if (po) { po.style.visibility = 'hidden'; po.style.opacity = '0'; }
             showToast('HTML Mode', 'html');
