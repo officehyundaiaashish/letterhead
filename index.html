@@ -1506,9 +1506,11 @@
                     <button class="toolbar-btn" onclick="deleteSelection()"><span class="material-icons-round">delete</span>Delete</button>
                     <button class="toolbar-btn" onclick="toggleFindReplace()"><span class="material-icons-round">find_replace</span>Find</button>
                 </div>
-                <div style="display: flex; justify-content: center; width: 100%; margin-top: 4px; gap: 6px;">
-                    <button class="toolbar-btn" id="ai-agent-btn" onclick="toggleInlineChat()" style="width: 80px;"><span class="material-icons-round">smart_toy</span>AI Agent</button>
-                    <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
+                <div style="display: flex; justify-content: center; width: 100%; margin-top: 4px; gap: 4px;">
+                    <button class="toolbar-btn" id="ai-agent-btn" onclick="toggleInlineChat()" style="width: 68px;"><span class="material-icons-round">smart_toy</span>AI Agent</button>
+                    <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 60px;"><span class="material-icons-round">refresh</span>Refresh</button>
+                    <button class="toolbar-btn" id="no-anim-btn" onclick="toggleAnimations()" title="Disable all animations" style="width: 68px;"><span class="material-icons-round">motion_photos_off</span>No Anim</button>
+                    <button class="toolbar-btn" id="plain-text-btn" onclick="togglePlainTextMode()" title="Force plain text mode" style="width: 68px;"><span class="material-icons-round">text_fields</span>Plain Text</button>
                 </div>
             </div></div>
         </div>
@@ -1821,6 +1823,28 @@
     }
     _setBodyHeight();
 
+    // ── Restore saved theme ──
+    (function() {
+        const savedTheme = localStorage.getItem('codx_theme');
+        if (savedTheme === 'light') {
+            document.body.className = 'light-theme no-select';
+            const icon = document.getElementById('theme-icon');
+            if (icon) icon.innerText = 'dark_mode';
+            document.getElementById('theme-color-meta').content = '#f0f2f5';
+            // Editor theme restored after editor init below
+        }
+    })();
+
+    // ── Restore saved font size ──
+    (function() {
+        const savedSize = parseInt(localStorage.getItem('codx_fontsize'));
+        if (savedSize && savedSize >= 10 && savedSize <= 40) {
+            _lastZoomSize = savedSize;
+            initialFontSize = savedSize;
+            // Applied after editor is initialized
+        }
+    })();
+
     // When chat panel is open and keyboard appears:
     // Keyboard handler for chat panel
     // interactive-widget=resizes-visual: keyboard overlaps fixed elements,
@@ -2069,8 +2093,37 @@
         if(cl && cl.element) cl.element.style.transition = 'none';
     } catch(e){}
 
-    // ── STEP 3: Theme ──
-    editor.setTheme("ace/theme/tomorrow_night_eighties");
+    // ── STEP 3: Theme + saved settings ──
+    (function() {
+        const savedTheme = localStorage.getItem('codx_theme');
+        if (savedTheme === 'light') {
+            editor.setTheme("ace/theme/textmate");
+        } else {
+            editor.setTheme("ace/theme/tomorrow_night_eighties");
+        }
+        const savedSize = parseInt(localStorage.getItem('codx_fontsize'));
+        if (savedSize && savedSize >= 10 && savedSize <= 40) {
+            editor.setOptions({ fontSize: savedSize + 'px' });
+            _lastZoomSize = savedSize;
+        }
+        // Restore no-animations setting
+        if (localStorage.getItem('codx_no_anim')) {
+            const s = document.createElement('style');
+            s.id = 'no-anim-style';
+            s.textContent = '*, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; }';
+            document.head.appendChild(s);
+            _animationsDisabled = true;
+            const btn = document.getElementById('no-anim-btn');
+            if (btn) { btn.style.color = 'var(--accent)'; btn.style.background = 'var(--accent-dim)'; }
+        }
+        // Restore plain text setting
+        if (localStorage.getItem('codx_plain_text')) {
+            _forcePlainText = true;
+            editor.session.setMode('ace/mode/text');
+            const btn = document.getElementById('plain-text-btn');
+            if (btn) { btn.style.color = 'var(--accent)'; btn.style.background = 'var(--accent-dim)'; }
+        }
+    })();
 
     // ── STEP 4: Smart syntax mode ──
     // Large files (>200KB) → plain text. Syntax tokenizer is the #1 hang cause.
@@ -2291,7 +2344,14 @@
         }
     }, {passive: false});
     editorWrapper.addEventListener('touchend', (e) => {
-        if (e.touches.length < 2) { initialDistance = null; _zoomFrame = null; }
+        if (e.touches.length < 2) {
+            initialDistance = null;
+            _zoomFrame = null;
+            // Save font size after pinch zoom completes
+            if (_lastZoomSize !== 10) {
+                localStorage.setItem('codx_fontsize', _lastZoomSize);
+            }
+        }
     }, {passive: true});
 
     const bottomPanel = document.getElementById('bottom-panel');
@@ -2359,6 +2419,7 @@
         const tbIcon = document.getElementById('theme-icon-tb');
         if (tbIcon) tbIcon.innerText = iconName;
         document.getElementById('theme-color-meta').content = isDark ? '#f0f2f5' : '#0a0a0c';
+        localStorage.setItem('codx_theme', isDark ? 'light' : 'dark');
     }
 
     let _previewBlobUrl = null;
@@ -7016,11 +7077,30 @@ Use only line numbers visible in the context. Be precise.`;
         t.appendChild(iconWrap);
         t.appendChild(label);
 
-        // Animate in: scale up + fade in
+        // Position: above chat panel in normal mode, center in fullscreen
+        const chatPanel = document.getElementById('inline-chat-panel');
+        if (_chatIsFullscreen || !chatPanel || !chatPanel.classList.contains('chat-open')) {
+            // Fullscreen or chat not open — center screen
+            t.style.top    = '50%';
+            t.style.bottom = 'auto';
+            t.style.transform = 'translate(-50%,-50%) scale(0.85)';
+        } else {
+            // Normal chat open — 16px above chat panel
+            const chatTop = chatPanel.getBoundingClientRect().top;
+            t.style.top    = 'auto';
+            t.style.bottom = (window.innerHeight - chatTop + 16) + 'px';
+            t.style.transform = 'translateX(-50%) scale(0.85)';
+        }
+
+        // Animate in
         clearTimeout(t._timer);
         requestAnimationFrame(() => {
             t.style.opacity = '1';
-            t.style.transform = 'translate(-50%,-50%) scale(1)';
+            if (_chatIsFullscreen || !chatPanel || !chatPanel.classList.contains('chat-open')) {
+                t.style.transform = 'translate(-50%,-50%) scale(1)';
+            } else {
+                t.style.transform = 'translateX(-50%) scale(1)';
+            }
         });
 
         // Animate icon: small bounce
@@ -7030,7 +7110,9 @@ Use only line numbers visible in the context. Be precise.`;
         // Animate out after 1.8s
         t._timer = setTimeout(() => {
             t.style.opacity = '0';
-            t.style.transform = 'translate(-50%,-50%) scale(0.9)';
+            t.style.transform = t.style.bottom !== 'auto'
+                ? 'translateX(-50%) scale(0.9)'
+                : 'translate(-50%,-50%) scale(0.9)';
         }, 1800);
     }
 
@@ -7071,6 +7153,51 @@ Use only line numbers visible in the context. Be precise.`;
             if (icon) icon.innerHTML = '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
         }
     }
+
+    // ── Toggle all CSS animations OFF/ON ──
+    let _animationsDisabled = false;
+    function toggleAnimations() {
+        _animationsDisabled = !_animationsDisabled;
+        const btn = document.getElementById('no-anim-btn');
+        if (_animationsDisabled) {
+            // Inject style to kill all animations/transitions
+            let s = document.getElementById('no-anim-style');
+            if (!s) {
+                s = document.createElement('style');
+                s.id = 'no-anim-style';
+                s.textContent = '*, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; transition-delay: 0ms !important; }';
+                document.head.appendChild(s);
+            }
+            if (btn) { btn.style.color = 'var(--accent)'; btn.style.background = 'var(--accent-dim)'; }
+            showToast('Animations OFF', 'motion_photos_off');
+            localStorage.setItem('codx_no_anim', '1');
+        } else {
+            const s = document.getElementById('no-anim-style');
+            if (s) s.remove();
+            if (btn) { btn.style.color = ''; btn.style.background = ''; }
+            showToast('Animations ON', 'motion_photos_on');
+            localStorage.removeItem('codx_no_anim');
+        }
+    }
+
+    // ── Toggle force plain text mode ON/OFF ──
+    let _forcePlainText = false;
+    function togglePlainTextMode() {
+        _forcePlainText = !_forcePlainText;
+        const btn = document.getElementById('plain-text-btn');
+        if (_forcePlainText) {
+            editor.session.setMode('ace/mode/text');
+            if (btn) { btn.style.color = 'var(--accent)'; btn.style.background = 'var(--accent-dim)'; }
+            showToast('Plain Text ON', 'text_fields');
+            localStorage.setItem('codx_plain_text', '1');
+        } else {
+            _setEditorMode(currentFileName, editor.getValue());
+            if (btn) { btn.style.color = ''; btn.style.background = ''; }
+            showToast('Syntax ON', 'code');
+            localStorage.removeItem('codx_plain_text');
+        }
+    }
+
 
 </script>
 </body>
