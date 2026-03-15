@@ -6249,28 +6249,19 @@ STRICT FORMAT RULES:
         const code = (!_isNewFileMode && targetTab) ? targetTab.content : '';
         const filename = (!_isNewFileMode && targetTab) ? targetTab.name : '';
 
-        // ── Code with line numbers (provider-safe truncation) ──
+        // ── Code with line numbers (no truncation — all providers support large context) ──
         const _provider = _activeAgent()?.provider || '';
-        const _MAX_CHARS = { groq:60000, gemini:Infinity, openai:Infinity, anthropic:Infinity, openrouter:80000, deepseek:80000 }[_provider] ?? 80000;
         let numberedCode = code.split('\n').map((l,i) => `${i+1}| ${l}`).join('\n');
-        if (numberedCode.length > _MAX_CHARS) {
-            const lines = numberedCode.split('\n');
-            const h = Math.floor(_MAX_CHARS * 0.65 / 80);
-            const t2 = Math.floor(_MAX_CHARS * 0.30 / 80);
-            numberedCode = lines.slice(0,h).join('\n') + `\n\n// ⚠️ [${lines.length-h-t2} lines omitted — too large for ${_provider} free tier]\n\n` + lines.slice(-t2).join('\n');
-        }
         _inlineLogActivity('Code: ' + (numberedCode.length/1024).toFixed(1) + 'k (' + code.split('\n').length + ' lines)');
 
         // ── Context files (user explicitly ticked) ──
-        const _CTX_PER_FILE = Math.floor(_MAX_CHARS * 0.15);
         let otherFilesCtx = '';
         if (_inlineContextTabIds && _inlineContextTabIds.size > 0) {
             _inlineContextTabIds.forEach(tid => {
                 if (tid === (targetTab ? targetTab.id : activeTabId)) return;
                 const t = fileTabs.find(f => f.id === tid);
                 if (!t || !t.content?.trim()) return;
-                const preview = t.content.length > _CTX_PER_FILE ? t.content.slice(0,_CTX_PER_FILE) + '\n// ...[truncated]' : t.content;
-                otherFilesCtx += `\n\n── CONTEXT FILE: ${t.name} ──\n\`\`\`\n${preview}\n\`\`\``;
+                otherFilesCtx += `\n\n── CONTEXT FILE: ${t.name} ──\n\`\`\`\n${t.content}\n\`\`\``;
             });
         }
 
