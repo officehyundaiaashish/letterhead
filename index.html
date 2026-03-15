@@ -2367,7 +2367,9 @@
     window.visualViewport && window.visualViewport.addEventListener('resize', () => {
         _positionFindModal();
         const vv = window.visualViewport;
-        const kbHeight = window.innerHeight - vv.height - (vv.offsetTop || 0);
+        // kbHeight = space occupied by keyboard at bottom of screen
+        // window.innerHeight - (vv.offsetTop + vv.height) = keyboard height
+        const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
         let activeModal = document.querySelector('.modal.active:not(#github-modal):not(#find-modal)');
         if (activeModal) {
             activeModal.style.bottom = kbHeight > 10 ? (kbHeight + 10) + 'px' : '20px';
@@ -5825,7 +5827,7 @@ No markdown, no backticks, no explanation outside the array.`;
         // Re-apply keyboard position if keyboard is already open
         const vv = window.visualViewport;
         if (vv) {
-            const kbHeight = window.innerHeight - vv.height - (vv.offsetTop || 0);
+            const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
             if (kbHeight > 50) {
                 chatPanel.style.bottom = kbHeight + 'px';
                 chatPanel.style.height = (vv.height * 0.5) + 'px';
