@@ -1967,7 +1967,7 @@
                 </div>
                 <div style="display: flex; justify-content: center; width: 100%; margin-top: 4px; gap: 6px;">
                     <button class="toolbar-btn" id="ai-agent-btn" onclick="toggleInlineChat()" style="width: 80px;"><span class="material-icons-round">smart_toy</span>AI Agent</button>
-                    <button class="toolbar-btn" onclick="_appReload()" title="Reload Application" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
+                    <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
                 </div>
             </div>
         </div>
@@ -4318,6 +4318,7 @@ Rules:
                 '- Rewrite ONLY this block to fix the stated problem.\n' +
                 '- Keep all variable names, event listeners, IDs, and structure intact.\n' +
                 '- Do NOT add extra features. Do NOT change unrelated lines.\n' +
+                '- No silly mistakes. Minimal change, maximum stability.\n' +
                 '- Return ONLY the corrected block. No explanation. No markdown. No backticks.';
 
             const execMsg = 'Block to fix:\n```\n' + oldBlock + '\n```';
@@ -4429,9 +4430,10 @@ Rules:
 - content must be the COMPLETE file content — nothing truncated
 - Split by type/concern: CSS into .css, JS into .js, HTML into .html, etc.
 - Link them correctly (e.g. <link rel="stylesheet"> in HTML, <script src="..."> in HTML)
+- Only perform what the user requested. No silly mistakes. Minimal output, maximum quality.
 - Return ONLY the JSON array. No markdown, no backticks, no explanation outside the array.`;
 
-                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}\n\nRules: Only do what's requested. Senior-level quality. Minimal output, max stability. No comments in code.`;
 
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
                 const files = _safeExtractJSON(raw);
@@ -4737,11 +4739,7 @@ Rules:
     })();
     async function dismissWelcome() {
         const ws = document.getElementById('welcome-screen');
-
-    function _appReload() {
-        location.reload();
-    }
-
+        ws.classList.add('hiding');
         setTimeout(() => { ws.classList.add('hidden'); }, 650);
         await CodXStore.set('codx_welcomed', '1');
     }
@@ -5347,7 +5345,7 @@ Rules:
             this.style.height = Math.min(this.scrollHeight, 100) + 'px';
         });
         chatTA.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+            if (e.key === 'Enter' && !e.shiftKey) { e.stopPropagation(); }
         });
     }, 0);
 
@@ -5511,6 +5509,8 @@ GENERAL RULES:
 4. Avoid silly mistakes. Maintain professional coding standards.
 5. Keep code clean, organised, and readable.
 6. Preserve original structure unless modification is required.
+7. Ensure changes do not break other parts. If they do, fix those impacts too.
+8. Keep modifications minimal, maximum stability, lowest complexity.
 
 PROCESS:
 STEP 1 – Understand the request: what, which file/section, bug fix or improvement.
@@ -5527,7 +5527,7 @@ Do NOT return JSON. Just talk naturally.`;
                 const foundCtx = _searchSections.length > 0
                     ? '\n\nRELEVANT SECTIONS FOUND BY SEARCH:\n' + _searchSections.slice(0,5).map(s => s.snippet).join('\n---\n')
                     : '';
-                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}`;
+                const userMsg = `My code (${_agentWorkTab ? _agentWorkTab.name : 'untitled'}):\n\`\`\`\n${code}\n\`\`\`${attachCtx}${foundCtx}\n\nUser says: ${userRequest}\n\nRules: Analyse full code before changing. Senior-level quality. Only do what's requested. Don't touch unrelated code. Respect existing UI/structure/animations. Ensure no other part breaks. Minimal change, max stability, lowest complexity. No comments in code.`;
                 agentText = await _callAgentAPI(systemPrompt, userMsg);
 
             } else if (isSplitIntent) {
@@ -5535,8 +5535,9 @@ Do NOT return JSON. Just talk naturally.`;
                 const splitSystemPrompt = `You are CodX AI Agent. The user wants to split their code into multiple separate files.
 Analyse the code and split it logically. Return ONLY a JSON array:
 [{"filename":"name.ext","content":"full content","reason":"brief reason"}]
+Only perform what the user requested. No silly mistakes. Minimal output, maximum quality.
 No markdown, no backticks, no explanation outside the array.`;
-                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}`;
+                const userMsg = `Code to split:\n\`\`\`\n${code}\n\`\`\`${attachCtx}\n\nRequest: ${userRequest}\n\nRules: Only do what's requested. Senior-level quality. Minimal output, max stability. No comments in code.`;
                 let raw = await _callAgentAPI(splitSystemPrompt, userMsg);
                 const files = _safeExtractJSON(raw);
                 if (!files || !files.length) throw new Error('Agent could not split the code. Try again.');
@@ -5730,7 +5731,7 @@ No markdown, no backticks, no explanation outside the array.`;
             this.style.height = Math.min(this.scrollHeight, 80) + 'px';
         });
         ta.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInlineChat(); }
+            if (e.key === 'Enter' && !e.shiftKey) { e.stopPropagation(); }
         });
     }, 0);
 
@@ -5892,7 +5893,9 @@ STRICT RULES:
 - Return ONLY JSON for edit/new_file/reorganize — no markdown fences, no text outside JSON
 - Never truncate content — write every line
 - Never hallucinate line numbers — use only what you see
-- In JSON strings: escape " as \\" and newlines as \\n`;
+- In JSON strings: escape " as \\" and newlines as \\n
+- No silly mistakes. Surgical edits only — touch nothing unrelated.
+- Minimal change, maximum stability. Ensure no other part breaks.`;
 
     // ── Robust JSON parser — shared across all agent response handlers ──
     function _tryParseJSON(str) {
@@ -6055,7 +6058,11 @@ STRICT RULES:
             ? ''   // no "FULL CODE" section — there is no target file
             : `\n\n── FULL CODE (with line numbers) ──\n\`\`\`\n${numberedCode}\n\`\`\``;
 
-        const userMsg = `${newFileModePrefix}── CONTEXT ──${indexSummary}${sessionSummaryBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}`;
+        const editRules = _isNewFileMode
+            ? `\n\nRules: Only do what's requested. Senior-level quality. Minimal output, max stability. No comments in code.`
+            : `\n\nRules: Analyse full code before changing. Senior-level quality. Only do what's requested. Don't touch unrelated code. Respect existing UI/structure/animations. Ensure no other part breaks. Minimal change, max stability, lowest complexity. No comments in code.`;
+
+        const userMsg = `${newFileModePrefix}── CONTEXT ──${indexSummary}${sessionSummaryBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}${editRules}`;
 
         try {
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI);
