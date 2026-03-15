@@ -4947,17 +4947,105 @@ Rules:
     // After closing Find/Replace or other modals, ensure restore button and bottom panel state is consistent
     // Patch toggleFindReplace to ensure header/nav never disappears
     window._ensureNavVisible = function() {}; // nav always visible now
-    // Watch for any modal close that might hide nav
+    // ── Desktop keyboard shortcuts ──
     document.addEventListener('keydown', (e) => {
+        const ctrl = e.ctrlKey || e.metaKey;
+        const tag  = (document.activeElement || {}).tagName;
+        const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
+
+        // ── Escape — close topmost open modal/panel (priority order) ──
         if (e.key === 'Escape') {
-            window._ensureNavVisible();
+            // custom dialog
+            if (document.getElementById('custom-dialog-overlay')?.classList.contains('active')) {
+                _hideDialog(); return;
+            }
+            // new project modal
+            if (document.getElementById('new-project-overlay')?.classList.contains('active')) {
+                closeNewProjectModal(); return;
+            }
+            // github modal
+            if (document.getElementById('github-modal')?.classList.contains('active')) {
+                closeGithubModal(); return;
+            }
+            // agent modal
+            if (document.getElementById('agent-modal')?.classList.contains('active')) {
+                closeAgentModal(); return;
+            }
+            // find modal
             if (findModal && findModal.classList.contains('active')) {
                 findModal.classList.remove('active');
+                findModal.style.top = ''; findModal.style.bottom = '';
+                editor.focus(); return;
             }
+            // inline chat panel
+            if (_inlineChatOpen) {
+                closeInlineChat(); return;
+            }
+        }
+
+        // ── Enter — confirm primary button in custom dialog ──
+        if (e.key === 'Enter' && !inInput) {
+            const overlay = document.getElementById('custom-dialog-overlay');
+            if (overlay?.classList.contains('active')) {
+                const primary = overlay.querySelector('.cdlg-btn.primary');
+                if (primary) { e.preventDefault(); primary.click(); return; }
+            }
+        }
+
+        // Desktop-only shortcuts (skip if user is typing in an input)
+        if (!ctrl) return;
+
+        // Ctrl+S — Save
+        if (e.key === 's' || e.key === 'S') {
+            e.preventDefault(); saveFile(); return;
+        }
+        // Ctrl+F — Find & Replace
+        if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault(); toggleFindReplace(); return;
+        }
+        // Ctrl+G — GitHub modal
+        if (e.key === 'g' || e.key === 'G') {
+            e.preventDefault();
+            const ghOpen = document.getElementById('github-modal')?.classList.contains('active');
+            if (ghOpen) closeGithubModal(); else openGithubModal();
+            return;
+        }
+        // Ctrl+` — Toggle AI Chat
+        if (e.key === '`') {
+            e.preventDefault(); toggleInlineChat(); return;
+        }
+        // Ctrl+Shift+N — New project
+        if ((e.key === 'n' || e.key === 'N') && e.shiftKey) {
+            e.preventDefault(); openNewProjectModal(); return;
+        }
+        // Ctrl+Z / Ctrl+Shift+Z — Undo/Redo (Ace handles these natively,
+        // but ensure they work even when focus is outside editor)
+        if ((e.key === 'z' || e.key === 'Z') && !inInput) {
+            if (e.shiftKey) { e.preventDefault(); editorRedo(); }
+            else            { e.preventDefault(); editorUndo(); }
+            return;
         }
     });
 
-    // ===== APK INSTALL LOG DOWNLOADER =====
+    // ── Tab focus trap — keeps Tab/Shift+Tab inside open modals ──
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const modalSel = '#custom-dialog-overlay.active #custom-dialog-box, ' +
+                         '#new-project-overlay.active #new-project-modal, ' +
+                         '#github-modal.active, #agent-modal.active';
+        const openModal = document.querySelector(modalSel);
+        if (!openModal) return;
+        const focusable = Array.from(openModal.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter(el => el.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+            if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+        }
+    });
     // Intercept any APK download errors and save a log file
     window._apkInstallLog = [];
     window._logApkEvent = function(type, msg) {
