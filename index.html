@@ -1136,6 +1136,9 @@
         #inline-chat-mode-btn.mode-on { background: var(--accent) !important; color: white !important; animation: chatModePulse 2s ease-out infinite; }
         @keyframes chatModePulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); } 60% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
         #inline-chat-mode-btn.mode-on svg { filter: drop-shadow(0 0 3px rgba(255,255,255,0.4)); }
+        #chat-code-access-btn { display: none; position: relative; transition: background 0.25s, color 0.25s, box-shadow 0.25s; }
+        #chat-code-access-btn.access-on { background: rgba(245,158,11,0.18) !important; color: #f59e0b !important; border: 1.5px solid rgba(245,158,11,0.4) !important; }
+        #chat-code-access-btn.access-on svg { stroke: #f59e0b; }
 
         /* Toast anchored above chat panel */
         #chat-panel-toast { position:fixed; left:50%; transform:translateX(-50%) translateY(8px); bottom:46vh; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-color); padding:7px 14px; border-radius:20px; font-size:11px; font-weight:700; font-family:'Poppins',sans-serif; display:flex; align-items:center; gap:7px; z-index:9999; opacity:0; pointer-events:none; white-space:nowrap; box-shadow:0 -3px 12px rgba(0,0,0,0.25); transition:opacity 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
@@ -1418,6 +1421,7 @@
                 <button id="inline-chat-mode-btn" onclick="_toggleChatMode()" title="Chat Mode — only chat, no edits" style="width:32px;height:32px;border-radius:50%;border:none;background:rgba(128,128,128,0.12);color:var(--text-color);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.2s,color 0.2s;">
                     <svg id="chat-mode-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 </button>
+                <button id="chat-code-access-btn" onclick="_toggleChatCodeAccess()" title="Give AI access to file code" style="width:32px;height:32px;border-radius:50%;border:1.5px solid transparent;background:rgba(128,128,128,0.12);color:var(--text-color);display:none;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background 0.2s,color 0.2s,border-color 0.2s;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></button>
                 <textarea id="inline-chat-textarea" placeholder="Ask agent..." rows="1"></textarea>
                 <button id="inline-chat-send-btn" onclick="sendInlineChat()">
                     <span class="material-icons-round">send</span>
@@ -5830,7 +5834,7 @@ STRICT FORMAT RULES:
         const targetTab = _isNewFileMode ? null : (fileTabs.find(t => t.id === (_agentTargetTabId || activeTabId)) || fileTabs.find(t => t.id === activeTabId));
         const curTab = fileTabs.find(t => t.id === activeTabId);
         if (curTab) curTab.content = editor.getValue();
-        const code = (!_isNewFileMode && targetTab && !_inlineChatModeOn) ? targetTab.content : '';
+        const code = (!_isNewFileMode && targetTab && (!_inlineChatModeOn || _chatCodeAccessOn)) ? targetTab.content : '';
         const filename = (!_isNewFileMode && targetTab) ? targetTab.name : '';
 
         // ── Code with line numbers (no truncation — all providers support large context) ──
@@ -7027,6 +7031,9 @@ Use only line numbers visible in the context. Be precise.`;
     // When enabled: AI only chats (explains/analyses), never edits.
     // All code in response goes to canvas. No apply/edit cards shown.
     let _inlineChatModeOn = false;
+    // When Chat Mode is ON, user can additionally grant AI read-access to target file code.
+    // Default OFF — AI gets empty code in chat mode unless user explicitly enables this.
+    let _chatCodeAccessOn = false;
 
 
 
@@ -7128,19 +7135,38 @@ Use only line numbers visible in the context. Be precise.`;
         const btn  = document.getElementById('inline-chat-mode-btn');
         const icon = document.getElementById('chat-mode-icon');
         const ta   = document.getElementById('inline-chat-textarea');
+        const accessBtn = document.getElementById('chat-code-access-btn');
 
         if (_inlineChatModeOn) {
             if (btn)  { btn.classList.add('mode-on'); btn.style.background = ''; btn.style.color = ''; }
             if (icon) { icon.setAttribute('stroke', 'white'); icon.setAttribute('fill', 'rgba(255,255,255,0.15)'); }
             if (ta)   ta.placeholder = 'Chat only — no edits...';
+            // Show code access toggle button
+            if (accessBtn) accessBtn.style.display = 'flex';
         } else {
             if (btn)  { btn.classList.remove('mode-on'); btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
             if (icon) { icon.setAttribute('stroke', 'currentColor'); icon.setAttribute('fill', 'none'); }
             if (ta)   ta.placeholder = 'Ask agent...';
+            // Hide code access button and reset its state
+            if (accessBtn) { accessBtn.style.display = 'none'; accessBtn.classList.remove('access-on'); }
+            _chatCodeAccessOn = false;
         }
 
         // Show centered mode-switch toast
         _showChatModeToast(_inlineChatModeOn);
+    }
+
+    // ── Chat Code Access toggle — only visible when Chat Mode is ON ──
+    function _toggleChatCodeAccess() {
+        _chatCodeAccessOn = !_chatCodeAccessOn;
+        const btn = document.getElementById('chat-code-access-btn');
+        if (_chatCodeAccessOn) {
+            if (btn) btn.classList.add('access-on');
+            showToast('Code Access ON', 'code');
+        } else {
+            if (btn) btn.classList.remove('access-on');
+            showToast('Code Access OFF', 'code_off');
+        }
     }
 
     // ── Inline chat: fullscreen toggle ──
