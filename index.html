@@ -2286,6 +2286,18 @@
     // ── STEP 2: Renderer deep-tuning ──
     editor.renderer.setScrollMargin(0, 0, 0, 0);
     editor.renderer.setPadding(6);
+    // Clamp horizontal scroll so it never goes past content width
+    try {
+        const _origScrollLeft = editor.renderer.$updateScrollLeft
+            || editor.renderer.updateScrollLeft;
+        editor.session.on('changeScrollLeft', () => {
+            const maxL = Math.max(0, (editor.renderer.layerConfig?.width || 0)
+                - editor.renderer.$size.scrollerWidth + 20);
+            if (editor.session.getScrollLeft() > maxL) {
+                editor.session.setScrollLeft(maxL);
+            }
+        });
+    } catch(e){}
     try { editor.renderer.$printMarginLayer.element.style.display = 'none'; } catch(e){}
     // Disable cursor blink — causes repaint every 530ms
     try { editor.renderer.$cursorLayer.setBlinking(false); } catch(e){}
