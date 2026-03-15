@@ -163,40 +163,77 @@
         .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: none; opacity: 0.5; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
         .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
-        /* will-change: transform → own GPU layer, no repaint on slide */
-        /* Nav panel — always visible, never collapses away */
+        /* Nav panel */
         .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
-        /* mini mode: smoothly hide toolbar-rows */
-        .bottom-wrapper.nav-mini .toolbar-rows { display: none; }
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
-        .bottom-area { 
-            background: var(--glass-bg); border-top: 2px solid var(--accent); border-radius: var(--panel-round) var(--panel-round) 0 0; 
+
+        /* bottom-area — green border stays always */
+        .bottom-area {
+            background: var(--glass-bg);
+            border-top: 2px solid var(--accent);
+            border-radius: var(--panel-round) var(--panel-round) 0 0;
             padding-top: 10px;
             padding-bottom: max(env(safe-area-inset-bottom), 12px);
-            box-shadow: none; 
+            box-shadow: none;
         }
+
         .drag-handle-area { width: 100%; height: 0; display: flex; justify-content: center; align-items: center; }
         .drag-pill { width: 30px; height: 4px; background: var(--text-color); opacity: 0.25; border-radius: 10px; }
 
-        /* Cursor nav row — compact */
+        /* Nav toggle pill */
+        #nav-toggle-btn {
+            will-change: transform;
+            transition: transform 0.18s ease;
+        }
+        #nav-toggle-btn:active { transform: scale(0.88); }
+
+        /* Cursor nav row */
         .cursor-nav { display: flex; overflow-x: auto; padding: 4px 8px 6px 8px; gap: 5px; }
         .cursor-nav::-webkit-scrollbar { display: none; }
-        .icon-btn { background: rgba(128, 128, 128, 0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-        .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.92); }
+        .icon-btn { background: rgba(128,128,128,0.08); border: none; border-radius: 10px; min-width: 40px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--text-color); flex-shrink: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        .icon-btn:active { background: var(--accent-dim); color: var(--accent); transform: scale(0.9); }
         .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
-        /* Ultra-Compact 3-Row Grid (No Scroll) */
-        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; max-height: 200px; opacity: 1; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.3s ease; overflow: hidden; }
+        /* ── Toolbar animation ── */
+        /* Wrap clips height — separate from animated content to avoid layout recalc */
+        .toolbar-rows-wrap {
+            overflow: hidden;
+            max-height: 220px;
+            transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bottom-wrapper.nav-mini .toolbar-rows-wrap {
+            max-height: 0;
+        }
+
+        /* Content: GPU-only opacity+transform — zero repaint */
+        .toolbar-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 4px 6px 8px 6px;
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            will-change: opacity, transform;
+        }
+        .bottom-wrapper.nav-mini .toolbar-rows {
+            opacity: 0;
+            transform: translateY(6px);
+            pointer-events: none;
+        }
+
         .toolbar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
-        .toolbar-btn { 
+
+        /* Toolbar buttons */
+        .toolbar-btn {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            background: none; border: none; color: var(--text-color); opacity: 0.8; 
+            background: none; border: none; color: var(--text-color); opacity: 0.8;
             font-size: 8px; font-weight: 600; gap: 1px; width: 100%;
             padding: 6px 0; cursor: pointer; border-radius: 8px;
             -webkit-tap-highlight-color: transparent;
         }
         .toolbar-btn .material-icons-round { font-size: 19px; pointer-events: none; }
-        .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.94); }
+        .toolbar-btn:active { background: var(--accent-dim); color: var(--accent); opacity: 1; transform: scale(0.9); }
 
         
         /* restore-btn removed */
@@ -1406,7 +1443,6 @@
                 height:26px;
                 flex-shrink:0;
                 box-shadow:none;
-                transition:opacity 0.2s;
                 position:absolute;
                 top:-13px;
                 padding:0;
@@ -1451,7 +1487,7 @@
                 <button class="icon-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span></button>
             </div>
 
-            <div class="toolbar-rows">
+            <div class="toolbar-rows-wrap"><div class="toolbar-rows">
                 <!-- ROW 1: File & Project -->
                 <div class="toolbar-row">
                     <button class="toolbar-btn" onclick="openNewProjectModal()"><span class="material-icons-round">add_box</span>New</button>
@@ -1474,7 +1510,7 @@
                     <button class="toolbar-btn" id="ai-agent-btn" onclick="toggleInlineChat()" style="width: 80px;"><span class="material-icons-round">smart_toy</span>AI Agent</button>
                     <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
                 </div>
-            </div>
+            </div></div>
         </div>
     </div>
 </div>
@@ -1784,8 +1820,41 @@
         document.body.style.height = h + 'px';
     }
     _setBodyHeight();
-    window.visualViewport && window.visualViewport.addEventListener('resize', _setBodyHeight);
-    window.addEventListener('resize', _setBodyHeight);
+
+    // When chat panel is open and keyboard appears:
+    // shrink ONLY the chat panel, never the body/header
+    function _handleChatKeyboard() {
+        if (!_inlineChatOpen) { _setBodyHeight(); return; }
+        const vv = window.visualViewport;
+        if (!vv) return;
+        const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+        const panel = document.getElementById('inline-chat-panel');
+        if (!panel) return;
+
+        if (_chatIsFullscreen) {
+            // Fullscreen: panel fills screen, shrink to fit above keyboard
+            if (kbHeight > 50) {
+                panel.style.height = vv.height + 'px';
+                panel.style.bottom = '';
+                panel.style.top = '0';
+            } else {
+                panel.style.height = '';
+                panel.style.top = '';
+            }
+        } else {
+            // Normal mode: panel is at bottom, lift it above keyboard
+            if (kbHeight > 50) {
+                panel.style.height = vv.height + 'px';
+                panel.style.bottom = kbHeight + 'px';
+            } else {
+                panel.style.height = '';
+                panel.style.bottom = '0';
+            }
+        }
+    }
+
+    window.visualViewport && window.visualViewport.addEventListener('resize', _handleChatKeyboard);
+    window.addEventListener('resize', _handleChatKeyboard);
     function _positionFindModal() {
         const vv = window.visualViewport;
         if (!vv || !findModal.classList.contains('active')) return;
@@ -2245,13 +2314,17 @@
     function toggleNavSize() {
         _navMini = !_navMini;
         const bottomPanel = document.getElementById('bottom-panel');
-        bottomPanel.classList.toggle('nav-mini', _navMini);
         const icon = document.getElementById('nav-toggle-icon');
+
+        bottomPanel.classList.toggle('nav-mini', _navMini);
+
+        // Smooth arrow rotation
         if (icon) {
-            icon.textContent = 'expand_more';
             icon.style.transform = _navMini ? 'rotate(180deg)' : 'rotate(0deg)';
         }
-        setTimeout(() => editor.resize(), 300);
+
+        // Editor resize after animation completes
+        setTimeout(() => editor.resize(), 400);
     }
 
     // ── NAV COMPLETELY HIDE/SHOW ──
@@ -5196,6 +5269,9 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.style.transform = '';
 
         chatPanel.classList.add('chat-open');
+        // Reset any keyboard-adjusted height
+        chatPanel.style.height = '';
+        chatPanel.style.bottom = '0';
         if (aiBtn) aiBtn.classList.add('chat-active');
 
         const inner = document.getElementById('bottom-panel');
@@ -5232,7 +5308,7 @@ No markdown, no backticks, no explanation outside the array.`;
         const aiBtn     = document.getElementById('ai-agent-btn');
         chatPanel.classList.remove('chat-open');
         // Reset panel position completely
-        chatPanel.style.bottom = '';
+        chatPanel.style.bottom = '0';
         chatPanel.style.height = '';
         chatPanel.style.transform = '';
         if (aiBtn) aiBtn.classList.remove('chat-active');
