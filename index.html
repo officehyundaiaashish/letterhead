@@ -5812,7 +5812,7 @@ No markdown, no backticks, no explanation outside the array.`;
         return bubble;
     }
 
-    // ── Typing indicator ──
+    // ── Typing indicator + live prompt preview ──
     let _statusTimer = null;
 
     function _inlineShowTyping() {
@@ -5821,46 +5821,123 @@ No markdown, no backticks, no explanation outside the array.`;
         if (empty) empty.remove();
         const existing = document.getElementById('inline-typing');
         if (existing) existing.remove();
+
         const wrap = document.createElement('div');
         wrap.className = 'chat-msg agent';
         wrap.id = 'inline-typing';
-        wrap.innerHTML = `<div class="chat-bubble" style="display:flex;align-items:center;gap:8px;padding:8px 12px;">
-            <span id="inline-status-icon" style="font-size:14px;">⚙️</span>
-            <span id="inline-status-text" style="font-size:11px;font-weight:600;font-family:'Poppins',sans-serif;color:var(--text-color);opacity:0.75;transition:opacity 0.15s;">Building prompt...</span>
-            <div style="display:flex;gap:3px;margin-left:4px;">
-                <span style="width:4px;height:4px;border-radius:50%;background:var(--accent);animation:agentBounce 0.8s infinite;display:inline-block;"></span>
-                <span style="width:4px;height:4px;border-radius:50%;background:var(--accent);animation:agentBounce 0.8s 0.2s infinite;display:inline-block;"></span>
-                <span style="width:4px;height:4px;border-radius:50%;background:var(--accent);animation:agentBounce 0.8s 0.4s infinite;display:inline-block;"></span>
-            </div>
-            <span id="inline-prompt-size" style="font-size:9px;font-family:'Poppins',sans-serif;color:var(--accent);opacity:0.6;margin-left:2px;"></span>
-        </div>`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        bubble.style.cssText = 'padding:0;overflow:hidden;min-width:180px;';
+
+        const hdr = document.createElement('div');
+        hdr.id = 'ipt-header';
+        hdr.style.cssText = 'display:flex;align-items:center;gap:7px;padding:8px 11px;cursor:pointer;user-select:none;';
+
+        const icon = document.createElement('span');
+        icon.id = 'inline-status-icon';
+        icon.style.cssText = 'font-size:13px;';
+        icon.textContent = '⚙️';
+
+        const txt = document.createElement('span');
+        txt.id = 'inline-status-text';
+        txt.style.cssText = 'font-size:10px;font-weight:700;font-family:Poppins,sans-serif;color:var(--accent);flex:1;transition:opacity 0.15s;';
+        txt.textContent = 'Building prompt...';
+
+        const dots = document.createElement('div');
+        dots.id = 'ipt-dots';
+        dots.style.cssText = 'display:flex;gap:3px;';
+        for (let i = 0; i < 3; i++) {
+            const d = document.createElement('span');
+            d.style.cssText = 'width:4px;height:4px;border-radius:50%;background:var(--accent);animation:agentBounce 0.8s ' + (i*0.2) + 's infinite;display:inline-block;';
+            dots.appendChild(d);
+        }
+
+        const chev = document.createElement('span');
+        chev.id = 'ipt-chev';
+        chev.className = 'material-icons-round';
+        chev.style.cssText = 'font-size:13px;opacity:0.5;transition:transform 0.2s;';
+        chev.textContent = 'expand_more';
+
+        hdr.appendChild(icon);
+        hdr.appendChild(txt);
+        hdr.appendChild(dots);
+        hdr.appendChild(chev);
+
+        const body = document.createElement('div');
+        body.id = 'ipt-body';
+        body.style.cssText = 'display:none;border-top:1px solid var(--glass-border);padding:6px 11px 8px;';
+
+        hdr.addEventListener('click', function() {
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            chev.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        bubble.appendChild(hdr);
+        bubble.appendChild(body);
+        wrap.appendChild(bubble);
         box.appendChild(wrap);
         _inlineChatScroll();
     }
 
+
     function _inlineUpdateTypingStatus(icon, text, promptChars) {
         const iconEl = document.getElementById('inline-status-icon');
         const textEl = document.getElementById('inline-status-text');
-        const sizeEl = document.getElementById('inline-prompt-size');
+        const dotsEl = document.getElementById('ipt-dots');
         if (!textEl) return;
-        textEl.style.opacity = '0';
-        setTimeout(() => {
-            if (!document.getElementById('inline-status-text')) return;
-            if (iconEl) iconEl.textContent = icon;
-            textEl.textContent = text;
-            textEl.style.opacity = '0.75';
-            if (sizeEl && promptChars != null) {
-                const kb = (promptChars / 1024).toFixed(1);
-                sizeEl.textContent = kb + 'k';
-            }
-        }, 150);
+        if (iconEl) iconEl.textContent = icon;
+        textEl.textContent = text + (promptChars != null ? '  ' + (promptChars/1024).toFixed(1) + 'k' : '');
+        if (dotsEl) dotsEl.style.display = 'none';
+        const chev = document.getElementById('ipt-chev');
+        if (chev) chev.style.opacity = '0.7';
+    }
+
+    function _inlineFillPromptPreview(data) {
+        const body = document.getElementById('ipt-body');
+        if (!body) return;
+        const rows = [];
+        if (data.mode) rows.push(['Mode', data.mode]);
+        if (data.request) rows.push(['Request', data.request.length > 140 ? data.request.slice(0,140) + '…' : data.request]);
+        if (data.targetFile) rows.push(['Target file', data.targetFile]);
+        if (data.codeSize) rows.push(['Code sent', data.codeSize]);
+        if (data.contextFiles && data.contextFiles.length) data.contextFiles.forEach(f => rows.push(['Context', f]));
+        if (data.attachment) rows.push(['Attachment', data.attachment]);
+        if (data.history) rows.push(['History', data.history]);
+        if (data.rules) rows.push(['Rules', data.rules]);
+        if (data.totalSize) rows.push(['Total prompt', data.totalSize]);
+        body.innerHTML = rows.map(r => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex;gap:8px;padding:2px 0;font-size:10px;border-bottom:1px solid var(--glass-border);';
+            const lbl = document.createElement('span');
+            lbl.style.cssText = 'color:var(--accent);font-weight:700;opacity:0.7;min-width:72px;flex-shrink:0;font-family:Poppins,sans-serif;';
+            lbl.textContent = r[0];
+            const val = document.createElement('span');
+            val.style.cssText = 'color:var(--text-color);opacity:0.85;word-break:break-word;line-height:1.4;font-family:Poppins,sans-serif;';
+            val.textContent = r[1];
+            row.appendChild(lbl);
+            row.appendChild(val);
+            return row.outerHTML;
+        }).join('');
+        body.style.display = 'block';
+        const chev = document.getElementById('ipt-chev');
+        if (chev) chev.style.transform = 'rotate(180deg)';
+        _inlineChatScroll();
     }
 
     function _inlineHideTyping() {
         clearInterval(_statusTimer);
         _statusTimer = null;
-        const t = document.getElementById('inline-typing');
-        if (t) t.remove();
+        const wrap = document.getElementById('inline-typing');
+        if (!wrap) return;
+        wrap.removeAttribute('id');
+        const dotsEl = document.getElementById('ipt-dots');
+        if (dotsEl) dotsEl.remove();
+        const statusText = document.getElementById('inline-status-text');
+        if (statusText) { statusText.textContent = '✓ Prompt sent'; statusText.style.opacity = '0.5'; }
+        const statusIcon = document.getElementById('inline-status-icon');
+        if (statusIcon) statusIcon.textContent = '📤';
     }
 
     // ══════════════════════════════════════════════════
@@ -6064,54 +6141,34 @@ STRICT RULES:
 
         const userMsg = `${newFileModePrefix}── CONTEXT ──${indexSummary}${sessionSummaryBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}${editRules}`;
 
-        _inlineUpdateTypingStatus('📤', 'Prompt ready — sending to AI...', userMsg.length);
+        // ── Fill live prompt preview before sending ──
+        (function() {
+            const ctxFiles = [];
+            if (_inlineContextTabIds && _inlineContextTabIds.size > 0) {
+                _inlineContextTabIds.forEach(tid => {
+                    const t = fileTabs.find(f => f.id === tid);
+                    if (t) ctxFiles.push(t.name + ' (' + (t.content ? (t.content.length/1024).toFixed(1) + 'k' : '0k') + ')');
+                });
+            }
+            const histLen = historyForAPI.length;
+            _inlineFillPromptPreview({
+                mode: _isNewFileMode ? 'Create new file' : 'Edit existing file',
+                request: userRequest,
+                targetFile: (!_isNewFileMode && targetTab) ? targetTab.name + ' (' + (targetTab.content ? (targetTab.content.length/1024).toFixed(1) + 'k' : '0k') + ')' : null,
+                codeSize: !_isNewFileMode ? (numberedCode.length/1024).toFixed(1) + 'k chars (' + code.split('\n').length + ' lines)' : null,
+                contextFiles: ctxFiles.length ? ctxFiles : null,
+                attachment: _inlineAttachment ? _inlineAttachment.name : null,
+                history: histLen > 0 ? histLen + ' previous message' + (histLen > 1 ? 's' : '') : 'none',
+                rules: _isNewFileMode ? 'New file (minimal)' : 'Edit mode (full)',
+                totalSize: (userMsg.length/1024).toFixed(1) + 'k total  ·  system ' + (_AGENT_SYSTEM_PROMPT.length/1024).toFixed(1) + 'k  +  user ' + (userMsg.length/1024).toFixed(1) + 'k',
+            });
+        })();
+
+        _inlineUpdateTypingStatus('📤', 'Sending to AI...', userMsg.length);
 
         try {
             const raw = await _callAgentAPI(_AGENT_SYSTEM_PROMPT, userMsg, historyForAPI);
             _inlineHideTyping();
-
-            // ── Prompt preview card ──
-            (function() {
-                const box = document.getElementById('inline-chat-messages');
-                if (!box) return;
-                const sizeKb = (userMsg.length / 1024).toFixed(1);
-                const ctxFiles = [];
-                if (!_isNewFileMode && targetTab) ctxFiles.push({ label: '📄 Target', val: targetTab.name + '  (' + (targetTab.content ? (targetTab.content.length/1024).toFixed(1) + 'k chars' : '0k') + ')' });
-                if (_inlineContextTabIds && _inlineContextTabIds.size > 0) {
-                    _inlineContextTabIds.forEach(tid => {
-                        const t = fileTabs.find(f => f.id === tid);
-                        if (t) ctxFiles.push({ label: '📚 Context', val: t.name + '  (' + (t.content ? (t.content.length/1024).toFixed(1) + 'k chars' : '0k') + ')' });
-                    });
-                }
-                if (_inlineAttachment) ctxFiles.push({ label: '📎 Attach', val: _inlineAttachment.name });
-                const histLen = historyForAPI.length;
-                const rows = [
-                    { label: 'Request', val: userRequest.length > 120 ? userRequest.slice(0,120) + '…' : userRequest },
-                    ...ctxFiles,
-                    { label: 'History', val: histLen > 0 ? histLen + ' prev message' + (histLen > 1 ? 's' : '') : 'none' },
-                    { label: 'Rules', val: _isNewFileMode ? 'New file mode (minimal)' : 'Edit mode (full)' },
-                    { label: 'Total size', val: sizeKb + 'k chars → ' + (_AGENT_SYSTEM_PROMPT.length/1024).toFixed(1) + 'k system + ' + sizeKb + 'k user' },
-                ];
-                const card = document.createElement('div');
-                card.className = 'prompt-preview-card';
-                const hdr = document.createElement('div');
-                hdr.className = 'prompt-preview-header';
-                hdr.innerHTML = '<span class="material-icons-round prompt-preview-chevron">expand_more</span>' +
-                    '<span class="prompt-preview-title">📋 Prompt sent to AI</span>' +
-                    '<span class="prompt-preview-size">' + sizeKb + 'k</span>';
-                const body = document.createElement('div');
-                body.className = 'prompt-preview-body';
-                body.innerHTML = rows.map(r => '<div class="prompt-preview-row"><span class="prompt-preview-label">' + r.label + '</span><span class="prompt-preview-val">' + r.val + '</span></div>').join('');
-                hdr.addEventListener('click', function() {
-                    body.classList.toggle('open');
-                    const chev = hdr.querySelector('.prompt-preview-chevron');
-                    if (chev) chev.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
-                });
-                card.appendChild(hdr);
-                card.appendChild(body);
-                box.appendChild(card);
-                _inlineChatScroll();
-            })();
 
             // Save this exchange to history
             // Store user message WITH full code so history is accurate
