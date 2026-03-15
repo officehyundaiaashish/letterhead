@@ -240,9 +240,10 @@
 
         /* will-change: transform → own GPU layer, no repaint on slide */
         /* Nav panel — always visible, never collapses away */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; will-change: transform; }
         /* mini mode: smoothly hide toolbar-rows */
-        .bottom-wrapper.nav-mini .toolbar-rows { max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; margin: 0; overflow: hidden; }
+        .bottom-wrapper.nav-mini .toolbar-rows-wrap { grid-template-rows: 0fr !important; opacity: 0 !important; }
+        .bottom-wrapper.nav-mini .toolbar-rows-wrap .toolbar-rows { pointer-events: none !important; }
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
             background: var(--glass-bg); border-top: 2px solid var(--accent); border-radius: var(--panel-round) var(--panel-round) 0 0; 
@@ -261,7 +262,8 @@
         .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
         /* Ultra-Compact 3-Row Grid (No Scroll) */
-        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; }
+        .toolbar-rows-wrap { display: grid; grid-template-rows: 1fr; opacity: 1; will-change: grid-template-rows, opacity; transition: grid-template-rows 0.36s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toolbar-rows-wrap .toolbar-rows { overflow: hidden; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; }
         .toolbar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
         .toolbar-btn { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -1218,9 +1220,10 @@
 
         /* will-change: transform → own GPU layer, no repaint on slide */
         /* Nav panel — always visible, never collapses away */
-        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
-        /* mini mode: only cursor-nav row shows */
-        .bottom-wrapper.nav-mini .toolbar-rows { display: none; }
+        .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; will-change: transform; }
+        /* mini mode: smooth collapse */
+        .bottom-wrapper.nav-mini .toolbar-rows-wrap { grid-template-rows: 0fr !important; opacity: 0 !important; }
+        .bottom-wrapper.nav-mini .toolbar-rows-wrap .toolbar-rows { pointer-events: none !important; }
         /* Removed drag-handle-area hide rule so arrow stays visible */
         .bottom-wrapper.nav-mini #agent-bar { display: none; }
         .bottom-area { 
@@ -1240,7 +1243,8 @@
         .icon-btn .material-icons-round { font-size: 18px; pointer-events: none; }
 
         /* Ultra-Compact 3-Row Grid (No Scroll) */
-        .toolbar-rows { display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; max-height: 200px; opacity: 1; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.3s ease; overflow: hidden; }
+        .toolbar-rows-wrap { display: grid; grid-template-rows: 1fr; opacity: 1; will-change: grid-template-rows, opacity; transition: grid-template-rows 0.36s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s cubic-bezier(0.4, 0, 0.2, 1); }
+        .toolbar-rows-wrap .toolbar-rows { overflow: hidden; min-height: 0; display: flex; flex-direction: column; gap: 4px; padding: 4px 6px 8px 6px; }
         .toolbar-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
         .toolbar-btn { 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -2056,6 +2060,7 @@
                 <button class="icon-btn" onclick="editorRedo()"><span class="material-icons-round">redo</span></button>
             </div>
 
+            <div class="toolbar-rows-wrap">
             <div class="toolbar-rows">
                 <!-- ROW 1: File & Project -->
                 <div class="toolbar-row">
@@ -2080,6 +2085,7 @@
                     <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 80px;"><span class="material-icons-round">refresh</span>Refresh</button>
                 </div>
             </div>
+            </div><!-- /toolbar-rows-wrap -->
         </div>
     </div>
 </div>
@@ -2831,13 +2837,15 @@
     function toggleNavSize() {
         _navMini = !_navMini;
         const bottomPanel = document.getElementById('bottom-panel');
-        bottomPanel.classList.toggle('nav-mini', _navMini);
         const icon = document.getElementById('nav-toggle-icon');
-        if (icon) {
-            icon.textContent = 'expand_more';
-            icon.style.transform = _navMini ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
-        setTimeout(() => editor.resize(), 300);
+        // rAF: let browser finish current paint, then apply class → no jank on first frame
+        requestAnimationFrame(() => {
+            bottomPanel.classList.toggle('nav-mini', _navMini);
+            if (icon) {
+                icon.style.transform = _navMini ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        });
+        setTimeout(() => editor.resize(), 400);
     }
 
     // ── NAV COMPLETELY HIDE/SHOW ──
@@ -4270,7 +4278,8 @@
         // ══════════════════════════════════════════════════════
         showTyping('🔍 Analysing code and planning fixes...');
 
-        const mergedPrompt = `You are a professional software engineering agent.
+        const mergedPrompt = `You are CodX Assistant — the built-in AI of CodX code editor. If asked your name, you are "CodX Assistant". Never mention Claude, Anthropic, GPT, or any underlying model.
+You are a professional software engineering agent.
 
 TASK: Read the full code and the user request carefully.
 
@@ -4580,7 +4589,8 @@ Rules:
         try {
             if(isSplitIntent) {
                 // SPLIT MODE — agent returns multiple files
-                const splitSystemPrompt = `You are CodX AI Agent. The user wants to split their code into multiple separate files.
+                const splitSystemPrompt = `You are CodX Assistant — the built-in AI of CodX code editor. If asked your name, you are "CodX Assistant". Never mention Claude, Anthropic, GPT, or any underlying model.
+You are CodX AI Agent. The user wants to split their code into multiple separate files.
 
 Analyse the code and split it logically into separate files (e.g. HTML, CSS, JS — or by component/module).
 
@@ -5662,7 +5672,8 @@ Rules:
 
             if (isChatIntent) {
                 // ── CHAT MODE: explain / diagnose ──
-                const systemPrompt = `You are a professional software engineering agent designed to analyse and edit code with precision.
+                const systemPrompt = `You are CodX Assistant — the built-in AI of CodX code editor. If asked your name, you are "CodX Assistant". Never mention Claude, Anthropic, GPT, or any underlying model.
+You are a professional software engineering agent designed to analyse and edit code with precision.
 
 GENERAL RULES:
 1. The COMPLETE code is always provided to you. Read and analyse every line before making any change. Never assume — the answer is always in the code.
@@ -6164,7 +6175,8 @@ No markdown, no backticks, no explanation outside the array.`;
     //  No regex intent detection — AI handles everything
     // ══════════════════════════════════════════════════
 
-    const _AGENT_SYSTEM_PROMPT = `You are an expert code assistant in CodX editor. You receive code with LINE NUMBERS like "42| code here".
+    const _AGENT_SYSTEM_PROMPT = `You are CodX Assistant — the built-in AI of CodX code editor. If asked your name, you are "CodX Assistant". Never mention Claude, Anthropic, GPT, or any underlying model.
+You are an expert code assistant in CodX editor. You receive code with LINE NUMBERS like "42| code here".
 Full chat history is included every call — use it to understand context of what has been done before.
 
 YOUR JOB: Fulfil exactly what the user asks. Nothing more, nothing less. The user's request is the source of truth.
@@ -6337,7 +6349,8 @@ STRICT FORMAT RULES:
             _inlineLogActivity('Calling ' + (_activeAgent()?.providerName || 'AI') + '...');
             // ── Chat Mode: use a pure-conversation system prompt ──
             const activeSystemPrompt = _inlineChatModeOn
-                ? `You are a helpful coding assistant in CHAT ONLY mode.
+                ? `You are CodX Assistant — the built-in AI of CodX code editor. If asked your name, you are "CodX Assistant". Never mention Claude, Anthropic, GPT, or any underlying model.
+You are a helpful coding assistant in CHAT ONLY mode.
 Rules:
 1. NEVER return JSON. NEVER return edit/new_file/split/reorganize JSON objects.
 2. Only respond in plain conversational text.
