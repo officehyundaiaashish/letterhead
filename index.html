@@ -2629,68 +2629,12 @@
 
     editor.session.on("change", function() {
         if(_changeDebounce) return;
-        _changeDebounce = setTimeout(() => { checkScrollable(); saveSession(); _buildCodeIndex(); _changeDebounce = null; }, 250);
+        _changeDebounce = setTimeout(() => { checkScrollable(); saveSession(); _changeDebounce = null; }, 250);
     });
 
     // ── CODE INDEX — lightweight client-side map of the file ──
     // Builds silently on every edit. Used to give AI a map before sending full code.
-    let _codeIndex = null;
-    let _codeIndexFile = '';
-
-    function _buildCodeIndex() {
-        try {
-            const code = editor.getValue();
-            const filename = (typeof currentFileName !== 'undefined' ? currentFileName : '') || '';
-            const lines = code.split('\n');
-            const index = {
-                file: filename,
-                lines: lines.length,
-                size: (code.length / 1024).toFixed(1) + 'KB',
-                functions: [],
-                ids: [],
-                cssClasses: [],
-                sections: []
-            };
-
-            lines.forEach((line, i) => {
-                const n = i + 1;
-                const t = line.trim();
-
-                // JS/CSS functions
-                const fnMatch = t.match(/^(?:function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>))/);
-                if (fnMatch) index.functions.push({ name: fnMatch[1] || fnMatch[2], line: n });
-
-                // HTML id attributes
-                const idMatch = line.match(/id=["']([^"']+)["']/g);
-                if (idMatch) idMatch.forEach(m => {
-                    const id = m.match(/id=["']([^"']+)["']/)?.[1];
-                    if (id) index.ids.push({ id, line: n });
-                });
-
-                // CSS class definitions
-                const cssMatch = t.match(/^\.[\w-]+(?:\s*[,{:])/);
-                if (cssMatch) index.cssClasses.push({ name: cssMatch[0].replace(/[\s{:,]/g,''), line: n });
-
-                // HTML section comments
-                const commentMatch = t.match(/<!--+\s*(.{3,40}?)\s*-+-->/);
-                if (commentMatch) index.sections.push({ label: commentMatch[1], line: n });
-            });
-
-            _codeIndex = index;
-            _codeIndexFile = filename;
-        } catch(e) { _codeIndex = null; }
-    }
-
-    function _getCodeIndexSummary() {
-        if (!_codeIndex) return '';
-        const idx = _codeIndex;
-        let summary = `\n\n── FILE MAP (${idx.file}, ${idx.lines} lines, ${idx.size}) ──`;
-        if (idx.sections.length)  summary += `\nSections: ${idx.sections.slice(0,8).map(s=>`"${s.label}" (L${s.line})`).join(' · ')}`;
-        if (idx.functions.length) summary += `\nFunctions: ${idx.functions.slice(0,12).map(f=>`${f.name}() L${f.line}`).join(' · ')}`;
-        if (idx.ids.length)       summary += `\nKey IDs: ${idx.ids.slice(0,12).map(d=>`#${d.id} L${d.line}`).join(' · ')}`;
-        if (idx.cssClasses.length)summary += `\nCSS: ${idx.cssClasses.slice(0,10).map(c=>`${c.name} L${c.line}`).join(' · ')}`;
-        return summary;
-    }
+    // (code index removed — full code is sent directly to AI)
 
     // ── STEP 9: Initial content ──
     // Example code removed. Content is loaded later by the session manager.
@@ -2953,7 +2897,7 @@
             _setEditorValueFast(tab.content);
             _setEditorMode(tab.name, tab.content);
             currentFileName = tab.name;
-            setTimeout(_buildCodeIndex, 100); // rebuild index for new tab
+            // tab switched
         }
         renderFileTabs();
         // If currently in preview, auto-refresh with new tab's content
@@ -6234,13 +6178,9 @@ STRICT FORMAT RULES:
             .map(m => m.content).join('\n');
         const sessionBlock = sessionEvents ? `\n\n── SESSION EVENTS ──\n${sessionEvents}` : '';
 
-        // ── Build code index summary ──
-        if (!_codeIndex || _codeIndexFile !== filename) _buildCodeIndex();
-        const indexSummary = _getCodeIndexSummary();
-
         // ── Final message to AI ──
         const codeBlock = (!_isNewFileMode && numberedCode) ? `\n\n── FULL CODE (with line numbers) ──\n\`\`\`\n${numberedCode}\n\`\`\`` : '';
-        const userMsg = `── CONTEXT ──${indexSummary}${sessionBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}`;
+        const userMsg = `── CONTEXT ──${sessionBlock}${codeBlock}${otherFilesCtx}${attachCtx}\n\n── USER REQUEST ──\n${userRequest}`;
 
         // ── Show prompt preview ──
         const historyForAPI = _buildHistoryForAPI();
@@ -7003,9 +6943,6 @@ Use only line numbers visible in the context. Be precise.`;
         const code = targetTab ? targetTab.content : editor.getValue();
         const filename = targetTab ? targetTab.name : 'untitled';
 
-        if (!_codeIndex || _codeIndexFile !== filename) _buildCodeIndex();
-        const indexSummary = _getCodeIndexSummary();
-
         const _provider = _activeAgent()?.provider || '';
         const _MAX_CHARS = { groq: 60000, gemini: Infinity, openai: Infinity, anthropic: Infinity, openrouter: 80000, deepseek: 80000 }[_provider] ?? 80000;
         let numberedCode = code.split('\n').map((l, i) => `${i+1}| ${l}`).join('\n');
@@ -7024,7 +6961,7 @@ Use only line numbers visible in the context. Be precise.`;
         const sessionSummaryBlock2 = sessionEvents2 ? `\n\n── SESSION EVENTS ──\n${sessionEvents2}` : '';
 
         // Build re-analysis message — full current code + all context
-        const reAnalyseMsg = `── CURRENT FILE: ${filename} ──${indexSummary}${sessionSummaryBlock2}\n\n── FULL CODE (current state, after previous fix was applied) ──\n\`\`\`\n${numberedCode}\n\`\`\`\n\n── USER REPORT ──\nThe previous fix was applied but the issue is STILL present. Analyse the current code above carefully — it already includes the previous changes. Identify what is still wrong and provide a corrected fix.`;
+        const reAnalyseMsg = `── CURRENT FILE: ${filename} ──${sessionSummaryBlock2}\n\n── FULL CODE (current state, after previous fix was applied) ──\n\`\`\`\n${numberedCode}\n\`\`\`\n\n── USER REPORT ──\nThe previous fix was applied but the issue is STILL present. Analyse the current code above carefully — it already includes the previous changes. Identify what is still wrong and provide a corrected fix.`;
 
         // Include full chat history so AI sees the full conversation context
         const historyForAPI = _buildHistoryForAPI();
