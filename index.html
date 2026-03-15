@@ -3738,9 +3738,17 @@
     function _detectProviderFromKey(key) {
         key = (key || '').trim();
         if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))
-            return { provider:'gemini', providerName:'Gemini 2.0 Flash',
-                url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-                model:'gemini-2.5-flash', label:'Google Gemini 2.5 Flash · Free' };
+            return [
+                { provider:'gemini', providerName:'Gemini 2.5 Pro',
+                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
+                  model:'gemini-2.5-pro', label:'Google – Gemini 2.5 Pro · Free (100/day)' },
+                { provider:'gemini', providerName:'Gemini 2.5 Flash',
+                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+                  model:'gemini-2.5-flash', label:'Google – Gemini 2.5 Flash · Free (250/day)' },
+                { provider:'gemini', providerName:'Gemini 2.5 Flash-Lite',
+                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
+                  model:'gemini-2.5-flash-lite', label:'Google – Gemini 2.5 Flash-Lite · Free (1000/day)' },
+            ];
         if (/^gsk_[A-Za-z0-9]{20,}/.test(key))
             return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
                 url:'https://api.groq.com/openai/v1/chat/completions',
@@ -3769,8 +3777,14 @@
         const text  = document.getElementById('agent-detect-text');
         const inp   = document.getElementById('agent-api-key');
         const d = _detectProviderFromKey(val);
-        if (d) { badge.style.display='flex'; text.textContent=d.label; inp.style.borderColor='var(--accent)'; }
-        else   { badge.style.display='none'; inp.style.borderColor=''; }
+        if (d) {
+            badge.style.display = 'flex';
+            text.textContent = Array.isArray(d) ? `${d.length} Gemini models (Pro · Flash · Flash-Lite)` : d.label;
+            inp.style.borderColor = 'var(--accent)';
+        } else {
+            badge.style.display = 'none';
+            inp.style.borderColor = '';
+        }
     }
 
     function selectProvider(el) { /* legacy no-op */ }
@@ -3784,21 +3798,29 @@
                 'Key format not recognised.\n\nGroq (FREE ⚡): gsk_...\nGemini (free): AIza...\nOpenRouter (free): sk-or-...\nOpenAI: sk-...\nAnthropic: sk-ant-...', 'warn');
             return;
         }
-        // Check duplicate
-        const exists = agentList.findIndex(a => a.provider === d.provider);
-        if(exists !== -1) {
-            agentList[exists] = { ...d, key };
-            activeAgentIdx = exists;
-            cdAlert('Agent', d.providerName + ' key updated.', 'info');
-        } else {
-            agentList.push({ ...d, key });
-            activeAgentIdx = agentList.length - 1;
-        }
+        // d can be array (Gemini — 3 models) or single object
+        const entries = Array.isArray(d) ? d : [d];
+        let added = 0, updated = 0;
+        entries.forEach(entry => {
+            const exists = agentList.findIndex(a => a.model === entry.model);
+            if (exists !== -1) {
+                agentList[exists] = { ...entry, key };
+                updated++;
+            } else {
+                agentList.push({ ...entry, key });
+                added++;
+            }
+        });
+        // Set active to first of the added/updated entries
+        const firstModel = entries[0].model;
+        activeAgentIdx = agentList.findIndex(a => a.model === firstModel);
         _saveAgentList();
         document.getElementById('agent-api-key').value = '';
         document.getElementById('agent-detect-badge').style.display = 'none';
         document.getElementById('agent-api-key').style.borderColor = '';
         _renderConnectedAgents();
+        if (added > 0) cdAlert('Agent', `${added} model${added>1?'s':''} added${updated>0?' · '+updated+' updated':''}.`, 'success');
+        else cdAlert('Agent', `${updated} model${updated>1?'s':''} updated.`, 'info');
     }
 
     function _renderConnectedAgents() {
@@ -3809,22 +3831,64 @@
             section.style.display = 'none';
             return;
         }
-        setup.style.display = 'block'; // always show — can add more
+        setup.style.display = 'block';
         section.style.display = 'block';
         const list = document.getElementById('agent-list-container');
         list.innerHTML = '';
+
+        const _GEMINI_LIMITS = {
+            'gemini-2.5-pro':        { rpm: 5,  rpd: 100  },
+            'gemini-2.5-flash':      { rpm: 10, rpd: 250  },
+            'gemini-2.5-flash-lite': { rpm: 15, rpd: 1000 },
+        };
+
         agentList.forEach((ag, i) => {
             const isActive = i === activeAgentIdx;
+
+            // ── Usage bar for Gemini models ──
+            let usageHTML = '';
+            if (ag.provider === 'gemini' && _GEMINI_LIMITS[ag.model]) {
+                const lim = _GEMINI_LIMITS[ag.model];
+                const usageKey = '_geminiUsage_' + ag.model.replace(/\./g,'_');
+                const usage = window[usageKey] || { rpm: [], rpd: [] };
+                const now = Date.now();
+                const rpmUsed = (usage.rpm || []).filter(t => now - t < 60000).length;
+                const rpdUsed = (usage.rpd || []).filter(t => now - t < 86400000).length;
+                const rpmPct = Math.min(100, Math.round(rpmUsed / lim.rpm * 100));
+                const rpdPct = Math.min(100, Math.round(rpdUsed / lim.rpd * 100));
+                const rpmCol = rpmPct >= 80 ? '#ef4444' : rpmPct >= 60 ? '#f59e0b' : 'var(--accent)';
+                const rpdCol = rpdPct >= 80 ? '#ef4444' : rpdPct >= 60 ? '#f59e0b' : 'var(--accent)';
+                usageHTML = `<div style="margin-top:5px;display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="font-size:8px;font-family:Poppins,sans-serif;color:var(--text-color);opacity:0.45;min-width:28px;">RPM</span>
+                        <div style="flex:1;height:3px;background:rgba(128,128,128,0.15);border-radius:2px;">
+                            <div style="height:100%;width:${rpmPct}%;background:${rpmCol};border-radius:2px;transition:width 0.3s;"></div>
+                        </div>
+                        <span style="font-size:8px;font-family:'Courier New',monospace;color:${rpmCol};min-width:32px;text-align:right;">${rpmUsed}/${lim.rpm}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px;">
+                        <span style="font-size:8px;font-family:Poppins,sans-serif;color:var(--text-color);opacity:0.45;min-width:28px;">RPD</span>
+                        <div style="flex:1;height:3px;background:rgba(128,128,128,0.15);border-radius:2px;">
+                            <div style="height:100%;width:${rpdPct}%;background:${rpdCol};border-radius:2px;transition:width 0.3s;"></div>
+                        </div>
+                        <span style="font-size:8px;font-family:'Courier New',monospace;color:${rpdCol};min-width:32px;text-align:right;">${rpdUsed}/${lim.rpd}</span>
+                    </div>
+                </div>`;
+            }
+
             const row = document.createElement('div');
-            row.style.cssText = `display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;margin-bottom:5px;border:1.5px solid ${isActive ? 'var(--accent)' : 'var(--glass-border)'};background:${isActive ? 'var(--accent-dim)' : 'rgba(0,0,0,0.15)'};cursor:pointer;transition:all 0.2s;`;
+            row.style.cssText = `padding:8px 10px;border-radius:10px;margin-bottom:5px;border:1.5px solid ${isActive ? 'var(--accent)' : 'var(--glass-border)'};background:${isActive ? 'var(--accent-dim)' : 'rgba(0,0,0,0.15)'};cursor:pointer;transition:all 0.2s;`;
             row.innerHTML = `
-                <div style="width:8px;height:8px;border-radius:50%;background:${isActive ? '#10b981' : '#6b7280'};flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:12px;font-weight:700;color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ag.providerName}</div>
-                    <div style="font-size:10px;opacity:0.5;">${ag.label || ag.provider}</div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:8px;height:8px;border-radius:50%;background:${isActive ? '#10b981' : '#6b7280'};flex-shrink:0;"></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:12px;font-weight:700;color:var(--text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${ag.providerName}</div>
+                        <div style="font-size:9px;opacity:0.45;font-family:Poppins,sans-serif;">${ag.label || ag.provider}</div>
+                    </div>
+                    ${isActive ? '<span class="material-icons-round" style="font-size:14px;color:var(--accent);flex-shrink:0;">check_circle</span>' : ''}
+                    <span class="material-icons-round" style="font-size:15px;opacity:0.35;cursor:pointer;pointer-events:auto;flex-shrink:0;" onclick="event.stopPropagation();_removeAgent(${i})">delete</span>
                 </div>
-                ${isActive ? '<span class="material-icons-round" style="font-size:14px;color:var(--accent);flex-shrink:0;">check_circle</span>' : ''}
-                <span class="material-icons-round" style="font-size:15px;opacity:0.35;cursor:pointer;pointer-events:auto;flex-shrink:0;" onclick="event.stopPropagation();_removeAgent(${i})">delete</span>
+                ${usageHTML}
             `;
             row.onclick = () => { activeAgentIdx = i; _saveAgentList(); _renderConnectedAgents(); };
             list.appendChild(row);
@@ -3998,35 +4062,50 @@
                 return textBlock.text.trim();
 
             } else if (cfg.provider === 'gemini') {
-                // ── Gemini safety throttle (RPM: 12/15, RPD: 1400/1500) ──
+                // ── Per-model limits (free tier) ──
+                const _GEMINI_LIMITS = {
+                    'gemini-2.5-pro':        { rpm: 5,  rpd: 100  },
+                    'gemini-2.5-flash':      { rpm: 10, rpd: 250  },
+                    'gemini-2.5-flash-lite': { rpm: 15, rpd: 1000 },
+                };
+                const _limits = _GEMINI_LIMITS[cfg.model] || { rpm: 10, rpd: 250 };
+                // Warning thresholds — 80% of limit
+                const _warnRpm = Math.floor(_limits.rpm * 0.8);
+                const _warnRpd = Math.floor(_limits.rpd * 0.8);
+                // Hard stop — 95% of limit (safety margin)
+                const _hardRpm = Math.floor(_limits.rpm * 0.95);
+                const _hardRpd = Math.floor(_limits.rpd * 0.95);
+
                 const _now = Date.now();
-                if (!window._geminiUsage) window._geminiUsage = { rpm: [], rpd: [], warnedRpm: false, warnedRpd: false };
-                const _g = window._geminiUsage;
-                _g.rpm = _g.rpm.filter(t => _now - t < 60000);   // keep last 60s
-                _g.rpd = _g.rpd.filter(t => _now - t < 86400000); // keep last 24h
-                // Hard stop at 13 RPM (safety margin of 2 before Google's 15 limit)
-                if (_g.rpm.length >= 13) {
-                    const waitSec = Math.ceil((60000 - (_now - _g.rpm[0])) / 1000);
-                    throw new Error(`⚠️ Gemini rate limit safety: ${_g.rpm.length}/15 RPM reached. Wait ${waitSec}s before sending.`);
+                const _usageKey = '_geminiUsage_' + cfg.model.replace(/\./g,'_');
+                if (!window[_usageKey]) window[_usageKey] = { rpm: [], rpd: [] };
+                const _g = window[_usageKey];
+                _g.rpm = _g.rpm.filter(t => _now - t < 60000);
+                _g.rpd = _g.rpd.filter(t => _now - t < 86400000);
+
+                // ── Hard stop — show countdown timer in chat ──
+                if (_g.rpm.length >= _hardRpm) {
+                    const waitMs = 60000 - (_now - _g.rpm[0]);
+                    const waitSec = Math.ceil(waitMs / 1000);
+                    _geminiShowCountdown(cfg.model, 'rpm', waitSec, _limits.rpm);
+                    throw new Error(`__RATE_LIMIT_SHOWN__`);
                 }
-                // Hard stop at 1400 RPD (safety margin of 100 before Google's 1500 limit)
-                if (_g.rpd.length >= 1400) {
-                    throw new Error(`⚠️ Gemini daily limit safety: ${_g.rpd.length}/1500 RPD reached. Quota resets at midnight Pacific time.`);
+                if (_g.rpd.length >= _hardRpd) {
+                    _geminiShowCountdown(cfg.model, 'rpd', null, _limits.rpd);
+                    throw new Error(`__RATE_LIMIT_SHOWN__`);
                 }
-                // Warn at 10 RPM
-                if (_g.rpm.length >= 10 && !_g.warnedRpm) {
-                    _g.warnedRpm = true;
-                    console.warn(`[CodX] Gemini RPM warning: ${_g.rpm.length}/15 used in last 60s`);
+
+                // ── Warning in chat — 80% threshold ──
+                if (_g.rpm.length >= _warnRpm) {
+                    _geminiWarnInChat(cfg.model, 'rpm', _g.rpm.length, _limits.rpm);
                 }
-                // Warn at 1200 RPD
-                if (_g.rpd.length >= 1200 && !_g.warnedRpd) {
-                    _g.warnedRpd = true;
-                    console.warn(`[CodX] Gemini RPD warning: ${_g.rpd.length}/1500 used today`);
+                if (_g.rpd.length >= _warnRpd) {
+                    _geminiWarnInChat(cfg.model, 'rpd', _g.rpd.length, _limits.rpd);
                 }
+
                 // Record this request
                 _g.rpm.push(_now);
                 _g.rpd.push(_now);
-                _g.warnedRpm = _g.rpm.length < 10 ? false : _g.warnedRpm;
                 // Gemini: history roles must be 'user' or 'model' (not 'assistant')
                 // System prompt injected into first user message
                 const geminiHistory = conversationHistory.map(m => ({
@@ -6412,6 +6491,7 @@ STRICT FORMAT RULES:
         } catch(err) {
             _inlineHideTyping();
             const raw = err.message || 'Something went wrong.';
+            if (raw === '__RATE_LIMIT_SHOWN__') { /* already shown in chat */ return; }
             let msg;
             if (/quota|rate.?limit|exceeded/i.test(raw))         msg = 'Quota exceeded — wait or switch agent.';
             else if (/timeout|abort|timed out/i.test(raw))       msg = 'Request timed out. Try a shorter request.';
@@ -6425,7 +6505,76 @@ STRICT FORMAT RULES:
         }
     }
 
-    // ── Build Apply card for edits ──
+    // ── Gemini rate limit warning — shown in chat as compact bar ──
+    function _geminiWarnInChat(model, type, used, limit) {
+        const warnId = 'gemini-warn-' + model.replace(/\./g,'_') + '-' + type;
+        if (document.getElementById(warnId)) return; // already shown
+        const shortModel = model.replace('gemini-2.5-','').replace('flash-lite','Lite').replace('flash','Flash').replace('pro','Pro');
+        const label = type === 'rpm' ? `${used}/${limit} req/min` : `${used}/${limit} req/day`;
+        const pct = Math.round(used/limit*100);
+        const warn = document.createElement('div');
+        warn.id = warnId;
+        warn.className = 'chat-msg agent';
+        warn.innerHTML = `<div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:7px 11px;display:flex;align-items:center;gap:8px;max-width:100%;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:10px;font-weight:700;color:#f59e0b;font-family:Poppins,sans-serif;">${shortModel} — ${pct}% ${type === 'rpm' ? 'minute' : 'daily'} quota used</div>
+                <div style="height:3px;background:rgba(245,158,11,0.15);border-radius:2px;margin-top:4px;"><div style="height:100%;width:${pct}%;background:#f59e0b;border-radius:2px;transition:width 0.3s;"></div></div>
+                <div style="font-size:9px;color:var(--text-color);opacity:0.5;margin-top:3px;font-family:Poppins,sans-serif;">${label} — consider switching model soon</div>
+            </div>
+        </div>`;
+        const box = document.getElementById('inline-chat-messages');
+        if (box) { box.appendChild(warn); _inlineChatScroll(); }
+    }
+
+    // ── Gemini hard limit hit — countdown timer in chat ──
+    function _geminiShowCountdown(model, type, waitSec, limit) {
+        _inlineHideTyping();
+        const shortModel = model.replace('gemini-2.5-','').replace('flash-lite','Flash-Lite').replace('flash','Flash').replace('pro','Pro');
+        const wrap = document.createElement('div');
+        wrap.className = 'chat-msg agent';
+        const bubble = document.createElement('div');
+        bubble.style.cssText = 'background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 13px;max-width:100%;';
+
+        if (type === 'rpd' || waitSec === null) {
+            bubble.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <div>
+                    <div style="font-size:11px;font-weight:700;color:#ef4444;font-family:Poppins,sans-serif;">Gemini ${shortModel} — Daily limit reached (${limit}/day)</div>
+                    <div style="font-size:10px;color:var(--text-color);opacity:0.6;font-family:Poppins,sans-serif;margin-top:2px;">Resets at midnight Pacific time. Switch to another model.</div>
+                </div>
+            </div>`;
+            wrap.appendChild(bubble);
+        } else {
+            // RPM countdown
+            bubble.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div style="flex:1;">
+                    <div style="font-size:11px;font-weight:700;color:#ef4444;font-family:Poppins,sans-serif;">Gemini ${shortModel} — Rate limit (${limit} req/min)</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                        <div style="font-size:10px;color:var(--text-color);opacity:0.6;font-family:Poppins,sans-serif;">Auto-retry in</div>
+                        <div id="gemini-countdown-${Date.now()}" style="font-size:13px;font-weight:700;color:#ef4444;font-family:'Courier New',monospace;min-width:28px;">${waitSec}s</div>
+                    </div>
+                </div>
+            </div>`;
+            wrap.appendChild(bubble);
+            // Start countdown
+            const cdEl = bubble.querySelector('[id^="gemini-countdown"]');
+            let remaining = waitSec;
+            const iv = setInterval(() => {
+                remaining--;
+                if (cdEl) cdEl.textContent = remaining + 's';
+                if (remaining <= 0) {
+                    clearInterval(iv);
+                    if (cdEl) cdEl.closest('.chat-msg')?.remove();
+                }
+            }, 1000);
+        }
+
+        const box = document.getElementById('inline-chat-messages');
+        if (box) { box.appendChild(wrap); _inlineChatScroll(); }
+    }
+
     // ── Detect if AI truncated the output ──
     function _detectTruncation(content) {
         if (!content) return false;
