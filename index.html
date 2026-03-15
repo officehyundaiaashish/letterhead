@@ -1692,7 +1692,24 @@
             transition: opacity 0.15s;
         }
         #inline-chat-fullscreen:active { opacity: 1; background: var(--accent-dim); }
-        #inline-chat-panel.chat-fullscreen { height: 100dvh !important; border-radius: 0 !important; }
+        #inline-chat-panel.chat-fullscreen {
+            top: 0 !important;
+            height: 100dvh !important;
+            border-radius: 0 !important;
+            padding-top: var(--header-h, 48px);
+        }
+
+        /* Chat mode button — animated glow ring when ON */
+        #inline-chat-mode-btn { position: relative; transition: background 0.25s, color 0.25s, box-shadow 0.25s; }
+        #inline-chat-mode-btn.mode-on { background: var(--accent) !important; color: white !important; animation: chatModePulse 2s ease-out infinite; }
+        @keyframes chatModePulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); } 60% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+        #inline-chat-mode-btn.mode-on svg { filter: drop-shadow(0 0 3px rgba(255,255,255,0.4)); }
+
+        /* Toast anchored above chat panel */
+        #chat-panel-toast { position:fixed; left:50%; transform:translateX(-50%) translateY(8px); bottom:46vh; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-color); padding:7px 14px; border-radius:20px; font-size:11px; font-weight:700; font-family:'Poppins',sans-serif; display:flex; align-items:center; gap:7px; z-index:9999; opacity:0; pointer-events:none; white-space:nowrap; box-shadow:0 -3px 12px rgba(0,0,0,0.25); transition:opacity 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1); }
+        #chat-panel-toast.show { opacity:1; }
+        #chat-panel-toast:not([style*="top"]).show { transform:translateX(-50%) translateY(0); }
+        #chat-panel-toast .cpt-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 
         /* Messages area */
         #inline-chat-messages {
@@ -1907,6 +1924,7 @@
     <div class="bottom-wrapper no-select" id="bottom-outer">
         <div class="bottom-area">
                 <!-- Inline Split Chat Panel -->
+        <div id="chat-panel-toast"><span class="cpt-dot" id="cpt-dot"></span><span id="cpt-text"></span></div>
         <div id="inline-chat-panel">
 
             <!-- Header: avatar + name + model selector + settings + close -->
@@ -7519,23 +7537,35 @@ Use only line numbers visible in the context. Be precise.`;
     // All code in response goes to canvas. No apply/edit cards shown.
     let _inlineChatModeOn = false;
 
+    function _showChatPanelToast(msg, color) {
+        const t    = document.getElementById('chat-panel-toast');
+        const dot  = document.getElementById('cpt-dot');
+        const text = document.getElementById('cpt-text');
+        if (!t) return;
+        if (dot)  dot.style.background = color;
+        if (text) text.textContent = msg;
+        clearTimeout(t._timer);
+        t.classList.add('show');
+        t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
     function _toggleChatMode() {
         _inlineChatModeOn = !_inlineChatModeOn;
         const btn  = document.getElementById('inline-chat-mode-btn');
         const icon = document.getElementById('chat-mode-icon');
         const ta   = document.getElementById('inline-chat-textarea');
         if (_inlineChatModeOn) {
-            // Active state — accent coloured
-            if (btn)  { btn.style.background = 'var(--accent)'; btn.style.color = 'white'; }
-            if (icon) icon.setAttribute('stroke', 'white');
-            if (ta)   ta.placeholder = 'Chat only mode — ask anything...';
-            showToast('Chat Mode ON — no edits', 'chat');
+            // Active state — glow ring via CSS class
+            if (btn)  { btn.classList.add('mode-on'); btn.style.background = ''; btn.style.color = ''; }
+            if (icon) { icon.setAttribute('stroke', 'white'); icon.setAttribute('fill', 'rgba(255,255,255,0.15)'); }
+            if (ta)   ta.placeholder = 'Chat only — no edits...';
+            _showChatPanelToast('💬 Chat Mode ON — no edits', '#10b981');
         } else {
             // Inactive state
-            if (btn)  { btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
-            if (icon) icon.setAttribute('stroke', 'currentColor');
+            if (btn)  { btn.classList.remove('mode-on'); btn.style.background = 'rgba(128,128,128,0.12)'; btn.style.color = 'var(--text-color)'; }
+            if (icon) { icon.setAttribute('stroke', 'currentColor'); icon.setAttribute('fill', 'none'); }
             if (ta)   ta.placeholder = 'Ask agent...';
-            showToast('Chat Mode OFF', 'edit');
+            _showChatPanelToast('✏️ Edit Mode ON — AI will apply changes', '#f59e0b');
         }
     }
 
@@ -7543,15 +7573,22 @@ Use only line numbers visible in the context. Be precise.`;
     let _chatIsFullscreen = false;
     function _toggleChatFullscreen() {
         _chatIsFullscreen = !_chatIsFullscreen;
-        const panel = document.getElementById('inline-chat-panel');
-        const icon  = document.getElementById('fs-icon');
+        const panel  = document.getElementById('inline-chat-panel');
+        const icon   = document.getElementById('fs-icon');
+        const header = document.getElementById('header');
+        const toast  = document.getElementById('chat-panel-toast');
+        const hh     = header ? header.offsetHeight : 48;
         if (_chatIsFullscreen) {
+            // Set CSS var so padding-top matches real header height
+            document.documentElement.style.setProperty('--header-h', hh + 'px');
             panel.classList.add('chat-fullscreen');
-            // Switch icon to compress/exit fullscreen arrows
+            // Toast: center of screen (below header)
+            if (toast) { toast.style.bottom = ''; toast.style.top = (hh + 16) + 'px'; toast.style.transform = 'translateX(-50%) translateY(0)'; }
             if (icon) icon.innerHTML = '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>';
         } else {
             panel.classList.remove('chat-fullscreen');
-            // Restore expand arrows
+            // Toast: back to above panel
+            if (toast) { toast.style.top = ''; toast.style.bottom = '46vh'; toast.style.transform = 'translateX(-50%) translateY(8px)'; }
             if (icon) icon.innerHTML = '<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>';
         }
     }
