@@ -1407,6 +1407,12 @@
                 <div id="inline-chat-empty">
                     <span class="material-icons-round">chat</span>
                     <p>Ask me about your code.<br>I can explain, fix &amp; apply changes.</p>
+                    <p style="font-size:9px;opacity:0.55;margin-top:6px;line-height:1.7;">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                        Chat mode &nbsp;·&nbsp;
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit mode — toggle via buttons below
+                    </p>
                 </div>
             </div>
 
@@ -5439,6 +5445,18 @@ No markdown, no backticks, no explanation outside the array.`;
         const ag = _activeAgent();
         if (ag) document.getElementById('inline-chat-name').textContent = ag.providerName;
 
+        // Sync chat mode button to current state (default ON)
+        const modeBtn  = document.getElementById('inline-chat-mode-btn');
+        const modeIcon = document.getElementById('chat-mode-icon');
+        const ta2      = document.getElementById('inline-chat-textarea');
+        if (_inlineChatModeOn) {
+            if (modeBtn)  { modeBtn.classList.add('mode-on'); modeBtn.style.background = ''; modeBtn.style.color = ''; }
+            if (modeIcon) { modeIcon.setAttribute('stroke', 'white'); modeIcon.setAttribute('fill', 'rgba(255,255,255,0.15)'); }
+            if (ta2)      ta2.placeholder = 'Chat only — no edits...';
+            const accessBtn = document.getElementById('chat-code-access-btn');
+            if (accessBtn) accessBtn.style.display = 'flex';
+        }
+
         _inlinePopulateModels();
         _inlinePopulateTabs();
 
@@ -5456,6 +5474,12 @@ No markdown, no backticks, no explanation outside the array.`;
         box.innerHTML = `<div id="inline-chat-empty">
             <span class="material-icons-round">chat</span>
             <p>Ask me about your code.<br>I can explain, fix &amp; apply changes.</p>
+            <p style="font-size:9px;opacity:0.55;margin-top:6px;line-height:1.7;">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                Chat mode &nbsp;·&nbsp;
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit mode — toggle via buttons below
+            </p>
         </div>`;
         showToast('Conversation cleared', 'delete_sweep');
     }
@@ -7072,7 +7096,7 @@ Use only line numbers visible in the context. Be precise.`;
     // ── Chat Mode ──
     // When enabled: AI only chats (explains/analyses), never edits.
     // All code in response goes to canvas. No apply/edit cards shown.
-    let _inlineChatModeOn = false;
+    let _inlineChatModeOn = true;
     // When Chat Mode is ON, user can additionally grant AI read-access to target file code.
     // Default OFF — AI gets empty code in chat mode unless user explicitly enables this.
     let _chatCodeAccessOn = false;
