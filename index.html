@@ -2520,18 +2520,18 @@
         const big = content.length > 80000;
         if(big) {
             editor.renderer.freeze();
-            // Suspend tokenizer during set
             const oldMode = editor.session.$mode;
             editor.session.setMode('ace/mode/text');
             editor.setValue(content, -1);
             requestAnimationFrame(() => {
                 editor.renderer.unfreeze();
                 editor.renderer.updateFull(true);
-                // Now check if we can restore syntax
                 _setEditorMode(currentFileName, content);
+                _updateEditorPlaceholder();
             });
         } else {
             editor.setValue(content, -1);
+            requestAnimationFrame(_updateEditorPlaceholder);
         }
     }
 
@@ -2583,7 +2583,7 @@
         const sub   = document.getElementById('ep-sub');
         if (!ph) return;
 
-        const isEmpty = editor.getValue().length === 0;
+        const isEmpty = editor.getValue().trim().length === 0;
         ph.classList.toggle('visible', isEmpty && !_inPreview);
 
         if (_pythonMode) {
