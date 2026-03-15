@@ -2474,18 +2474,20 @@
         vue:'html', svelte:'html', sh:'sh', yaml:'yaml', yml:'yaml',
     };
     function _setEditorMode(filename, content) {
+        // If user has forced plain text, never change the mode
+        if (_forcePlainText) return;
         const ext = (filename||'').split('.').pop().toLowerCase();
         const size = (content||editor.getValue()).length;
-        // >200KB or >5000 lines → force plain text to prevent tokenizer hang
         const lines = editor.session.getLength();
-        if(size > 200000 || lines > 1000) {
+        // >200KB or >1000 lines → auto plain text (performance)
+        if (size > 200000 || lines > 1000) {
             editor.session.setMode('ace/mode/text');
-            _showPerfBadge('<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Plain text mode (large file)');
+            _showPerfBadge('Plain text mode (large file)');
             return;
         }
         const mode = _modeMap[ext] || 'text';
         const cur = (editor.session.getMode().$id || '');
-        if(!cur.endsWith(mode)) editor.session.setMode('ace/mode/' + mode);
+        if (!cur.endsWith(mode)) editor.session.setMode('ace/mode/' + mode);
     }
 
 
@@ -2522,13 +2524,13 @@
         const big = content.length > 80000;
         if(big) {
             editor.renderer.freeze();
-            const oldMode = editor.session.$mode;
             editor.session.setMode('ace/mode/text');
             editor.setValue(content, -1);
             requestAnimationFrame(() => {
                 editor.renderer.unfreeze();
                 editor.renderer.updateFull(true);
-                _setEditorMode(currentFileName, content);
+                // Only restore syntax if user hasn't forced plain text
+                if (!_forcePlainText) _setEditorMode(currentFileName, content);
                 _updateEditorPlaceholder();
             });
         } else {
@@ -7757,17 +7759,11 @@ Use only line numbers visible in the context. Be precise.`;
             showToast('Plain Text ON', 'text_fields');
             localStorage.setItem('codx_plain_text', '1');
         } else {
-            // Restore correct syntax — check Python mode first, then filename
+            // Restore correct syntax mode
             if (_pythonMode) {
                 editor.session.setMode('ace/mode/python');
             } else {
-                // Also check if current file is .py even without python mode
-                const ext = (currentFileName || '').split('.').pop().toLowerCase();
-                if (ext === 'py') {
-                    editor.session.setMode('ace/mode/python');
-                } else {
-                    _setEditorMode(currentFileName, editor.getValue());
-                }
+                _setEditorMode(currentFileName, editor.getValue());
             }
             if (btn) { btn.style.color = ''; btn.style.background = ''; }
             showToast('Syntax ON', 'code');
