@@ -1398,6 +1398,21 @@
                 we override that with CSS transform for desktop) */
         }
 
+        /* ── Editor placeholder — shown when editor is empty ── */
+        #editor.ace-placeholder .ace_content::before {
+            content: attr(data-placeholder);
+            position: absolute;
+            top: 8px;
+            left: 28px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            color: var(--text-color);
+            opacity: 0.18;
+            pointer-events: none;
+            white-space: pre;
+            z-index: 1;
+        }
+
     </style>
 </head>
 <body class="dark-theme no-select">
@@ -1744,7 +1759,7 @@
     </div>
 </div>
 
-<input type="file" id="file-input" accept=".html,.js,.css,.txt" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
+<input type="file" id="file-input" accept=".html,.js,.css,.txt,.py,.json,.md" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
 
 <div class="modal no-select" id="find-modal">
     <!-- Header -->
@@ -2078,6 +2093,7 @@
     let _forcePlainText = false;
     let _animationsDisabled = false;
     let _chatIsFullscreen = false;
+    let _pythonMode = false;
     const findModal = document.getElementById('find-modal');
     // Declared early — used in saved-settings restore blocks before their definition
     let _lastZoomSize = 10;
@@ -2513,7 +2529,23 @@
     editor.session.on("change", function() {
         if(_changeDebounce) return;
         _changeDebounce = setTimeout(() => { checkScrollable(); saveSession(); _changeDebounce = null; }, 250);
+        _updateEditorPlaceholder();
     });
+
+    // ── Editor placeholder ──
+    function _updateEditorPlaceholder() {
+        const edEl = document.getElementById('editor');
+        const content = edEl.querySelector('.ace_content');
+        if (!content) return;
+        const isEmpty = editor.getValue().length === 0;
+        const text = _pythonMode
+            ? '# start coding...'
+            : '<!-- start coding... -->';
+        content.setAttribute('data-placeholder', text);
+        edEl.classList.toggle('ace-placeholder', isEmpty);
+    }
+    // Run once on load
+    _updateEditorPlaceholder();
 
     // ── CODE INDEX — lightweight client-side map of the file ──
     // Builds silently on every edit. Used to give AI a map before sending full code.
@@ -2830,11 +2862,12 @@
             let idx = fileTabs.findIndex(t => t.id === id);
             fileTabs.splice(idx, 1);
             if(fileTabs.length === 0) {
-                const blank = { id: tabIdCounter++, name: 'index.html', content: '' };
+                const blankName = _pythonMode ? 'main.py' : 'index.html';
+                const blank = { id: tabIdCounter++, name: blankName, content: '' };
                 fileTabs.push(blank);
                 activeTabId = blank.id;
                 _setEditorValueFast(blank.content);
-                _setEditorMode(blank.name, blank.content);
+                _pythonMode ? editor.session.setMode('ace/mode/python') : _setEditorMode(blank.name, blank.content);
                 currentFileName = blank.name;
             } else if(activeTabId === id) {
                 let newTab = fileTabs[Math.max(0, idx - 1)];
@@ -4797,11 +4830,13 @@ Rules:
 
     function openNewProjectModal() {
         document.getElementById('new-project-overlay').classList.add('active');
+        // Set default filename based on current language mode
+        const fnInput = document.getElementById('np-filename');
+        if (fnInput) fnInput.value = _pythonMode ? 'main.py' : 'index.html';
         // Check GitHub login
         const token = localStorage.getItem('gh_token');
         const warn = document.getElementById('np-repo-login-warn');
         if (warn) warn.style.display = token ? 'none' : 'block';
-        // Load repos for blank file GitHub save option
         if (token) { _npLoadReposForSelect(); }
     }
     function closeNewProjectModal() {
@@ -4879,59 +4914,12 @@ Rules:
     }
     function _getBlankContentForFile(fname) {
         const ext = fname.split('.').pop().toLowerCase();
-        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n  \n
-    <!-- ════════════════ Agent Chat Panel ════════════════ -->
-    <div id="agent-chat-overlay" onclick="closeChatPanel()"></div>
-    <div id="agent-chat-panel">
-
-        <!-- Header -->
-        <div id="agent-chat-header">
-            <div class="chat-header-avatar">
-                <span class="material-icons-round">smart_toy</span>
-            </div>
-            <div class="chat-header-info">
-                <div class="chat-header-name" id="chat-agent-name">AI Agent</div>
-                <div class="chat-header-status" id="chat-agent-status">● Online</div>
-            </div>
-            <span id="chat-session-label" onclick="renameChatSession()" title="Rename session">New Chat</span>
-            <button id="chat-session-name-btn" onclick="renameChatSession()" title="Rename">
-                <span class="material-icons-round">edit</span>
-            </button>
-            <button id="chat-close-btn" onclick="closeChatPanel()">
-                <span class="material-icons-round">close</span>
-            </button>
-        </div>
-
-        <!-- File selector (multi-tab) -->
-        <div id="agent-chat-file-selector">
-            <select id="agent-chat-file-select" onchange="agentSelectFile(this.value)"></select>
-        </div>
-
-        <!-- Messages -->
-        <div id="agent-chat-messages">
-            <div id="chat-empty-state">
-                <span class="material-icons-round">chat</span>
-                <p>Ask me anything about your code.<br>I can explain problems, suggest fixes,<br>and apply changes directly.</p>
-            </div>
-        </div>
-
-        <!-- Input row -->
-        <div id="agent-chat-input-row">
-            <button id="agent-chat-attach-btn" onclick="document.getElementById('agent-file-input').click()">
-                <span class="material-icons-round">attach_file</span>
-            </button>
-            <textarea id="agent-chat-textarea" placeholder="Ask agent..." rows="1"></textarea>
-            <button id="agent-chat-send-btn" onclick="sendChatMessage()">
-                <span class="material-icons-round">send</span>
-            </button>
-        </div>
-    </div>
-
-</body>\n</html>`;
+        if (ext === 'html' || ext === 'htm') return `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${fname.replace(/\.[^.]+$/,'')}</title>\n</head>\n<body>\n\n</body>\n</html>`;
         if (ext === 'css') return `/* ${fname} */\n\n* {\n  box-sizing: border-box;\n  margin: 0;\n  padding: 0;\n}\n`;
-        if (ext === 'js') return `// ${fname}\n\n`;
+        if (ext === 'js')   return `// ${fname}\n\n`;
         if (ext === 'json') return `{\n  \n}\n`;
-        if (ext === 'md') return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
+        if (ext === 'md')   return `# ${fname.replace(/\.[^.]+$/,'')}\n\n`;
+        if (ext === 'py')   return `# ${fname}\n\n`;
         return '';
     }
 
@@ -7621,7 +7609,7 @@ Use only line numbers visible in the context. Be precise.`;
     //  PYTHON MODE — Pyodide-powered in-browser Python runner
     // ══════════════════════════════════════════════════════
 
-    let _pythonMode = false;   // false = HTML, true = Python
+    // _pythonMode declared early at top to prevent TDZ
     let _pyodide    = null;    // Pyodide instance (lazy loaded)
     let _pyLoading  = false;   // loading in progress
 
@@ -7654,6 +7642,7 @@ Use only line numbers visible in the context. Be precise.`;
             if (po) { po.style.visibility = 'hidden'; po.style.opacity = '0'; }
             showToast('HTML Mode', 'html');
         }
+        _updateEditorPlaceholder();
     }
 
     // ── Override switchTab to handle Python preview ──
