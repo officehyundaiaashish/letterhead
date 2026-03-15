@@ -787,7 +787,60 @@
         .chat-copy-btn:active { opacity: 1 !important; background: var(--accent-dim); color: var(--accent); }
         .chat-copy-btn.copied { opacity: 1 !important; color: var(--accent); }
 
-        /* ── 3-Step Agent Flow Cards ── */
+        /* ── Code Canvas (Gemini-style) ── */
+        .code-canvas {
+            margin: 8px 0 4px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            background: #0d0d10;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        body.light-theme .code-canvas { background: #1e1e2e; }
+        .code-canvas-header {
+            display: flex; align-items: center; gap: 7px;
+            padding: 7px 11px;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .code-canvas-lang {
+            font-size: 9px; font-weight: 700; font-family: 'Poppins', sans-serif;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 0.7px; flex: 1;
+        }
+        .code-canvas-btn {
+            background: rgba(255,255,255,0.07); border: none; border-radius: 6px;
+            padding: 4px 9px; font-size: 9px; font-weight: 700;
+            font-family: 'Poppins', sans-serif; color: rgba(255,255,255,0.7);
+            cursor: pointer; display: flex; align-items: center; gap: 4px;
+            transition: background 0.15s, color 0.15s; flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .code-canvas-btn:active { background: var(--accent-dim); color: var(--accent); }
+        .code-canvas-btn .material-icons-round { font-size: 11px; pointer-events: none; }
+        .code-canvas-btn.copied { color: var(--accent); }
+        .code-canvas-body {
+            padding: 11px 13px;
+            overflow-x: auto;
+            font-size: 11.5px;
+            line-height: 1.6;
+            color: #e0e0e0;
+            white-space: pre;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+        /* inline code */
+        .chat-inline-code {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            background: rgba(16,185,129,0.12);
+            color: var(--accent);
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        /* chat markdown */
+        .chat-md-bold { font-weight: 700; }
+        .chat-md-li { padding-left: 14px; position: relative; }
+        .chat-md-li::before { content: '•'; position: absolute; left: 3px; color: var(--accent); }
         .agent-step-card {
             margin-top: 8px;
             border-radius: 12px;
@@ -5819,6 +5872,74 @@ No markdown, no backticks, no explanation outside the array.`;
     }
 
     // ── Append message bubble ──
+    // ── Markdown → HTML renderer with code canvas ──
+    function _renderMsgHTML(text) {
+        if (!text) return '';
+        const parts = [];
+        // Split on fenced code blocks ```lang\n...\n```
+        const codeRx = /```([^\n`]*)\n([\s\S]*?)```/g;
+        let last = 0, m;
+        while ((m = codeRx.exec(text)) !== null) {
+            if (m.index > last) parts.push({ type: 'text', content: text.slice(last, m.index) });
+            parts.push({ type: 'code', lang: (m[1] || '').trim() || 'code', content: m[2] });
+            last = m.index + m[0].length;
+        }
+        if (last < text.length) parts.push({ type: 'text', content: text.slice(last) });
+
+        return parts.map(p => {
+            if (p.type === 'code') {
+                const id = 'cc_' + Math.random().toString(36).slice(2, 8);
+                const escaped = p.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                return `<div class="code-canvas">
+                    <div class="code-canvas-header">
+                        <span class="code-canvas-lang">${p.lang}</span>
+                        <button class="code-canvas-btn" onclick="_canvasOpenInEditor(this)" data-code="${encodeURIComponent(p.content)}" data-lang="${p.lang}">
+                            <span class="material-icons-round">open_in_new</span>Open
+                        </button>
+                        <button class="code-canvas-btn" id="${id}" onclick="_canvasCopy(this)" data-code="${encodeURIComponent(p.content)}">
+                            <span class="material-icons-round">content_copy</span>Copy
+                        </button>
+                    </div>
+                    <div class="code-canvas-body">${escaped}</div>
+                </div>`;
+            }
+            // Text: render inline markdown
+            let html = p.content
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                // bold **text**
+                .replace(/\*\*(.+?)\*\*/g, '<span class="chat-md-bold">$1</span>')
+                // inline code `text`
+                .replace(/`([^`]+)`/g, '<span class="chat-inline-code">$1</span>')
+                // numbered list: lines starting with "1. " etc
+                .replace(/^(\d+)\.\s+(.+)$/gm, '<div class="chat-md-li" style="padding-left:18px;"><span style="position:absolute;left:0;color:var(--accent);font-weight:700;">$1.</span>$2</div>')
+                // bullet list
+                .replace(/^[-*]\s+(.+)$/gm, '<div class="chat-md-li">$1</div>')
+                // line breaks
+                .replace(/\n/g, '<br>');
+            return html;
+        }).join('');
+    }
+
+    function _canvasCopy(btn) {
+        const code = decodeURIComponent(btn.dataset.code || '');
+        navigator.clipboard.writeText(code).then(() => {
+            btn.classList.add('copied');
+            btn.innerHTML = '<span class="material-icons-round">check</span>Copied';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = '<span class="material-icons-round">content_copy</span>Copy';
+            }, 1800);
+        });
+    }
+
+    function _canvasOpenInEditor(btn) {
+        const code = decodeURIComponent(btn.dataset.code || '');
+        const lang = btn.dataset.lang || '';
+        const ext = { javascript:'js', js:'js', typescript:'ts', python:'py', html:'html', css:'css', json:'json', bash:'sh', shell:'sh' }[lang.toLowerCase()] || 'txt';
+        openFileInTab('snippet.' + ext, code, true);
+        showToast('Opened in editor', 'open_in_new');
+    }
+
     function _inlineAppendMsg(role, text, extraEl) {
         const box = document.getElementById('inline-chat-messages');
         const empty = document.getElementById('inline-chat-empty');
@@ -5829,9 +5950,14 @@ No markdown, no backticks, no explanation outside the array.`;
 
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble';
-        bubble.innerHTML = text
-            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/\n/g, '<br>');
+
+        if (role === 'agent' && text) {
+            bubble.innerHTML = _renderMsgHTML(text);
+        } else if (text) {
+            bubble.innerHTML = text
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                .replace(/\n/g, '<br>');
+        }
 
         // Footer: timestamp + copy button
         const footer = document.createElement('div');
