@@ -269,14 +269,14 @@
             top: 50%; left: 50%;
             transform: translate(-50%, -50%) scale(0.88);
             bottom: auto !important;
-            width: 92%;
-            max-width: 440px;
-            max-height: 88vh;
+            width: 88%;
+            max-width: 380px;
+            max-height: 82vh;
             overflow-y: auto;
             background: var(--glass-bg);
             border: 1px solid var(--glass-border);
             border-radius: 20px;
-            padding: 18px;
+            padding: 14px;
             z-index: 110;
             box-shadow: 0 4px 20px rgba(0,0,0,0.10);
             opacity: 0;
@@ -3817,7 +3817,9 @@
 
             const rows = commits.map((c, i) => {
                 const msg   = (c.commit.message || '').split('\n')[0].slice(0, 38);
-                const date  = new Date(c.commit.author.date).toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+                const d     = new Date(c.commit.author.date);
+                const date  = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+                const time  = d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', hour12: true });
                 const sha7  = c.sha.slice(0, 7);
                 const isCurrent = i === 0;
                 return `<div onclick="${isCurrent ? '' : `_restoreCommit('${c.sha}','${fname.replace(/'/g,"\\'")}',this)`}"
@@ -3827,7 +3829,7 @@
                     ${isCurrent ? '' : 'onmouseenter="this.style.background=\'var(--accent-dim)\'" onmouseleave="this.style.background=\'\'"'}>
                     <span style="font-family:'Courier New',monospace;font-size:9px;color:var(--accent);flex-shrink:0;">${sha7}</span>
                     <span style="font-size:10px;font-family:'Poppins',sans-serif;color:var(--text-color);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${msg || '(no message)'}</span>
-                    <span style="font-size:9px;opacity:0.4;font-family:'Poppins',sans-serif;flex-shrink:0;">${date}</span>
+                    <span style="font-size:9px;opacity:0.4;font-family:'Poppins',sans-serif;flex-shrink:0;text-align:right;line-height:1.3;">${date}<br>${time}</span>
                     ${isCurrent ? '<span style="font-size:8px;background:var(--accent-dim);color:var(--accent);border-radius:3px;padding:1px 4px;flex-shrink:0;font-family:Poppins,sans-serif;font-weight:700;">now</span>' : ''}
                 </div>`;
             }).join('');
@@ -6098,6 +6100,12 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.classList.add('chat-open');
         if (aiBtn) aiBtn.classList.add('chat-active');
 
+        // Pin header and tab bar so keyboard never pushes them off-screen
+        const _hdr = document.getElementById('header');
+        const _tabs = document.getElementById('file-tabs-bar');
+        if (_hdr) { _hdr.style.position = 'fixed'; _hdr.style.top = '0'; _hdr.style.left = '0'; _hdr.style.right = '0'; _hdr.style.zIndex = '50'; }
+        if (_tabs) { const _hh = _hdr ? _hdr.offsetHeight : 0; _tabs.style.position = 'fixed'; _tabs.style.top = _hh + 'px'; _tabs.style.left = '0'; _tabs.style.right = '0'; _tabs.style.zIndex = '49'; }
+
         const inner = document.getElementById('bottom-panel');
         if(inner) { inner.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)'; inner.style.transform = 'translateY(100%)'; }
 
@@ -6154,6 +6162,11 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.style.height = '';
         chatPanel.style.transform = '';
         if (aiBtn) aiBtn.classList.remove('chat-active');
+        // Restore header and tab bar to normal flow
+        const _hdr2 = document.getElementById('header');
+        const _tabs2 = document.getElementById('file-tabs-bar');
+        if (_hdr2) { _hdr2.style.position = ''; _hdr2.style.top = ''; _hdr2.style.left = ''; _hdr2.style.right = ''; _hdr2.style.zIndex = ''; }
+        if (_tabs2) { _tabs2.style.position = ''; _tabs2.style.top = ''; _tabs2.style.left = ''; _tabs2.style.right = ''; _tabs2.style.zIndex = ''; }
         // Restore body height
         _setBodyHeight();
         const inner = document.getElementById('bottom-panel');
