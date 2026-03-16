@@ -2194,42 +2194,29 @@
     // Keyboard handler for chat panel
     // interactive-widget=resizes-visual: keyboard overlaps fixed elements,
     // layout viewport unchanged. Panel at bottom:0 is already correct.
-    // Half mode: scroll must be reset to keep header pinned at top.
-    // Full mode: panel height shrinks to fit above keyboard.
+    // Only fullscreen mode needs adjustment (panel fills screen top-to-bottom).
     function _handleChatKeyboard() {
         if (_inPreview) return; // never touch layout while preview is active
         if (!_inlineChatOpen) { _setBodyHeight(); return; }
-
-        // When chat is open, always reset any scroll the browser may have applied
-        // (mobile browsers auto-scroll to focused textarea, pushing header off screen)
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-
         const vv = window.visualViewport;
         if (!vv) return;
         const panel = document.getElementById('inline-chat-panel');
         if (!panel) return;
 
-        const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-
         if (_chatIsFullscreen) {
+            const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
             const hh = parseInt(getComputedStyle(document.documentElement)
                 .getPropertyValue('--header-h')) || 48;
             if (kbHeight > 50) {
-                // Shrink panel so it fits between header and top of keyboard
                 panel.style.height = (vv.height - hh) + 'px';
                 panel.style.top    = hh + 'px';
                 panel.style.bottom = '';
             } else {
-                // Keyboard gone — restore fullscreen CSS values
                 panel.style.height = '';
                 panel.style.top    = '';
                 panel.style.bottom = '';
             }
         }
-        // Half mode: panel is position:fixed bottom:0 — stays in place.
-        // Keyboard overlaps it from below. No height adjustment needed.
     }
 
     window.visualViewport && window.visualViewport.addEventListener('resize', _handleChatKeyboard);
@@ -3950,10 +3937,7 @@
             return [
                 { provider:'openrouter', providerName:'Qwen3 Coder (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free', provider_preference: ['Venice'] },
-                { provider:'openrouter', providerName:'GPT OSS 120B (Free)',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'openai/gpt-oss-120b:free', label:'OpenRouter – GPT OSS 120B · Free' },
+                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free', provider_preference: ['venice'] },
                 { provider:'openrouter', providerName:'Nvidia Nemotron 3 Super 120B (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
                   model:'nvidia/nemotron-3-super-120b-a12b:free', label:'OpenRouter – Nvidia Nemotron 3 Super 120B · Free' },
@@ -4358,7 +4342,7 @@
                         messages: [{ role: 'system', content: systemPrompt }, ...messages]
                     };
                 if (cfg.provider === 'openrouter' && cfg.provider_preference) {
-                    _orBody.provider = { order: cfg.provider_preference, allow_fallbacks: true };
+                    _orBody.provider = { order: cfg.provider_preference, allow_fallbacks: false };
                 }
                 res = await fetch(cfg.url, {
                     method: 'POST', signal: controller.signal,
@@ -6040,16 +6024,7 @@ No markdown, no backticks, no explanation outside the array.`;
 
         setTimeout(() => {
             const ta = document.getElementById('inline-chat-textarea');
-            if (ta) {
-                ta.focus();
-                // On mobile, browser auto-scrolls to focused element which pushes
-                // the fixed app-header off screen. Force scroll back to top.
-                requestAnimationFrame(() => {
-                    window.scrollTo(0, 0);
-                    document.documentElement.scrollTop = 0;
-                    document.body.scrollTop = 0;
-                });
-            }
+            if (ta) ta.focus();
         }, 150);
     }
 
