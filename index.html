@@ -335,6 +335,19 @@
 /* File Tabs Bar */
         .file-tabs-bar { flex-shrink: 0; display: flex; flex-wrap: nowrap; overflow-x: auto; background: var(--glass-bg); border-bottom: 1px solid var(--glass-border); padding: 0 6px; gap: 2px; }
         .file-tabs-bar::-webkit-scrollbar { display: none; }
+
+        /* Chat open: keep header + tabbar pinned so keyboard can't push them */
+        body.chat-kb-open .app-header {
+            position: fixed !important;
+            top: 0; left: 0; right: 0;
+            z-index: 50;
+        }
+        body.chat-kb-open .file-tabs-bar {
+            position: fixed !important;
+            top: var(--chat-hdr-h, 48px);
+            left: 0; right: 0;
+            z-index: 49;
+        }
         .file-tab { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.55; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .file-tab.active { opacity: 1; border-bottom-color: var(--accent); color: var(--accent); }
         .file-tab .ft-close { font-size: 13px; opacity: 0.4; margin-left: 2px; line-height: 1; transition: opacity 0.15s; pointer-events: auto; }
@@ -2292,9 +2305,15 @@
                 panel.style.bottom = '';
             }
         } else {
-            // Non-fullscreen chat: fix body height to visualViewport so header/tabbar
-            // never get pushed off-screen when keyboard opens
-            document.body.style.height = vv.offsetTop + vv.height + 'px';
+            // Non-fullscreen: use CSS class to pin header+tabbar, keep body height stable
+            const kbOpen = (window.innerHeight - vv.offsetTop - vv.height) > 50;
+            if (kbOpen) {
+                const hdrH = (document.getElementById('header') || {}).offsetHeight || 48;
+                document.documentElement.style.setProperty('--chat-hdr-h', hdrH + 'px');
+                document.body.classList.add('chat-kb-open');
+            } else {
+                document.body.classList.remove('chat-kb-open');
+            }
         }
     }
 
@@ -6100,12 +6119,6 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.classList.add('chat-open');
         if (aiBtn) aiBtn.classList.add('chat-active');
 
-        // Pin header and tab bar so keyboard never pushes them off-screen
-        const _hdr = document.getElementById('header');
-        const _tabs = document.getElementById('file-tabs-bar');
-        if (_hdr) { _hdr.style.position = 'fixed'; _hdr.style.top = '0'; _hdr.style.left = '0'; _hdr.style.right = '0'; _hdr.style.zIndex = '50'; }
-        if (_tabs) { const _hh = _hdr ? _hdr.offsetHeight : 0; _tabs.style.position = 'fixed'; _tabs.style.top = _hh + 'px'; _tabs.style.left = '0'; _tabs.style.right = '0'; _tabs.style.zIndex = '49'; }
-
         const inner = document.getElementById('bottom-panel');
         if(inner) { inner.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)'; inner.style.transform = 'translateY(100%)'; }
 
@@ -6162,12 +6175,8 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.style.height = '';
         chatPanel.style.transform = '';
         if (aiBtn) aiBtn.classList.remove('chat-active');
-        // Restore header and tab bar to normal flow
-        const _hdr2 = document.getElementById('header');
-        const _tabs2 = document.getElementById('file-tabs-bar');
-        if (_hdr2) { _hdr2.style.position = ''; _hdr2.style.top = ''; _hdr2.style.left = ''; _hdr2.style.right = ''; _hdr2.style.zIndex = ''; }
-        if (_tabs2) { _tabs2.style.position = ''; _tabs2.style.top = ''; _tabs2.style.left = ''; _tabs2.style.right = ''; _tabs2.style.zIndex = ''; }
         // Restore body height
+        document.body.classList.remove('chat-kb-open');
         _setBodyHeight();
         const inner = document.getElementById('bottom-panel');
         if(inner && !_navHidden && !_inPreview) { inner.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)'; inner.style.transform = ''; }
