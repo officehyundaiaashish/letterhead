@@ -3044,9 +3044,8 @@
     async function saveFile() {
         const code = editor.getValue();
         if (window.showSaveFilePicker) { try { const handle = await window.showSaveFilePicker({ suggestedName: currentFileName }); const writable = await handle.createWritable(); await writable.write(code); await writable.close(); return; } catch (err) {} }
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/html' })); a.download = currentFileName; a.click();
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([code], { type: 'text/plain' })); a.download = currentFileName; a.click();
     }
-
     // ── Nav hide/restore for modals (find, agent) ──
 
     // Replace field: strip leading/trailing whitespace and prevent extra newlines on paste
