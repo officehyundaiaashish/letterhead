@@ -3935,9 +3935,9 @@
                 model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' };
         if (/^sk-or-/i.test(key))
             return [
-                { provider:'openrouter', providerName:'DeepSeek R1 (Free)',
+                { provider:'openrouter', providerName:'Qwen3 Coder (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'deepseek/deepseek-r1:free', label:'OpenRouter – DeepSeek R1 · Free' },
+                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free', provider_preference: ['venice'] },
                 { provider:'openrouter', providerName:'Nvidia Nemotron 3 Super 120B (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
                   model:'nvidia/nemotron-3-super-120b-a12b:free', label:'OpenRouter – Nvidia Nemotron 3 Super 120B · Free' },
@@ -3947,12 +3947,6 @@
                 { provider:'openrouter', providerName:'Nvidia Nemotron Nano 12B Vision (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
                   model:'nvidia/nemotron-nano-12b-v2-vl:free', label:'OpenRouter – Nvidia Nemotron Nano 12B VL · Free' },
-                { provider:'openrouter', providerName:'Llama 3.3 70B (Free)',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'meta-llama/llama-3.3-70b-instruct:free', label:'OpenRouter – Meta Llama 3.3 70B · Free' },
-                { provider:'openrouter', providerName:'Mistral Small 3.1 24B (Free)',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'mistralai/mistral-small-3.1-24b-instruct:free', label:'OpenRouter – Mistral Small 3.1 24B · Free' },
                 { provider:'openrouter', providerName:'OpenRouter – Auto Free',
                   url:'https://openrouter.ai/api/v1/chat/completions',
                   model:'openrouter/free', label:'OpenRouter – Auto Free' },
@@ -4341,15 +4335,19 @@
                 // OpenAI-compatible: OpenAI, Groq, OpenRouter, DeepSeek
                 const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key };
                 if (cfg.provider === 'openrouter') { headers['HTTP-Referer'] = 'https://codx.app'; headers['X-Title'] = 'CodX'; }
-                res = await fetch(cfg.url, {
-                    method: 'POST', signal: controller.signal,
-                    headers,
-                    body: JSON.stringify({
+                const _orBody = {
                         model: cfg.model,
                         max_tokens: _maxTok,
                         temperature: 0.1,
                         messages: [{ role: 'system', content: systemPrompt }, ...messages]
-                    })
+                    };
+                if (cfg.provider === 'openrouter' && cfg.provider_preference) {
+                    _orBody.provider = { order: cfg.provider_preference, allow_fallbacks: false };
+                }
+                res = await fetch(cfg.url, {
+                    method: 'POST', signal: controller.signal,
+                    headers,
+                    body: JSON.stringify(_orBody)
                 });
                 d = await res.json();
                 if (!res.ok) throw new Error(d.error?.message || `HTTP ${res.status}`);
