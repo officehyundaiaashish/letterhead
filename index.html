@@ -1130,9 +1130,10 @@
         #inline-chat-fullscreen:active { opacity: 1; background: var(--accent-dim); }
         #inline-chat-panel.chat-fullscreen {
             top: var(--header-h, 48px) !important;
-            height: calc(100dvh - var(--header-h, 48px)) !important;
+            height: calc(100svh - var(--header-h, 48px)) !important;
             border-radius: 0 !important;
             padding-top: 0;
+            max-height: calc(100svh - var(--header-h, 48px)) !important;
         }
 
         /* Chat mode button — animated glow ring when ON */
@@ -1958,6 +1959,7 @@
 </div>
 
 <input type="file" id="agent-file-input" accept=".html,.js,.css,.txt,.json,.md" style="display:none;">
+<input type="file" id="inline-chat-file-input" accept=".html,.js,.css,.txt,.json,.md,.py,.ts,.jsx,.tsx,.xml,.csv" style="display:none;">
 
 <!-- New Project Modal -->
 <div id="new-project-overlay" onclick="if(event.target===this)closeNewProjectModal()">
@@ -2207,10 +2209,12 @@
             const hh = parseInt(getComputedStyle(document.documentElement)
                 .getPropertyValue('--header-h')) || 48;
             if (kbHeight > 50) {
-                panel.style.height = (vv.height - hh) + 'px';
+                // Keyboard open — pin panel below header, shrink to visible area only
                 panel.style.top    = hh + 'px';
+                panel.style.height = (window.innerHeight - kbHeight - hh) + 'px';
                 panel.style.bottom = '';
             } else {
+                // Keyboard closed — restore fullscreen
                 panel.style.height = '';
                 panel.style.top    = '';
                 panel.style.bottom = '';
@@ -7711,25 +7715,25 @@ Use only line numbers visible in the context. Be precise.`;
     let _inlineAttachment = null;
 
     function _inlineTriggerAttach() {
-        // Reuse existing hidden file input
-        const inp = document.getElementById('agent-file-input');
+        const inp = document.getElementById('inline-chat-file-input');
         if (!inp) return;
-        // Temporarily override onchange for inline chat
-        inp.onchange = (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            const r = new FileReader();
-            r.onload = ev => {
-                _inlineAttachment = { name: file.name, content: ev.target.result };
-                const bar  = document.getElementById('inline-attach-bar');
-                const name = document.getElementById('inline-attach-name');
-                if (bar)  bar.style.display = 'flex';
-                if (name) name.textContent = file.name;
-            };
-            r.readAsText(file);
-            e.target.value = '';
-        };
         inp.click();
     }
+
+    // Dedicated listener for inline chat file input — no conflict with agent-file-input
+    document.getElementById('inline-chat-file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const r = new FileReader();
+        r.onload = ev => {
+            _inlineAttachment = { name: file.name, content: ev.target.result };
+            const bar  = document.getElementById('inline-attach-bar');
+            const name = document.getElementById('inline-attach-name');
+            if (bar)  bar.style.display = 'flex';
+            if (name) name.textContent = file.name;
+        };
+        r.readAsText(file);
+        e.target.value = '';
+    });
 
     function _inlineClearAttach() {
         _inlineAttachment = null;
