@@ -1958,8 +1958,8 @@
     </div>
 </div>
 
-<input type="file" id="agent-file-input" accept=".html,.js,.css,.txt,.json,.md" style="display:none;">
-<input type="file" id="inline-chat-file-input" accept=".html,.js,.css,.txt,.json,.md,.py,.ts,.jsx,.tsx,.xml,.csv" style="display:none;">
+<input type="file" id="agent-file-input" style="display:none;">
+<input type="file" id="inline-chat-file-input" style="display:none;">
 
 <!-- New Project Modal -->
 <div id="new-project-overlay" onclick="if(event.target===this)closeNewProjectModal()">
@@ -3913,10 +3913,27 @@
     Object.defineProperty(window, 'agentConfig', { get: () => _activeAgent(), set: () => {} });
 
     document.getElementById('agent-file-input').addEventListener('change', (e) => {
-        const file = e.target.files[0]; if(!file) return;
+        const file = e.target.files[0]; if (!file) return;
+        if (file.size > 20 * 1024 * 1024) { showToast('File too large (max 20MB)', 'error_outline'); e.target.value = ''; return; }
+        const isBinary = /\.(png|jpg|jpeg|gif|webp|bmp|ico|svg|pdf|zip|rar|7z|tar|gz|exe|bin|wasm|ttf|otf|woff|woff2|mp3|mp4|wav|ogg|avi|mov|mkv)$/i.test(file.name);
         const r = new FileReader();
-        r.onload = ev => { agentAttachment = { name: file.name, content: ev.target.result }; document.getElementById('agent-attach-btn').style.background = 'var(--accent-dim)'; document.getElementById('agent-attach-btn').style.color = 'var(--accent)'; };
-        r.readAsText(file); e.target.value = '';
+        if (isBinary) {
+            r.onload = ev => {
+                const sizeKB = (file.size / 1024).toFixed(1);
+                agentAttachment = { name: file.name, content: `[Binary file: ${file.name}, size: ${sizeKB}KB, type: ${file.type || 'unknown'}]` };
+                document.getElementById('agent-attach-btn').style.background = 'var(--accent-dim)';
+                document.getElementById('agent-attach-btn').style.color = 'var(--accent)';
+            };
+            r.readAsArrayBuffer(file);
+        } else {
+            r.onload = ev => {
+                agentAttachment = { name: file.name, content: ev.target.result };
+                document.getElementById('agent-attach-btn').style.background = 'var(--accent-dim)';
+                document.getElementById('agent-attach-btn').style.color = 'var(--accent)';
+            };
+            r.readAsText(file);
+        }
+        e.target.value = '';
     });
 
     document.getElementById('agent-prompt').addEventListener('input', function() {
@@ -5415,7 +5432,15 @@ Rules:
 
         const bubble = document.createElement('div');
         bubble.className = 'chat-bubble';
-        bubble.innerHTML = text.replace(/\n/g, '<br>').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/&lt;br&gt;/g,'<br>');
+        // Preserve embedded SVG icons while escaping other HTML
+        const _svgFrags = [];
+        const _safeText = text
+            .replace(/<svg[\s\S]*?<\/svg>/g, (m) => { _svgFrags.push(m); return '\x00SVG' + (_svgFrags.length - 1) + '\x00'; })
+            .replace(/\n/g, '<br>')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/&lt;br&gt;/g,'<br>')
+            .replace(/\x00SVG(\d+)\x00/g, (_, i) => _svgFrags[+i] || '');
+        bubble.innerHTML = _safeText;
 
         // Footer: timestamp + copy button
         const footer = document.createElement('div');
@@ -6087,14 +6112,23 @@ No markdown, no backticks, no explanation outside the array.`;
                     <div class="code-canvas-body">${escaped}</div>
                 </div>`;
             }
-            // Text: render inline markdown — strip line number prefixes from inline code too
-            let html = p.content
+            // Text: render inline markdown — preserve embedded SVGs, escape everything else
+            // Step 1: extract SVG fragments, replace with placeholders
+            const svgFragments = [];
+            let raw = p.content.replace(/<svg[\s\S]*?<\/svg>/g, (match) => {
+                svgFragments.push(match);
+                return '\x00SVG' + (svgFragments.length - 1) + '\x00';
+            });
+            // Step 2: HTML-escape the non-SVG text
+            let html = raw
                 .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
                 .replace(/\*\*(.+?)\*\*/g, '<span class="chat-md-bold">$1</span>')
                 .replace(/`([^`]+)`/g, '<span class="chat-inline-code">$1</span>')
                 .replace(/^(\d+)\.\s+(.+)$/gm, '<div class="chat-md-li" style="padding-left:18px;"><span style="position:absolute;left:0;color:var(--accent);font-weight:700;">$1.</span>$2</div>')
                 .replace(/^[-*]\s+(.+)$/gm, '<div class="chat-md-li">$1</div>')
                 .replace(/\n/g, '<br>');
+            // Step 3: restore SVG fragments
+            html = html.replace(/\x00SVG(\d+)\x00/g, (_, i) => svgFragments[+i] || '');
             return html;
         }).join('');
     }
@@ -7727,15 +7761,29 @@ Use only line numbers visible in the context. Be precise.`;
     // Dedicated listener for inline chat file input — no conflict with agent-file-input
     document.getElementById('inline-chat-file-input').addEventListener('change', (e) => {
         const file = e.target.files[0]; if (!file) return;
+        if (file.size > 20 * 1024 * 1024) { showToast('File too large (max 20MB)', 'error_outline'); e.target.value = ''; return; }
+        const isBinary = /\.(png|jpg|jpeg|gif|webp|bmp|ico|svg|pdf|zip|rar|7z|tar|gz|exe|bin|wasm|ttf|otf|woff|woff2|mp3|mp4|wav|ogg|avi|mov|mkv)$/i.test(file.name);
         const r = new FileReader();
-        r.onload = ev => {
-            _inlineAttachment = { name: file.name, content: ev.target.result };
-            const bar  = document.getElementById('inline-attach-bar');
-            const name = document.getElementById('inline-attach-name');
-            if (bar)  bar.style.display = 'flex';
-            if (name) name.textContent = file.name;
-        };
-        r.readAsText(file);
+        if (isBinary) {
+            r.onload = ev => {
+                const sizeKB = (file.size / 1024).toFixed(1);
+                _inlineAttachment = { name: file.name, content: `[Binary file: ${file.name}, size: ${sizeKB}KB, type: ${file.type || 'unknown'}]` };
+                const bar  = document.getElementById('inline-attach-bar');
+                const name = document.getElementById('inline-attach-name');
+                if (bar)  bar.style.display = 'flex';
+                if (name) name.textContent = file.name;
+            };
+            r.readAsArrayBuffer(file);
+        } else {
+            r.onload = ev => {
+                _inlineAttachment = { name: file.name, content: ev.target.result };
+                const bar  = document.getElementById('inline-attach-bar');
+                const name = document.getElementById('inline-attach-name');
+                if (bar)  bar.style.display = 'flex';
+                if (name) name.textContent = file.name;
+            };
+            r.readAsText(file);
+        }
         e.target.value = '';
     });
 
