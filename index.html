@@ -2219,6 +2219,10 @@
                 panel.style.top    = '';
                 panel.style.bottom = '';
             }
+        } else {
+            // Non-fullscreen chat: fix body height to visualViewport so header/tabbar
+            // never get pushed off-screen when keyboard opens
+            document.body.style.height = vv.offsetTop + vv.height + 'px';
         }
     }
 
