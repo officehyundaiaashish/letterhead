@@ -3937,7 +3937,7 @@
             return [
                 { provider:'openrouter', providerName:'Qwen3 Coder (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free', provider_preference: ['venice'] },
+                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free', provider_preference: ['Venice'] },
                 { provider:'openrouter', providerName:'Nvidia Nemotron 3 Super 120B (Free)',
                   url:'https://openrouter.ai/api/v1/chat/completions',
                   model:'nvidia/nemotron-3-super-120b-a12b:free', label:'OpenRouter – Nvidia Nemotron 3 Super 120B · Free' },
@@ -4342,7 +4342,7 @@
                         messages: [{ role: 'system', content: systemPrompt }, ...messages]
                     };
                 if (cfg.provider === 'openrouter' && cfg.provider_preference) {
-                    _orBody.provider = { order: cfg.provider_preference, allow_fallbacks: false };
+                    _orBody.provider = { order: cfg.provider_preference, allow_fallbacks: true };
                 }
                 res = await fetch(cfg.url, {
                     method: 'POST', signal: controller.signal,
