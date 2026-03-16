@@ -111,6 +111,10 @@
             pointer-events: none;
         }
 
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
         @keyframes pillSnake {
             from { --pill-snake: 0deg; }
             to   { --pill-snake: 360deg; }
@@ -246,9 +250,74 @@
             bottom: -150%; opacity: 0; pointer-events: none; transform: scale(0.96);
         }
         .modal.active { bottom: 20px; opacity: 1; pointer-events: auto; transform: scale(1); }
-        /* Find modal — JS positions via top, no bottom transition */
-        #find-modal { left: 2%; width: 96%; bottom: auto !important; transition: opacity 0.2s, transform 0.2s; }
-        #find-modal.active { opacity: 1; pointer-events: auto; transform: scale(1); }
+        /* Find modal — redesigned card */
+        #find-modal {
+            left: 50% !important;
+            width: 92%;
+            max-width: 420px;
+            bottom: auto !important;
+            transform: translateX(-50%) translateY(12px) scale(0.96);
+            border-radius: 20px;
+            padding: 0;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+            transition: opacity 0.22s cubic-bezier(0.4,0,0.2,1), transform 0.28s cubic-bezier(0.34,1.2,0.64,1);
+        }
+        #find-modal.active {
+            opacity: 1; pointer-events: auto;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        /* Animated search icon */
+        @keyframes fm-scan {
+            0%   { stroke-dashoffset: 62; opacity: 0.4; }
+            50%  { stroke-dashoffset: 0;  opacity: 1; }
+            100% { stroke-dashoffset: 62; opacity: 0.4; }
+        }
+        @keyframes fm-pulse {
+            0%,100% { transform: scale(1);   opacity: 0.7; }
+            50%      { transform: scale(1.18); opacity: 1;   }
+        }
+        #fm-scan-circle { stroke-dasharray: 62; stroke-dashoffset: 62; }
+        #find-modal.active #fm-scan-circle { animation: fm-scan 2s ease-in-out infinite; }
+        #find-modal.active #fm-lens-dot    { animation: fm-pulse 2s ease-in-out infinite; }
+
+        /* Find/Replace field — monospace, editor-style */
+        #find-modal .fm-field {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.25);
+            border: 1.5px solid var(--glass-border);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+            resize: none;
+            outline: none;
+            user-select: text;
+            -webkit-user-select: text;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            line-height: 1.55;
+        }
+        #find-modal .fm-field:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+        body.light-theme #find-modal .fm-field { background: rgba(0,0,0,0.06); }
+
+        /* Toggle chips */
+        .fm-chip {
+            display: flex; align-items: center; gap: 4px;
+            padding: 4px 9px; border-radius: 8px;
+            border: 1.5px solid var(--glass-border);
+            background: transparent;
+            color: var(--text-color); opacity: 0.6;
+            font-family: 'Poppins', sans-serif; font-size: 10px; font-weight: 700;
+            cursor: pointer; transition: all 0.15s; user-select: none;
+        }
+        .fm-chip.on { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); opacity: 1; }
         
         .modal textarea, .modal input, .modal select { width: 100%; padding: 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: var(--text-color); font-family: 'Courier New', Courier, monospace; font-size: 13px; }
         .modal-actions { display: flex; gap: 8px; }
@@ -633,6 +702,48 @@
 
         .agent-provider-grid { display: none; }
         .agent-provider-btn { display: none; }
+
+        /* Animated provider selection list */
+        #agent-model-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+            opacity: 0;
+        }
+        #agent-model-list.open {
+            max-height: 280px;
+            opacity: 1;
+        }
+        #agent-model-list-inner {
+            max-height: 260px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding: 4px 0 6px;
+        }
+        #agent-model-list-inner::-webkit-scrollbar { display: none; }
+        .am-model-row {
+            display: flex; align-items: center; gap: 9px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1.5px solid var(--glass-border);
+            background: transparent;
+            cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.12s;
+            animation: amRowIn 0.2s ease both;
+        }
+        @keyframes amRowIn {
+            from { opacity:0; transform:translateY(6px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        .am-model-row:active { transform: scale(0.97); }
+        .am-model-row:hover, .am-model-row.selected { border-color: var(--accent); background: var(--accent-dim); }
+        .am-model-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); flex-shrink:0; opacity:0.5; }
+        .am-model-row.selected .am-model-dot { opacity:1; }
+        .am-model-name { flex:1; font-size:11px; font-weight:700; color:var(--text-color); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'Poppins',sans-serif; }
+        .am-model-tag { font-size:8px; font-weight:700; padding:2px 6px; border-radius:5px; flex-shrink:0; font-family:'Poppins',sans-serif; }
 
         
 /* ===== AGENT BAR — compact strip inside nav panel ===== */
@@ -1869,53 +1980,72 @@
 <input type="file" id="file-input" accept=".html,.htm,.css,.js,.ts,.jsx,.tsx,.json,.md,.txt,.xml,.svg" onchange="loadFile(event)" style="display: none !important; position: absolute; left: -9999px;">
 
 <div class="modal no-select" id="find-modal">
-    <!-- Header -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:9px;">
-        <div style="display:flex; align-items:center; gap:6px; color:var(--accent); font-weight:700; font-size:12px; font-family:'Poppins',sans-serif;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            Find &amp; Replace
+
+    <!-- Shimmer top bar -->
+    <div style="height:2px;background:linear-gradient(90deg,#10b981,#34d399,#10b981);background-size:200% 100%;animation:shimmer 2.5s linear infinite;border-radius:20px 20px 0 0;"></div>
+
+    <!-- Header row: icon + title + undo/redo + close -->
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 12px 8px;">
+        <div style="width:30px;height:30px;border-radius:9px;background:var(--accent-dim);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round">
+                <circle id="fm-scan-circle" cx="11" cy="11" r="8" stroke="var(--accent)" fill="none"/>
+                <circle id="fm-lens-dot" cx="11" cy="11" r="2.2" fill="var(--accent)" stroke="none"/>
+                <line x1="16.65" y1="16.65" x2="21" y2="21" stroke="var(--accent)" stroke-width="2"/>
+            </svg>
         </div>
-        <div style="display:flex; align-items:center; gap:3px;">
-            <button onclick="editorUndo()" title="Undo" style="background:rgba(128,128,128,0.1);border:none;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-color);opacity:0.65;transition:opacity 0.15s,background 0.15s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.65">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
-            </button>
-            <button onclick="editorRedo()" title="Redo" style="background:rgba(128,128,128,0.1);border:none;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-color);opacity:0.65;transition:opacity 0.15s,background 0.15s;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0.65">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.5 6.5 11 4 6 8s-5 10-1 14"/></svg>
-            </button>
-            <div style="width:8px;flex-shrink:0;"></div>
-            <button onclick="toggleFindReplace()" title="Close" style="background:rgba(239,68,68,0.12);border:none;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ef4444;opacity:0.85;transition:opacity 0.15s,background 0.15s;" onmouseenter="this.style.opacity=1;this.style.background='rgba(239,68,68,0.22)'" onmouseleave="this.style.opacity=0.85;this.style.background='rgba(239,68,68,0.12)'">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-        </div>
+        <span style="font-weight:700;font-size:12px;color:var(--text-color);font-family:'Poppins',sans-serif;flex:1;">Find &amp; Replace</span>
+        <button onclick="editorUndo()" title="Undo" style="background:none;border:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-color);opacity:0.4;border-radius:6px;transition:opacity 0.15s,background 0.15s;" onmouseenter="this.style.opacity=1;this.style.background='rgba(128,128,128,0.1)'" onmouseleave="this.style.opacity=0.4;this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 6.5 13 4 18 8s5 10 1 14"/></svg>
+        </button>
+        <button onclick="editorRedo()" title="Redo" style="background:none;border:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-color);opacity:0.4;border-radius:6px;transition:opacity 0.15s,background 0.15s;" onmouseenter="this.style.opacity=1;this.style.background='rgba(128,128,128,0.1)'" onmouseleave="this.style.opacity=0.4;this.style.background='none'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 7v6h-6"/><path d="M21 13C18.5 6.5 11 4 6 8s-5 10-1 14"/></svg>
+        </button>
+        <button onclick="toggleFindReplace()" title="Close" style="background:rgba(239,68,68,0.08);border:none;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ef4444;border-radius:6px;transition:background 0.15s;" onmouseenter="this.style.background='rgba(239,68,68,0.18)'" onmouseleave="this.style.background='rgba(239,68,68,0.08)'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
     </div>
-    <!-- Find field -->
-    <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.45;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;font-family:'Poppins',sans-serif;">Find</div>
-    <textarea id="find-input" class="no-select" placeholder="Paste exact code to find..." style="user-select:text;-webkit-user-select:text;resize:none;height:46px;font-family:'Poppins',sans-serif;font-size:12px;margin-bottom:7px;"></textarea>
-    <!-- Replace field -->
-    <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.45;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;font-family:'Poppins',sans-serif;">Replace</div>
-    <textarea id="replace-input" class="no-select" placeholder="Paste exact code to replace..." style="user-select:text;-webkit-user-select:text;resize:none;height:46px;font-family:'Poppins',sans-serif;font-size:12px;margin-bottom:7px;"></textarea>
-    <!-- Options + Actions in one row -->
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+
+    <!-- Thin divider -->
+    <div style="height:1px;background:var(--glass-border);mx:12px;"></div>
+
+    <!-- Fields block -->
+    <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;">
+
+        <!-- Find row -->
+        <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:9px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;width:42px;flex-shrink:0;letter-spacing:0.3px;">FIND</span>
+            <textarea id="find-input" class="no-select fm-field" placeholder="text to find…" style="height:34px;flex:1;"></textarea>
+        </div>
+
+        <!-- Replace row -->
+        <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-size:9px;font-weight:700;color:rgba(96,165,250,0.9);font-family:'Poppins',sans-serif;width:42px;flex-shrink:0;letter-spacing:0.3px;">WITH</span>
+            <textarea id="replace-input" class="no-select fm-field" placeholder="replacement…" style="height:34px;flex:1;"></textarea>
+        </div>
+
+    </div>
+
+    <!-- Footer: chips left, actions right -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 10px;gap:6px;">
+        <div style="display:flex;gap:4px;">
+            <button class="fm-chip" id="fm-chip-case" onclick="_fmToggle('case',this)">Aa</button>
+            <button class="fm-chip" id="fm-chip-regex" onclick="_fmToggle('regex',this)">.*</button>
+        </div>
         <div style="display:flex;gap:5px;">
-            <button class="modal-btn" onclick="clearFind()" style="background:#ef4444;color:#fff;padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;border:none;">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Clear
+            <button onclick="clearFind()" title="Clear" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:7px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.07);color:#ef4444;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(239,68,68,0.15)'" onmouseleave="this.style.background='rgba(239,68,68,0.07)'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <button onclick="findText(true)" style="display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:7px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.08);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;" onmouseenter="this.style.background='var(--accent-dim)';this.style.color='var(--accent)';this.style.borderColor='var(--accent)'" onmouseleave="this.style.background='rgba(128,128,128,0.08)';this.style.color='var(--text-color)';this.style.borderColor='var(--glass-border)'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Find
+            </button>
+            <button onclick="replaceText()" style="display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:7px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;" ontouchstart="this.style.opacity='0.8'" ontouchend="this.style.opacity='1'">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Replace
             </button>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-            <div style="display:flex;gap:10px;flex-shrink:0;">
-                <label class="find-check-label"><input type="checkbox" id="find-case"> Case</label>
-                <label class="find-check-label"><input type="checkbox" id="find-regex"> Regex</label>
-            </div>
-            <div style="display:flex;gap:5px;">
-                <button class="modal-btn secondary" onclick="findText(true)" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Find
-                </button>
-                <button class="modal-btn" onclick="replaceText()" style="padding:7px 10px;font-size:11px;display:flex;align-items:center;gap:4px;">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 001 1h4"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z"/></svg>Replace
-                </button>
-            </div>
-        </div>
     </div>
+
 </div>
 
 <div id="gh-overlay" onclick="closeGithubModal()"></div>
@@ -2159,69 +2289,75 @@
 
     <div id="agent-modal-body">
 
-        <!-- Connected agents list -->
-        <div id="agent-connected-section" style="display:none;margin-bottom:14px;">
-            <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.35;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Connected</div>
-            <div id="agent-list-container"></div>
-            <div style="display:flex;gap:7px;margin-top:10px;">
-                <button onclick="closeAgentModal();openAgentBar();" style="flex:1.6;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:12px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" ontouchstart="this.style.opacity='0.8'" ontouchend="this.style.opacity='1'">
+        <!-- Connected agents list — scrollable, compact -->
+        <div id="agent-connected-section" style="display:none;margin-bottom:12px;">
+            <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.35;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">Connected</div>
+            <div id="agent-list-container" style="max-height:160px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:3px;"></div>
+            <div style="display:flex;gap:7px;margin-top:8px;">
+                <button onclick="closeAgentModal();openAgentBar();" style="flex:1.6;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:11px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" ontouchstart="this.style.opacity='0.8'" ontouchend="this.style.opacity='1'">
                     <span class="material-icons-round" style="font-size:15px;pointer-events:none;">chat</span>Open Chat
                 </button>
-                <button onclick="disconnectAgent()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;border-radius:12px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.07);color:#ef4444;font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:opacity 0.15s;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
+                <button onclick="disconnectAgent()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;border-radius:11px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.07);color:#ef4444;font-family:'Poppins',sans-serif;font-size:11px;font-weight:600;cursor:pointer;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
                     <span class="material-icons-round" style="font-size:14px;pointer-events:none;">delete_sweep</span>Remove All
                 </button>
             </div>
-            <div style="height:1px;background:var(--glass-border);margin:14px 0 12px;"></div>
+            <div style="height:1px;background:var(--glass-border);margin:12px 0 10px;"></div>
         </div>
 
         <!-- Add agent -->
         <div id="agent-setup-section">
             <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.35;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Add Agent</div>
+
+            <!-- API Key input -->
             <input type="text" id="agent-api-key" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                placeholder="Paste API key — AIza… gsk_… sk-or-… sk-…">
+                placeholder="API Key" oninput="agentKeyPreview(this.value)">
+
+            <!-- Animated scrollable model list -->
+            <div id="agent-model-list">
+                <div style="font-size:9px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;margin-bottom:4px;padding:0 2px;" id="agent-model-list-label">Select model to connect</div>
+                <div id="agent-model-list-inner"></div>
+            </div>
+
             <div id="agent-detect-badge" style="display:none;margin-bottom:8px;">
                 <span id="agent-detect-text"></span>
             </div>
-            <button onclick="connectAgent()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border-radius:12px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" ontouchstart="this.style.opacity='0.8'" ontouchend="this.style.opacity='1'">
-                <span class="material-icons-round" style="font-size:16px;pointer-events:none;">add_circle</span>Connect
-            </button>
+
+            <div style="display:flex;gap:7px;margin-top:8px;">
+                <button onclick="connectAgent()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;border-radius:11px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:13px;font-weight:700;cursor:pointer;" ontouchstart="this.style.opacity='0.8'" ontouchend="this.style.opacity='1'">
+                    <span class="material-icons-round" style="font-size:16px;pointer-events:none;">add_circle</span>Connect
+                </button>
+                <button onclick="openCustomModelDialog()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 13px;border-radius:11px;border:1.5px solid var(--glass-border);background:rgba(128,128,128,0.08);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background 0.15s;flex-shrink:0;" ontouchstart="this.style.background='var(--accent-dim)'" ontouchend="this.style.background='rgba(128,128,128,0.08)'">
+                    <span class="material-icons-round" style="font-size:15px;pointer-events:none;">tune</span>
+                </button>
+            </div>
         </div>
 
-        <!-- Free providers -->
-        <div style="margin-top:14px;">
-            <div style="font-size:9px;font-weight:700;color:var(--text-color);opacity:0.35;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Free Providers</div>
-            <a href="https://console.groq.com" target="_blank" class="am-provider-row">
-                <div class="am-provider-icon" style="background:rgba(245,158,11,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <span class="am-provider-name">Groq</span>
-                    <span class="am-provider-tag" style="color:#f59e0b;background:rgba(245,158,11,0.1);">FASTEST</span>
-                </div>
-                <span class="material-icons-round" style="font-size:14px;opacity:0.25;pointer-events:none;">open_in_new</span>
-            </a>
-            <a href="https://aistudio.google.com" target="_blank" class="am-provider-row">
-                <div class="am-provider-icon" style="background:rgba(16,185,129,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <span class="am-provider-name">Gemini</span>
-                    <span class="am-provider-tag" style="color:var(--accent);background:var(--accent-dim);">FREE</span>
-                </div>
-                <span class="material-icons-round" style="font-size:14px;opacity:0.25;pointer-events:none;">open_in_new</span>
-            </a>
-            <a href="https://openrouter.ai" target="_blank" class="am-provider-row">
-                <div class="am-provider-icon" style="background:rgba(139,92,246,0.12);">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.5" stroke-linecap="round" style="pointer-events:none;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <span class="am-provider-name">OpenRouter</span>
-                    <span class="am-provider-tag" style="color:#8b5cf6;background:rgba(139,92,246,0.1);">MANY FREE</span>
-                </div>
-                <span class="material-icons-round" style="font-size:14px;opacity:0.25;pointer-events:none;">open_in_new</span>
-            </a>
-        </div>
+    </div>
+</div>
 
+<!-- Custom Model Dialog -->
+<div id="custom-model-overlay" onclick="if(event.target===this)closeCustomModelDialog()" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:300;display:none;opacity:0;align-items:center;justify-content:center;transition:opacity 0.2s;"></div>
+<div id="custom-model-dialog" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.9);z-index:301;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:20px;padding:18px;width:88%;max-width:360px;font-family:'Poppins',sans-serif;opacity:0;pointer-events:none;transition:opacity 0.2s,transform 0.25s cubic-bezier(0.34,1.2,0.64,1);">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:var(--accent-dim);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="material-icons-round" style="color:var(--accent);font-size:16px;pointer-events:none;">tune</span>
+        </div>
+        <div style="flex:1;">
+            <div style="font-weight:700;font-size:13px;color:var(--text-color);line-height:1.2;">Custom Model</div>
+            <div id="cm-detect-label" style="font-size:10px;color:var(--accent);font-weight:600;margin-top:1px;min-height:13px;"></div>
+        </div>
+        <button onclick="closeCustomModelDialog()" style="background:rgba(128,128,128,0.1);border:none;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-color);opacity:0.45;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <input id="cm-api-key" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="API Key" oninput="_cmKeyPreview(this.value)" style="width:100%;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,0.18);border:1.5px solid var(--glass-border);color:var(--text-color);font-family:'Courier New',monospace;font-size:13px;margin-bottom:8px;outline:none;user-select:text;-webkit-user-select:text;transition:border-color 0.18s,box-shadow 0.18s;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-dim)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow='none'">
+    <input id="cm-model" type="text" autocomplete="off" spellcheck="false" placeholder="Model ID" style="width:100%;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,0.18);border:1.5px solid var(--glass-border);color:var(--text-color);font-family:'Courier New',monospace;font-size:13px;margin-bottom:8px;outline:none;user-select:text;-webkit-user-select:text;transition:border-color 0.18s,box-shadow 0.18s;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-dim)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow='none'">
+    <input id="cm-name" type="text" autocomplete="off" spellcheck="false" placeholder="Name (optional)" style="width:100%;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,0.18);border:1.5px solid var(--glass-border);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:12px;margin-bottom:14px;outline:none;user-select:text;-webkit-user-select:text;transition:border-color 0.18s,box-shadow 0.18s;" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-dim)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow='none'">
+    <div style="display:flex;gap:7px;">
+        <button onclick="closeCustomModelDialog()" style="flex:1;padding:10px;border-radius:11px;border:1px solid var(--glass-border);background:rgba(128,128,128,0.08);color:var(--text-color);font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Cancel</button>
+        <button onclick="connectCustomModel()" style="flex:1.5;padding:10px;border-radius:11px;border:none;background:var(--accent);color:white;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <span class="material-icons-round" style="font-size:15px;pointer-events:none;">add_circle</span>Add
+        </button>
     </div>
 </div>
 
@@ -2305,13 +2441,27 @@
                 panel.style.bottom = '';
             }
         } else {
-            // Non-fullscreen: use CSS class to pin header+tabbar, keep body height stable
-            const kbOpen = (window.innerHeight - vv.offsetTop - vv.height) > 50;
+            // Non-fullscreen chat: keyboard pushes editor — lock body + main-container height
+            const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+            const kbOpen   = kbHeight > 50;
+            const hdrH     = (document.getElementById('header') || {}).offsetHeight || 0;
+            const tabH     = (document.getElementById('file-tabs-bar') || {}).offsetHeight || 0;
+            const chatH    = (document.getElementById('inline-chat-panel') || {}).offsetHeight || 0;
+
             if (kbOpen) {
-                const hdrH = (document.getElementById('header') || {}).offsetHeight || 48;
+                // Lock body to full window height — prevent ANY scroll/push
+                document.body.style.height  = window.innerHeight + 'px';
+                // Clamp main-container so editor never overflows into keyboard area
+                const mc = document.getElementById('editor-wrapper');
+                if (mc) mc.style.maxHeight = (window.innerHeight - hdrH - tabH - chatH - kbHeight) + 'px';
+                // Pin header + tabbar
                 document.documentElement.style.setProperty('--chat-hdr-h', hdrH + 'px');
                 document.body.classList.add('chat-kb-open');
             } else {
+                // Keyboard closed — restore everything
+                document.body.style.height  = window.innerHeight + 'px';
+                const mc = document.getElementById('editor-wrapper');
+                if (mc) mc.style.maxHeight = '';
                 document.body.classList.remove('chat-kb-open');
             }
         }
@@ -3148,6 +3298,12 @@
         this.value = this.value.slice(0, start) + cleaned + this.value.slice(end);
         this.selectionStart = this.selectionEnd = start + cleaned.length;
     });
+    function _fmToggle(type, btn) {
+        btn.classList.toggle('on');
+        if (type === 'case')  document.getElementById('find-case').checked  = btn.classList.contains('on');
+        if (type === 'regex') document.getElementById('find-regex').checked = btn.classList.contains('on');
+    }
+
     function toggleFindReplace() { 
         closeGithubModal(); 
         const isActive = !findModal.classList.contains('active');
@@ -4092,72 +4248,113 @@
     });
 
     // ── API KEY AUTO-DETECT ──
+    // Returns array of model entries for a given key
     function _detectProviderFromKey(key) {
         key = (key || '').trim();
-        if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))
-            return [
-                { provider:'gemini', providerName:'Gemini 2.5 Flash',
-                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-                  model:'gemini-2.5-flash', label:'Google – Gemini 2.5 Flash · Free (250/day)' },
-                { provider:'gemini', providerName:'Gemini 2.5 Flash-Lite',
-                  url:'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent',
-                  model:'gemini-2.5-flash-lite', label:'Google – Gemini 2.5 Flash-Lite · Free (1000/day)' },
-            ];
-        if (/^gsk_[A-Za-z0-9]{20,}/.test(key))
-            return { provider:'groq', providerName:'Groq – Llama 3.3 70B',
-                url:'https://api.groq.com/openai/v1/chat/completions',
-                model:'llama-3.3-70b-versatile', label:'Groq – Llama 3.3 70B · Free <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>' };
-        if (/^sk-or-/i.test(key))
-            return [
-                // ── Coding ──
-                { provider:'openrouter', providerName:'Qwen3 Coder (Free)',       category:'Coding',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'qwen/qwen3-coder:free', label:'OpenRouter – Qwen3 Coder · Free' },
-                // ── Reasoning ──
+        const GEM = 'https://generativelanguage.googleapis.com/v1beta/models/';
+        const OR  = 'https://openrouter.ai/api/v1/chat/completions';
+        const GRQ = 'https://api.groq.com/openai/v1/chat/completions';
 
-                { provider:'openrouter', providerName:'Liquid LFM 2.5 Thinking (Free)', category:'Reasoning',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'liquid/lfm-2.5-1.2b-thinking:free', label:'OpenRouter – Liquid LFM 2.5 Thinking · Free' },
-                // ── General ──
-                { provider:'openrouter', providerName:'GLM 4.5 Air (Free)',       category:'General',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'z-ai/glm-4.5-air:free', label:'OpenRouter – Z.AI GLM 4.5 Air · Free' },
-                { provider:'openrouter', providerName:'Arcee Trinity Large (Free)', category:'General',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'arcee-ai/trinity-large-preview:free', label:'OpenRouter – Arcee Trinity Large · Free' },
+        if (/^AIza[A-Za-z0-9_-]{20,}/.test(key)) return [
+            { provider:'gemini', providerName:'Gemini 2.5 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.5-flash:generateContent',      model:'gemini-2.5-flash'      },
+            { provider:'gemini', providerName:'Gemini 2.5 Flash-Lite', tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.5-flash-lite:generateContent', model:'gemini-2.5-flash-lite' },
+            { provider:'gemini', providerName:'Gemini 2.0 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.0-flash:generateContent',      model:'gemini-2.0-flash'      },
+            { provider:'gemini', providerName:'Gemini 1.5 Pro',        tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-1.5-pro:generateContent',        model:'gemini-1.5-pro'        },
+            { provider:'gemini', providerName:'Gemini 1.5 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-1.5-flash:generateContent',      model:'gemini-1.5-flash'      },
+        ];
 
+        if (/^gsk_[A-Za-z0-9]{20,}/.test(key)) return [
+            { provider:'groq', providerName:'Llama 3.3 70B',         tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'llama-3.3-70b-versatile'         },
+            { provider:'groq', providerName:'Llama 3.1 70B',         tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'llama-3.1-70b-versatile'         },
+            { provider:'groq', providerName:'Llama 3.1 8B',          tag:'FAST', tagColor:'#f59e0b', url: GRQ, model:'llama-3.1-8b-instant'            },
+            { provider:'groq', providerName:'Mixtral 8x7B',          tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'mixtral-8x7b-32768'              },
+            { provider:'groq', providerName:'Gemma2 9B',             tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'gemma2-9b-it'                    },
+            { provider:'groq', providerName:'DeepSeek R1 Distill 70B', tag:'THINK', tagColor:'#8b5cf6', url: GRQ, model:'deepseek-r1-distill-llama-70b' },
+            { provider:'groq', providerName:'Qwen 2.5 Coder 32B',   tag:'CODE', tagColor:'#3b82f6', url: GRQ, model:'qwen-2.5-coder-32b'              },
+        ];
 
-                // ── Nvidia ──
-                { provider:'openrouter', providerName:'Nemotron 3 Super 120B (Free)', category:'Nvidia',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'nvidia/nemotron-3-super-120b-a12b:free', label:'OpenRouter – Nvidia Nemotron 3 Super 120B · Free' },
-                { provider:'openrouter', providerName:'Nemotron Nano 30B (Free)',  category:'Nvidia',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'nvidia/nemotron-3-nano-30b-a3b:free', label:'OpenRouter – Nvidia Nemotron Nano 30B · Free' },
-                { provider:'openrouter', providerName:'Nemotron Nano 12B VL (Free)', category:'Nvidia',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'nvidia/nemotron-nano-12b-v2-vl:free', label:'OpenRouter – Nvidia Nemotron Nano 12B VL · Free' },
-                // ── Auto ──
-                { provider:'openrouter', providerName:'Auto Free',                 category:'Auto',
-                  url:'https://openrouter.ai/api/v1/chat/completions',
-                  model:'openrouter/free', label:'OpenRouter – Auto Free' },
-            ];
-        if (/^sk-ant-[A-Za-z0-9]{10,}/.test(key))
-            return { provider:'anthropic', providerName:'Claude Haiku',
-                url:'https://api.anthropic.com/v1/messages',
-                model:'claude-3-haiku-20240307', label:'Anthropic – Claude Haiku' };
-        if (/^sk-[a-f0-9]{32}$/.test(key))
-            return { provider:'deepseek', providerName:'DeepSeek Coder',
-                url:'https://api.deepseek.com/chat/completions',
-                model:'deepseek-coder', label:'DeepSeek Coder' };
-        if (/^sk-[A-Za-z0-9]{20,}/.test(key))
-            return { provider:'openai', providerName:'GPT-4o mini',
-                url:'https://api.openai.com/v1/chat/completions',
-                model:'gpt-4o-mini', label:'OpenAI – GPT-4o mini' };
+        if (/^sk-or-/i.test(key)) return [
+            { provider:'openrouter', providerName:'Qwen3 Coder',            tag:'CODE', tagColor:'#3b82f6', url: OR, model:'qwen/qwen3-coder:free'                    },
+            { provider:'openrouter', providerName:'Qwen3 235B',             tag:'FREE', tagColor:'#10b981', url: OR, model:'qwen/qwen3-235b-a22b:free'               },
+            { provider:'openrouter', providerName:'DeepSeek R1 (Free)',     tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'deepseek/deepseek-r1:free'               },
+            { provider:'openrouter', providerName:'DeepSeek V3 (Free)',     tag:'FREE', tagColor:'#10b981', url: OR, model:'deepseek/deepseek-chat-v3-0324:free'     },
+            { provider:'openrouter', providerName:'Llama 4 Scout (Free)',   tag:'FREE', tagColor:'#10b981', url: OR, model:'meta-llama/llama-4-scout:free'           },
+            { provider:'openrouter', providerName:'Llama 4 Maverick (Free)',tag:'FREE', tagColor:'#10b981', url: OR, model:'meta-llama/llama-4-maverick:free'        },
+            { provider:'openrouter', providerName:'Gemma3 27B (Free)',      tag:'FREE', tagColor:'#10b981', url: OR, model:'google/gemma-3-27b-it:free'              },
+            { provider:'openrouter', providerName:'Mistral Small 3.1 (Free)',tag:'FREE',tagColor:'#10b981', url: OR, model:'mistralai/mistral-small-3.1-24b-instruct:free'},
+            { provider:'openrouter', providerName:'Phi-4 Reasoning (Free)', tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'microsoft/phi-4-reasoning:free'          },
+            { provider:'openrouter', providerName:'GLM 4.5 Air (Free)',     tag:'FREE', tagColor:'#10b981', url: OR, model:'z-ai/glm-4.5-air:free'                  },
+            { provider:'openrouter', providerName:'Nemotron 3 Super 120B',  tag:'FREE', tagColor:'#10b981', url: OR, model:'nvidia/nemotron-3-super-120b-a12b:free'  },
+            { provider:'openrouter', providerName:'Liquid LFM Thinking',    tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'liquid/lfm-2.5-1.2b-thinking:free'      },
+            { provider:'openrouter', providerName:'Auto Free',              tag:'AUTO', tagColor:'#6b7280', url: OR, model:'openrouter/free'                         },
+        ];
+
+        if (/^sk-ant-[A-Za-z0-9]{10,}/.test(key)) return [
+            { provider:'anthropic', providerName:'Claude 3.5 Sonnet',  tag:'BEST',  tagColor:'#f59e0b', url:'https://api.anthropic.com/v1/messages', model:'claude-3-5-sonnet-20241022' },
+            { provider:'anthropic', providerName:'Claude 3.5 Haiku',   tag:'FAST',  tagColor:'#10b981', url:'https://api.anthropic.com/v1/messages', model:'claude-3-5-haiku-20241022'  },
+            { provider:'anthropic', providerName:'Claude 3 Haiku',     tag:'CHEAP', tagColor:'#6b7280', url:'https://api.anthropic.com/v1/messages', model:'claude-3-haiku-20240307'    },
+            { provider:'anthropic', providerName:'Claude 3 Opus',      tag:'PRO',   tagColor:'#8b5cf6', url:'https://api.anthropic.com/v1/messages', model:'claude-3-opus-20240229'     },
+        ];
+
+        if (/^sk-[a-f0-9]{32}$/.test(key)) return [
+            { provider:'deepseek', providerName:'DeepSeek Chat',   tag:'CODE', tagColor:'#3b82f6', url:'https://api.deepseek.com/chat/completions', model:'deepseek-chat'   },
+            { provider:'deepseek', providerName:'DeepSeek Coder',  tag:'CODE', tagColor:'#3b82f6', url:'https://api.deepseek.com/chat/completions', model:'deepseek-coder'  },
+            { provider:'deepseek', providerName:'DeepSeek Reasoner',tag:'THINK',tagColor:'#8b5cf6', url:'https://api.deepseek.com/chat/completions', model:'deepseek-reasoner' },
+        ];
+
+        if (/^sk-[A-Za-z0-9]{20,}/.test(key)) return [
+            { provider:'openai', providerName:'GPT-4o',          tag:'BEST', tagColor:'#f59e0b', url:'https://api.openai.com/v1/chat/completions', model:'gpt-4o'           },
+            { provider:'openai', providerName:'GPT-4o mini',     tag:'FAST', tagColor:'#10b981', url:'https://api.openai.com/v1/chat/completions', model:'gpt-4o-mini'      },
+            { provider:'openai', providerName:'GPT-4 Turbo',     tag:'PRO',  tagColor:'#8b5cf6', url:'https://api.openai.com/v1/chat/completions', model:'gpt-4-turbo'      },
+            { provider:'openai', providerName:'o4-mini',         tag:'THINK',tagColor:'#8b5cf6', url:'https://api.openai.com/v1/chat/completions', model:'o4-mini'          },
+            { provider:'openai', providerName:'o3-mini',         tag:'THINK',tagColor:'#8b5cf6', url:'https://api.openai.com/v1/chat/completions', model:'o3-mini'          },
+        ];
+
         return null;
     }
 
-    function agentKeyPreview(val) {}
+    // Selected model index in the list (for connectAgent)
+    let _agentSelectedModelIdx = 0;
+
+    function agentKeyPreview(val) {
+        val = (val || '').trim();
+        const list   = document.getElementById('agent-model-list');
+        const inner  = document.getElementById('agent-model-list-inner');
+        const label  = document.getElementById('agent-model-list-label');
+        if (!list || !inner) return;
+
+        const models = _detectProviderFromKey(val);
+        if (!models || (Array.isArray(models) && models.length === 0)) {
+            list.classList.remove('open');
+            inner.innerHTML = '';
+            return;
+        }
+
+        const arr = Array.isArray(models) ? models : [models];
+        _agentSelectedModelIdx = 0;
+
+        inner.innerHTML = '';
+        arr.forEach((m, i) => {
+            const row = document.createElement('div');
+            row.className = 'am-model-row' + (i === 0 ? ' selected' : '');
+            row.style.animationDelay = (i * 35) + 'ms';
+            row.innerHTML = `
+                <div class="am-model-dot"></div>
+                <span class="am-model-name">${m.providerName}</span>
+                <span class="am-model-tag" style="color:${m.tagColor};background:${m.tagColor}22;">${m.tag||''}</span>
+            `;
+            row.onclick = () => {
+                _agentSelectedModelIdx = i;
+                inner.querySelectorAll('.am-model-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+            };
+            inner.appendChild(row);
+        });
+
+        const providerName = arr[0].provider.charAt(0).toUpperCase() + arr[0].provider.slice(1);
+        if (label) label.textContent = providerName + ' — select model';
+        list.classList.add('open');
+    }
 
 
 
@@ -4209,36 +4406,32 @@
     function connectAgent() {
         const keyInp = document.getElementById('agent-api-key');
         const key = keyInp.value.trim();
-        if (!key) { cdAlert('Agent','Please paste your API key first.','warn'); return; }
+        if (!key) { cdAlert('Agent', 'Paste your API key first.', 'warn'); return; }
         const d = _detectProviderFromKey(key);
         if (!d) {
-            cdAlert('Agent',
-                'Key format not recognised.\n\nGroq (FREE <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline;vertical-align:middle;pointer-events:none;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>): gsk_...\nGemini (free): AIza...\nOpenRouter (free): sk-or-...\nOpenAI: sk-...\nAnthropic: sk-ant-...', 'warn');
+            cdAlert('Agent', 'Key format not recognised.\nSupported: Gemini (AIza…), Groq (gsk_…), OpenRouter (sk-or-…), OpenAI (sk-…), Anthropic (sk-ant-…), DeepSeek', 'warn');
             return;
         }
-        // d can be array (Gemini — 3 models) or single object
-        const entries = Array.isArray(d) ? d : [d];
-        let added = 0, updated = 0;
-        entries.forEach(entry => {
-            const exists = agentList.findIndex(a => a.model === entry.model);
-            if (exists !== -1) {
-                agentList[exists] = { ...entry, key };
-                updated++;
-            } else {
-                agentList.push({ ...entry, key });
-                added++;
-            }
-        });
-        // Set active to first of the added/updated entries
-        const firstModel = entries[0].model;
-        activeAgentIdx = agentList.findIndex(a => a.model === firstModel);
+        const arr = Array.isArray(d) ? d : [d];
+        // Connect only the selected model from the list
+        const entry = arr[_agentSelectedModelIdx] || arr[0];
+        const exists = agentList.findIndex(a => a.model === entry.model);
+        if (exists !== -1) {
+            agentList[exists] = { ...entry, key };
+        } else {
+            agentList.push({ ...entry, key });
+        }
+        activeAgentIdx = agentList.findIndex(a => a.model === entry.model);
         _saveAgentList();
         keyInp.value = '';
+        // Close model list
+        const list = document.getElementById('agent-model-list');
+        const inner = document.getElementById('agent-model-list-inner');
+        if (list) list.classList.remove('open');
+        if (inner) inner.innerHTML = '';
         document.getElementById('agent-detect-badge').style.display = 'none';
-        keyInp.style.borderColor = '';
         _renderConnectedAgents();
-        if (added > 0) cdAlert('Agent', `${added} model${added>1?'s':''} added${updated>0?' · '+updated+' updated':''}.`, 'success');
-        else cdAlert('Agent', `${updated} model${updated>1?'s':''} updated.`, 'info');
+        showToast(`${entry.providerName} connected`, 'check_circle');
     }
 
     function _renderConnectedAgents() {
@@ -4292,6 +4485,83 @@
         if(!ag) return;
         document.getElementById('agent-bar-label').textContent = ag.providerName;
         _pingAgentModel();
+    }
+
+    // ── Custom Model Dialog ──
+    function _cmDetectProvider(key) {
+        key = (key || '').trim();
+        if (/^AIza[A-Za-z0-9_-]{20,}/.test(key))   return { provider:'gemini',    label:'Gemini' };
+        if (/^gsk_[A-Za-z0-9]{20,}/.test(key))      return { provider:'groq',      label:'Groq' };
+        if (/^sk-or-/i.test(key))                    return { provider:'openrouter', label:'OpenRouter' };
+        if (/^sk-ant-[A-Za-z0-9]{10,}/.test(key))   return { provider:'anthropic', label:'Anthropic' };
+        if (/^sk-[a-f0-9]{32}$/.test(key))           return { provider:'deepseek',  label:'DeepSeek' };
+        if (/^sk-[A-Za-z0-9]{20,}/.test(key))        return { provider:'openai',    label:'OpenAI' };
+        return null;
+    }
+
+    function _cmKeyPreview(val) {
+        const d = _cmDetectProvider(val);
+        const lbl = document.getElementById('cm-detect-label');
+        if (lbl) lbl.textContent = d ? d.label + ' detected' : (val.length > 3 ? 'Unknown — will use OpenAI-compatible' : '');
+    }
+
+    function openCustomModelDialog() {
+        const overlay = document.getElementById('custom-model-overlay');
+        const dialog  = document.getElementById('custom-model-dialog');
+        if (!overlay || !dialog) return;
+        overlay.style.display = 'flex';
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            dialog.style.opacity  = '1';
+            dialog.style.pointerEvents = 'auto';
+            dialog.style.transform = 'translate(-50%,-50%) scale(1)';
+        });
+        document.getElementById('cm-api-key').value = '';
+        document.getElementById('cm-model').value   = '';
+        document.getElementById('cm-name').value    = '';
+        const lbl = document.getElementById('cm-detect-label');
+        if (lbl) lbl.textContent = '';
+    }
+
+    function closeCustomModelDialog() {
+        const overlay = document.getElementById('custom-model-overlay');
+        const dialog  = document.getElementById('custom-model-dialog');
+        if (!overlay || !dialog) return;
+        overlay.style.opacity = '0';
+        dialog.style.opacity  = '0';
+        dialog.style.transform = 'translate(-50%,-50%) scale(0.9)';
+        dialog.style.pointerEvents = 'none';
+        setTimeout(() => { overlay.style.display = 'none'; }, 220);
+    }
+
+    function connectCustomModel() {
+        const key   = document.getElementById('cm-api-key').value.trim();
+        const model = document.getElementById('cm-model').value.trim();
+        const name  = document.getElementById('cm-name').value.trim();
+        if (!key)   { cdAlert('Custom Model', 'API key is required.', 'warn'); return; }
+        if (!model) { cdAlert('Custom Model', 'Model ID is required.', 'warn'); return; }
+
+        const detected    = _cmDetectProvider(key);
+        const provider    = detected ? detected.provider : 'openai';
+        const displayName = name || model;
+
+        let url;
+        if (provider === 'gemini') {
+            url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        } else if (provider === 'groq')       url = 'https://api.groq.com/openai/v1/chat/completions';
+        else if (provider === 'openrouter')   url = 'https://openrouter.ai/api/v1/chat/completions';
+        else if (provider === 'anthropic')    url = 'https://api.anthropic.com/v1/messages';
+        else if (provider === 'deepseek')     url = 'https://api.deepseek.com/chat/completions';
+        else                                  url = 'https://api.openai.com/v1/chat/completions';
+
+        const entry  = { provider, providerName: displayName, url, model, key, label: displayName };
+        const exists = agentList.findIndex(a => a.model === model && a.provider === provider);
+        if (exists !== -1) { agentList[exists] = entry; }
+        else { agentList.push(entry); activeAgentIdx = agentList.length - 1; }
+        _saveAgentList();
+        closeCustomModelDialog();
+        _renderConnectedAgents();
+        cdAlert('Agent', `"${displayName}" added.`, 'success');
     }
 
     function openAgentModal() {
@@ -6175,8 +6445,10 @@ No markdown, no backticks, no explanation outside the array.`;
         chatPanel.style.height = '';
         chatPanel.style.transform = '';
         if (aiBtn) aiBtn.classList.remove('chat-active');
-        // Restore body height
+        // Restore body height + main-container
         document.body.classList.remove('chat-kb-open');
+        const _mc = document.getElementById('editor-wrapper');
+        if (_mc) _mc.style.maxHeight = '';
         _setBodyHeight();
         const inner = document.getElementById('bottom-panel');
         if(inner && !_navHidden && !_inPreview) { inner.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)'; inner.style.transform = ''; }
