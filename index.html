@@ -3392,6 +3392,7 @@
 
     async function ghApi(endpoint, method='GET', body=null) {
         let token = localStorage.getItem('gh_token');
+        if(!token) throw new Error('No GitHub token. Please connect your account first.');
         let opts = { method, headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' }};
         if(body) opts.body = JSON.stringify(body);
         let res = await fetch(`https://api.github.com${endpoint}`, opts);
@@ -3413,10 +3414,10 @@
                 _ghTree = []; _ghCurrentPath = ''; _ghSelectedItem = null;
                 fetchGhFiles();
             });
-            // Auto-restore last repo
+            // Auto-restore last repo — set _value only, fetchGhFiles is triggered by onChange above
             if (lastRepo) {
                 const el = document.getElementById('gh-repo-select');
-                if (el) { el._value = lastRepo; ghCurrentRepo = lastRepo; _ghUpdateHeaderStatus(); fetchGhFiles(); }
+                if (el) { el._value = lastRepo; ghCurrentRepo = lastRepo; _ghUpdateHeaderStatus(); }
             }
         } catch(e) { cdAlert('GitHub', 'Failed to load repos. Check your token.', 'error'); ghLogout(); }
     }
@@ -3434,7 +3435,8 @@
     }
 
     async function fetchGhFiles() {
-        ghCurrentRepo = document.getElementById('gh-repo-select')._value || ghCurrentRepo || '';
+        const repoEl = document.getElementById('gh-repo-select');
+        ghCurrentRepo = (repoEl ? repoEl._value : '') || ghCurrentRepo || '';
         if(!ghCurrentRepo) return;
         localStorage.setItem('gh_last_repo', ghCurrentRepo);
         _ghUpdateHeaderStatus();
@@ -4159,8 +4161,10 @@
         hidden.id = id; hidden._value = '';
 
         trigger.onclick = (e) => { e.stopPropagation(); trigger.classList.toggle('open'); list.classList.toggle('open'); };
-        // Close on outside tap
-        document.addEventListener('click', () => { trigger.classList.remove('open'); list.classList.remove('open'); }, { once: true });
+        // Close on outside tap — defer to next tick so current click doesn't immediately close it
+        setTimeout(() => {
+            document.addEventListener('click', () => { trigger.classList.remove('open'); list.classList.remove('open'); }, { once: true });
+        }, 0);
 
         parent.appendChild(trigger); parent.appendChild(list); parent.appendChild(hidden);
     }
