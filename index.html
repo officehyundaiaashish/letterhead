@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2860,7 +2859,7 @@
             let cur = fileTabs.find(t => t.id === activeTabId);
             if(cur) cur.content = editor.getValue();
             const key = _pythonMode ? 'codx_session_py' : 'codx_session_html';
-            localStorage.setItem(key, JSON.stringify({tabs: fileTabs, active: activeTabId, counter: tabIdCounter}));
+            try { localStorage.setItem(key, JSON.stringify({tabs: fileTabs, active: activeTabId, counter: tabIdCounter})); } catch(e) {}
         }
     }
     window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveSession(); });
@@ -8446,7 +8445,7 @@ Use only line numbers visible in the context. Be precise.`;
         size = Math.min(size + 1, 40);
         editor.setOptions({ fontSize: size + 'px' });
         _lastZoomSize = size;
-        localStorage.setItem('codx_fontsize', size);
+        try { localStorage.setItem('codx_fontsize', size); } catch(e) {}
         showToast('Font ' + size + 'px', 'zoom_in');
     }
 
@@ -8455,7 +8454,7 @@ Use only line numbers visible in the context. Be precise.`;
         size = Math.max(size - 1, 10);
         editor.setOptions({ fontSize: size + 'px' });
         _lastZoomSize = size;
-        localStorage.setItem('codx_fontsize', size);
+        try { localStorage.setItem('codx_fontsize', size); } catch(e) {}
         showToast('Font ' + size + 'px', 'zoom_out');
     }
 
