@@ -415,6 +415,7 @@
             left: 0; right: 0;
             z-index: 49;
         }
+        /* Prevent editor area going black when keyboard opens */
         body.chat-kb-open #editor-wrapper {
             background: var(--editor-bg) !important;
         }
@@ -1312,11 +1313,11 @@
         }
         #inline-chat-fullscreen:active { opacity: 1; background: var(--accent-dim); }
         #inline-chat-panel.chat-fullscreen {
-            top: var(--header-h, 48px) !important;
-            height: calc(100svh - var(--header-h, 48px)) !important;
+            top: var(--header-full-h, 80px) !important;
+            height: calc(100svh - var(--header-full-h, 80px)) !important;
             border-radius: 0 !important;
             padding-top: 0;
-            max-height: calc(100svh - var(--header-h, 48px)) !important;
+            max-height: calc(100svh - var(--header-full-h, 80px)) !important;
         }
 
         /* Chat mode button — animated glow ring when ON */
@@ -2487,8 +2488,11 @@
             const chatH    = (chatPanel && chatPanel.classList.contains('chat-open')) ? (chatPanel.offsetHeight || 0) : 0;
 
             if (kbOpen) {
+                // Lock body height
                 document.body.style.height = window.innerHeight + 'px';
+                // Calculate available height for editor area
                 const availH = window.innerHeight - kbHeight;
+                // Make sure editor-wrapper fills the space above chat panel
                 const mc = document.getElementById('editor-wrapper');
                 if (mc) {
                     mc.style.height = Math.max(60, availH - hdrH - tabH - chatH) + 'px';
@@ -2498,6 +2502,7 @@
                 document.documentElement.style.setProperty('--chat-hdr-h', hdrH + 'px');
                 document.body.classList.add('chat-kb-open');
             } else {
+                // Keyboard closed — restore
                 document.body.style.height = window.innerHeight + 'px';
                 const mc = document.getElementById('editor-wrapper');
                 if (mc) {
@@ -8476,12 +8481,15 @@ Use only line numbers visible in the context. Be precise.`;
     // ── Inline chat: fullscreen toggle ──
     function _toggleChatFullscreen() {
         _chatIsFullscreen = !_chatIsFullscreen;
-        const panel  = document.getElementById('inline-chat-panel');
-        const icon   = document.getElementById('fs-icon');
-        const header = document.getElementById('header');
-        const hh     = header ? header.offsetHeight : 48;
+        const panel   = document.getElementById('inline-chat-panel');
+        const icon    = document.getElementById('fs-icon');
+        const header  = document.getElementById('header');
+        const tabsBar = document.getElementById('file-tabs-bar');
+        const hh      = (header  ? header.offsetHeight  : 48)
+                      + (tabsBar ? tabsBar.offsetHeight : 32);
         if (_chatIsFullscreen) {
-            document.documentElement.style.setProperty('--header-h', hh + 'px');
+            document.documentElement.style.setProperty('--header-h',      (header ? header.offsetHeight : 48) + 'px');
+            document.documentElement.style.setProperty('--header-full-h', hh + 'px');
             panel.classList.add('chat-fullscreen');
             if (icon) icon.innerHTML = '<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>';
         } else {
