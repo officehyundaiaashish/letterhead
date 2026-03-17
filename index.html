@@ -415,6 +415,12 @@
             left: 0; right: 0;
             z-index: 49;
         }
+        body.chat-kb-open #editor-wrapper {
+            background: var(--editor-bg) !important;
+        }
+        body.chat-kb-open #editor {
+            background: var(--editor-bg) !important;
+        }
         .file-tab { display: flex; align-items: center; gap: 5px; padding: 6px 12px 6px 12px; font-size: 11px; font-weight: 600; color: var(--text-color); opacity: 0.55; border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; flex-shrink: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         .file-tab.active { opacity: 1; border-bottom-color: var(--accent); color: var(--accent); }
         .file-tab .ft-close { font-size: 13px; opacity: 0.4; margin-left: 2px; line-height: 1; transition: opacity 0.15s; pointer-events: auto; }
@@ -2472,27 +2478,33 @@
                 panel.style.bottom = '';
             }
         } else {
-            // Non-fullscreen chat: keyboard pushes editor — lock body + main-container height
+            // Non-fullscreen chat: keyboard appears — keep editor visible above chat panel
             const kbHeight = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
             const kbOpen   = kbHeight > 50;
             const hdrH     = (document.getElementById('header') || {}).offsetHeight || 0;
             const tabH     = (document.getElementById('file-tabs-bar') || {}).offsetHeight || 0;
-            const chatH    = (document.getElementById('inline-chat-panel') || {}).offsetHeight || 0;
+            const chatPanel = document.getElementById('inline-chat-panel');
+            const chatH    = (chatPanel && chatPanel.classList.contains('chat-open')) ? (chatPanel.offsetHeight || 0) : 0;
 
             if (kbOpen) {
-                // Lock body to full window height — prevent ANY scroll/push
-                document.body.style.height  = window.innerHeight + 'px';
-                // Clamp main-container so editor never overflows into keyboard area
+                document.body.style.height = window.innerHeight + 'px';
+                const availH = window.innerHeight - kbHeight;
                 const mc = document.getElementById('editor-wrapper');
-                if (mc) mc.style.maxHeight = (window.innerHeight - hdrH - tabH - chatH - kbHeight) + 'px';
-                // Pin header + tabbar
+                if (mc) {
+                    mc.style.height = Math.max(60, availH - hdrH - tabH - chatH) + 'px';
+                    mc.style.minHeight = '60px';
+                    mc.style.background = 'var(--editor-bg)';
+                }
                 document.documentElement.style.setProperty('--chat-hdr-h', hdrH + 'px');
                 document.body.classList.add('chat-kb-open');
             } else {
-                // Keyboard closed — restore everything
-                document.body.style.height  = window.innerHeight + 'px';
+                document.body.style.height = window.innerHeight + 'px';
                 const mc = document.getElementById('editor-wrapper');
-                if (mc) mc.style.maxHeight = '';
+                if (mc) {
+                    mc.style.height = '';
+                    mc.style.minHeight = '';
+                    mc.style.background = '';
+                }
                 document.body.classList.remove('chat-kb-open');
             }
         }
