@@ -120,5 +120,5 @@ This project is open source and available under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by the CodX Team</sub>
+  <sub>Built with ❤️ by the Aashish Giri H</sub>
 </div>
