@@ -4500,9 +4500,11 @@
             const isActive = i === activeAgentIdx;
             const row = document.createElement('div');
             row.className = 'am-agent-row' + (isActive ? ' active' : '');
+            const tagHtml = ag.tag ? `<span style="font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;flex-shrink:0;font-family:'Poppins',sans-serif;color:${ag.tagColor||'var(--accent)'};background:${ag.tagColor||'var(--accent)'}22;">${ag.tag}</span>` : '';
             row.innerHTML = `
                 <div class="am-agent-dot"></div>
                 <div class="am-agent-name">${ag.providerName}</div>
+                ${tagHtml}
                 ${isActive ? '<span class="material-icons-round" style="font-size:14px;color:var(--accent);flex-shrink:0;pointer-events:none;">check_circle</span>' : ''}
                 <button class="am-agent-del" onclick="event.stopPropagation();_removeAgent(${i})" title="Remove">
                     <span class="material-icons-round">delete</span>
