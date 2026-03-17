@@ -147,25 +147,6 @@
         
 
         /* ──────────────────────── Toolbar & Cursor Nav ──────────────────────── */
-.cursor-nav { touch-action: pan-x pan-y; }
-        #editor { touch-action: pan-x pan-y pinch-zoom; }
-        /* Promote scrollable layers to own GPU composite layer */
-        .file-tabs-bar { transform: translateZ(0); }
-        .main-container { flex-grow: 1; position: relative; background-color: var(--editor-bg); overflow: hidden; }
-
-        /* FASTEST MONOSPACE FOR EDITOR ONLY */
-        #editor { position: absolute; top: 0; right: 0; bottom: 0; left: 0; font-size: 14px; font-family: 'Courier New', Courier, monospace !important; z-index: 10; contain: size layout; }
-        #preview { position: absolute; top: 0; right: 0; bottom: 0; left: 0; width: 100%; height: 100%; border: none; background: white; visibility: hidden; opacity: 0; z-index: 20; transform: translateZ(0); }
-        #preview.active-pane { visibility: visible; opacity: 1; }
-
-        .ace_mobile-menu, .ace_tooltip, .ace_callout { display: none !important; opacity: 0 !important; pointer-events: none !important; visibility: hidden !important; }
-        .ace_selection { background: rgba(16, 185, 129, 0.35) !important; }
-        .ace_selected-word { background: rgba(16, 185, 129, 0.3) !important; border: 1px solid rgba(16, 185, 129, 0.6) !important; border-radius: 2px; }
-
-        .scroll-jumpers { position: absolute; right: 10px; top: 38%; transform: translateY(-50%); display: none; flex-direction: column; gap: 15px; z-index: 35; opacity: 0; transition: opacity 0.3s; }
-        .scroll-jumpers.visible { opacity: 1; }
-        .jumper-btn { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; color: var(--accent); box-shadow: none; opacity: 0.5; transition: opacity 0.15s, transform 0.15s; cursor: pointer; }
-        .jumper-btn:active { transform: scale(0.9); opacity: 1; }
 
         /* Nav panel */
         .bottom-wrapper { position: absolute; bottom: 0; left: 0; right: 0; z-index: 40; }
@@ -2014,16 +1995,20 @@
         <!-- Find row -->
         <div style="display:flex;align-items:center;gap:7px;">
             <span style="font-size:9px;font-weight:700;color:var(--accent);font-family:'Poppins',sans-serif;width:42px;flex-shrink:0;letter-spacing:0.3px;">FIND</span>
-            <textarea id="find-input" class="no-select fm-field" placeholder="text to find…" style="height:34px;flex:1;"></textarea>
+            <textarea id="find-input" class="fm-field" placeholder="text to find…" style="height:34px;flex:1;"></textarea>
         </div>
 
         <!-- Replace row -->
         <div style="display:flex;align-items:center;gap:7px;">
             <span style="font-size:9px;font-weight:700;color:rgba(96,165,250,0.9);font-family:'Poppins',sans-serif;width:42px;flex-shrink:0;letter-spacing:0.3px;">WITH</span>
-            <textarea id="replace-input" class="no-select fm-field" placeholder="replacement…" style="height:34px;flex:1;"></textarea>
+            <textarea id="replace-input" class="fm-field" placeholder="replacement…" style="height:34px;flex:1;"></textarea>
         </div>
 
     </div>
+
+    <!-- Hidden checkboxes for case/regex state (required by JS) -->
+    <input type="checkbox" id="find-case" style="display:none;">
+    <input type="checkbox" id="find-regex" style="display:none;">
 
     <!-- Footer: chips left, actions right -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0 12px 10px;gap:6px;">
@@ -3326,10 +3311,12 @@
         let searchStr = document.getElementById('find-input').value.trim(); if (!searchStr) return;
         let caseSensitive = document.getElementById('find-case').checked;
         let useRegex = document.getElementById('find-regex').checked;
-        editor.find(searchStr, { wrap: true, caseSensitive: caseSensitive, wholeWord: false, regExp: useRegex }); 
-        let match = editor.getSelectionRange();
-        if(match.isEmpty() && showErrorAlert) { showToast('No exact match found.', 'error_outline'); editor.clearSelection(); } 
-        else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); }
+        editor.find(searchStr, { wrap: true, caseSensitive: caseSensitive, wholeWord: false, regExp: useRegex });
+        requestAnimationFrame(function() {
+            let match = editor.getSelectionRange();
+            if (match.isEmpty() && showErrorAlert) { showToast('No exact match found.', 'error_outline'); editor.clearSelection(); }
+            else if (!match.isEmpty()) { editor.renderer.scrollSelectionIntoView(match.start, match.end); editor.centerSelection(); editor.focus(); }
+        });
     }
     function replaceText() { 
         let replaceStr = document.getElementById('replace-input').value.trim(); let match = editor.getSelectionRange();
