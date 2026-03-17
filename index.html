@@ -738,10 +738,8 @@
         }
         .am-model-row:active { transform: scale(0.97); }
         .am-model-row:hover, .am-model-row.selected { border-color: var(--accent); background: var(--accent-dim); }
-        .am-model-dot { width:15px; height:15px; border-radius:4px; border:1.5px solid var(--glass-border); background:transparent; flex-shrink:0; transition:background 0.15s,border-color 0.15s; display:flex; align-items:center; justify-content:center; }
-        .am-model-row.selected .am-model-dot { background:var(--accent); border-color:var(--accent); }
-        .am-model-dot::after { content:''; display:none; width:4px; height:7px; border:2px solid white; border-top:none; border-left:none; transform:rotate(45deg) translate(0px,-1px); }
-        .am-model-row.selected .am-model-dot::after { display:block; }
+        .am-model-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); flex-shrink:0; opacity:0.5; }
+        .am-model-row.selected .am-model-dot { opacity:1; }
         .am-model-name { flex:1; font-size:11px; font-weight:700; color:var(--text-color); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:'Poppins',sans-serif; }
         .am-model-tag { font-size:8px; font-weight:700; padding:2px 6px; border-radius:5px; flex-shrink:0; font-family:'Poppins',sans-serif; }
 
@@ -4309,29 +4307,25 @@
         ];
 
         if (/^gsk_[A-Za-z0-9]{20,}/.test(key)) return [
+            // FREE
             { provider:'groq', providerName:'Llama 3.3 70B',         tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'llama-3.3-70b-versatile'         },
             { provider:'groq', providerName:'Llama 3.1 70B',         tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'llama-3.1-70b-versatile'         },
+            // FAST
             { provider:'groq', providerName:'Llama 3.1 8B',          tag:'FAST', tagColor:'#f59e0b', url: GRQ, model:'llama-3.1-8b-instant'            },
-            { provider:'groq', providerName:'Mixtral 8x7B',          tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'mixtral-8x7b-32768'              },
-            { provider:'groq', providerName:'Gemma2 9B',             tag:'FREE', tagColor:'#f59e0b', url: GRQ, model:'gemma2-9b-it'                    },
-            { provider:'groq', providerName:'DeepSeek R1 Distill 70B', tag:'THINK', tagColor:'#8b5cf6', url: GRQ, model:'deepseek-r1-distill-llama-70b' },
-            { provider:'groq', providerName:'Qwen 2.5 Coder 32B',   tag:'CODE', tagColor:'#3b82f6', url: GRQ, model:'qwen-2.5-coder-32b'              },
         ];
 
         if (/^sk-or-/i.test(key)) return [
-            { provider:'openrouter', providerName:'Qwen3 Coder',            tag:'CODE', tagColor:'#3b82f6', url: OR, model:'qwen/qwen3-coder:free'                    },
-            { provider:'openrouter', providerName:'Qwen3 235B',             tag:'FREE', tagColor:'#10b981', url: OR, model:'qwen/qwen3-235b-a22b:free'               },
-            { provider:'openrouter', providerName:'DeepSeek R1 (Free)',     tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'deepseek/deepseek-r1:free'               },
-            { provider:'openrouter', providerName:'DeepSeek V3 (Free)',     tag:'FREE', tagColor:'#10b981', url: OR, model:'deepseek/deepseek-chat-v3-0324:free'     },
-            { provider:'openrouter', providerName:'Llama 4 Scout (Free)',   tag:'FREE', tagColor:'#10b981', url: OR, model:'meta-llama/llama-4-scout:free'           },
-            { provider:'openrouter', providerName:'Llama 4 Maverick (Free)',tag:'FREE', tagColor:'#10b981', url: OR, model:'meta-llama/llama-4-maverick:free'        },
-            { provider:'openrouter', providerName:'Gemma3 27B (Free)',      tag:'FREE', tagColor:'#10b981', url: OR, model:'google/gemma-3-27b-it:free'              },
-            { provider:'openrouter', providerName:'Mistral Small 3.1 (Free)',tag:'FREE',tagColor:'#10b981', url: OR, model:'mistralai/mistral-small-3.1-24b-instruct:free'},
-            { provider:'openrouter', providerName:'Phi-4 Reasoning (Free)', tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'microsoft/phi-4-reasoning:free'          },
-            { provider:'openrouter', providerName:'GLM 4.5 Air (Free)',     tag:'FREE', tagColor:'#10b981', url: OR, model:'z-ai/glm-4.5-air:free'                  },
-            { provider:'openrouter', providerName:'Nemotron 3 Super 120B',  tag:'FREE', tagColor:'#10b981', url: OR, model:'nvidia/nemotron-3-super-120b-a12b:free'  },
-            { provider:'openrouter', providerName:'Liquid LFM Thinking',    tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'liquid/lfm-2.5-1.2b-thinking:free'      },
-            { provider:'openrouter', providerName:'Auto Free',              tag:'AUTO', tagColor:'#6b7280', url: OR, model:'openrouter/free'                         },
+            // AUTO
+            { provider:'openrouter', providerName:'Auto Free',                   tag:'AUTO', tagColor:'#6b7280', url: OR, model:'openrouter/free'                                },
+            // FREE
+            { provider:'openrouter', providerName:'Gemma3 27B (Free)',           tag:'FREE', tagColor:'#10b981', url: OR, model:'google/gemma-3-27b-it:free'                    },
+            { provider:'openrouter', providerName:'GLM 4.5 Air (Free)',          tag:'FREE', tagColor:'#10b981', url: OR, model:'z-ai/glm-4.5-air:free'                         },
+            { provider:'openrouter', providerName:'Nemotron 3 Super 120B',       tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-3-super-120b-a12b:free'         },
+            { provider:'openrouter', providerName:'Nemotron 3 Nano 30B',         tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-3-nano-30b-a3b:free'            },
+            { provider:'openrouter', providerName:'Nemotron Nano 12B VL',        tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-nano-12b-2-vl:free'             },
+            // THINK
+            { provider:'openrouter', providerName:'Nemotron Nano 9B V2',         tag:'THINK',tagColor:'#76b900', url: OR, model:'nvidia/nemotron-nano-9b-v2:free'                },
+            { provider:'openrouter', providerName:'Liquid LFM Thinking',         tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'liquid/lfm-2.5-1.2b-thinking:free'             },
         ];
 
         if (/^sk-ant-[A-Za-z0-9]{10,}/.test(key)) return [
@@ -4358,8 +4352,8 @@
         return null;
     }
 
-    // Selected model indices in the list (multi-select Set)
-    let _agentSelectedModelIdxs = new Set();
+    // Selected model index in the list (for connectAgent)
+    let _agentSelectedModelIdx = 0;
 
     function agentKeyPreview(val) {
         val = (val || '').trim();
@@ -4376,12 +4370,12 @@
         }
 
         const arr = Array.isArray(models) ? models : [models];
-        _agentSelectedModelIdxs = new Set(arr.map((_, i) => i)); // all selected by default
+        _agentSelectedModelIdx = 0;
 
         inner.innerHTML = '';
         arr.forEach((m, i) => {
             const row = document.createElement('div');
-            row.className = 'am-model-row selected';
+            row.className = 'am-model-row' + (i === 0 ? ' selected' : '');
             row.style.animationDelay = (i * 35) + 'ms';
             row.innerHTML = `
                 <div class="am-model-dot"></div>
@@ -4389,13 +4383,9 @@
                 <span class="am-model-tag" style="color:${m.tagColor};background:${m.tagColor}22;">${m.tag||''}</span>
             `;
             row.onclick = () => {
-                if (_agentSelectedModelIdxs.has(i)) {
-                    _agentSelectedModelIdxs.delete(i);
-                    row.classList.remove('selected');
-                } else {
-                    _agentSelectedModelIdxs.add(i);
-                    row.classList.add('selected');
-                }
+                _agentSelectedModelIdx = i;
+                inner.querySelectorAll('.am-model-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
             };
             inner.appendChild(row);
         });
@@ -4462,19 +4452,15 @@
             return;
         }
         const arr = Array.isArray(d) ? d : [d];
-        const selectedIdxs = _agentSelectedModelIdxs.size > 0 ? _agentSelectedModelIdxs : new Set([0]);
-        let lastEntry = null;
-        selectedIdxs.forEach(i => {
-            const entry = arr[i] || arr[0];
-            const exists = agentList.findIndex(a => a.model === entry.model);
-            if (exists !== -1) {
-                agentList[exists] = { ...entry, key };
-            } else {
-                agentList.push({ ...entry, key });
-            }
-            lastEntry = entry;
-        });
-        activeAgentIdx = agentList.findIndex(a => a.model === lastEntry.model);
+        // Connect only the selected model from the list
+        const entry = arr[_agentSelectedModelIdx] || arr[0];
+        const exists = agentList.findIndex(a => a.model === entry.model);
+        if (exists !== -1) {
+            agentList[exists] = { ...entry, key };
+        } else {
+            agentList.push({ ...entry, key });
+        }
+        activeAgentIdx = agentList.findIndex(a => a.model === entry.model);
         _saveAgentList();
         keyInp.value = '';
         // Close model list
@@ -4482,11 +4468,9 @@
         const inner = document.getElementById('agent-model-list-inner');
         if (list) list.classList.remove('open');
         if (inner) inner.innerHTML = '';
-        _agentSelectedModelIdxs = new Set();
         document.getElementById('agent-detect-badge').style.display = 'none';
         _renderConnectedAgents();
-        const count = selectedIdxs.size;
-        showToast(count > 1 ? `${count} models connected` : `${lastEntry.providerName} connected`, 'check_circle');
+        showToast(`${entry.providerName} connected`, 'check_circle');
     }
 
     function _renderConnectedAgents() {
