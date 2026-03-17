@@ -1572,6 +1572,14 @@
                 width: calc(96% - 220px) !important;
             }
 
+            /* Editor default font size — larger on desktop */
+            #editor { font-size: 16px !important; }
+
+            /* Desktop zoom buttons */
+            #desktop-zoom-btns {
+                display: flex !important;
+            }
+
             /* Nav hide button in header — on desktop toggles sidebar */
             /* (JS already calls toggleNavVisibility which uses translateY,
                 we override that with CSS transform for desktop) */
@@ -1969,6 +1977,11 @@
                     <button class="toolbar-btn" onclick="location.reload()" title="Restart app" style="width: 60px;"><span class="material-icons-round">refresh</span>Refresh</button>
                     <button class="toolbar-btn" id="no-anim-btn" onclick="toggleAnimations()" title="Disable all animations" style="width: 68px;"><span class="material-icons-round">motion_photos_off</span>No Anim</button>
                     <button class="toolbar-btn" id="plain-text-btn" onclick="togglePlainTextMode()" title="Force plain text mode" style="width: 68px;"><span class="material-icons-round">text_fields</span>Plain Text</button>
+                </div>
+                <!-- Desktop only: Zoom buttons -->
+                <div id="desktop-zoom-btns" style="display:none; justify-content:center; width:100%; margin-top:4px; gap:4px;">
+                    <button class="toolbar-btn" onclick="desktopZoomIn()" title="Zoom In" style="width:68px;"><span class="material-icons-round">zoom_in</span>Zoom In</button>
+                    <button class="toolbar-btn" onclick="desktopZoomOut()" title="Zoom Out" style="width:68px;"><span class="material-icons-round">zoom_out</span>Zoom Out</button>
                 </div>
             </div></div>
         </div>
@@ -2710,6 +2723,9 @@
         if (savedSize && savedSize >= 10 && savedSize <= 40) {
             editor.setOptions({ fontSize: savedSize + 'px' });
             _lastZoomSize = savedSize;
+        } else if (window.innerWidth >= 768) {
+            editor.setOptions({ fontSize: '16px' });
+            _lastZoomSize = 16;
         }
         // Restore no-animations setting
         if (localStorage.getItem('codx_no_anim')) {
@@ -8410,6 +8426,24 @@ Use only line numbers visible in the context. Be precise.`;
             showToast('Animations ON', 'motion_photos_on');
             localStorage.removeItem('codx_no_anim');
         }
+    }
+
+    function desktopZoomIn() {
+        let size = parseInt(editor.getOption('fontSize')) || 16;
+        size = Math.min(size + 1, 40);
+        _origSetFontSize(size + 'px');
+        _lastZoomSize = size;
+        localStorage.setItem('codx_fontsize', size);
+        showToast('Font ' + size + 'px', 'zoom_in');
+    }
+
+    function desktopZoomOut() {
+        let size = parseInt(editor.getOption('fontSize')) || 16;
+        size = Math.max(size - 1, 10);
+        _origSetFontSize(size + 'px');
+        _lastZoomSize = size;
+        localStorage.setItem('codx_fontsize', size);
+        showToast('Font ' + size + 'px', 'zoom_out');
     }
 
     function togglePlainTextMode() {
