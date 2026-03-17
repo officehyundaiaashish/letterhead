@@ -4303,9 +4303,6 @@
         if (/^AIza[A-Za-z0-9_-]{20,}/.test(key)) return [
             { provider:'gemini', providerName:'Gemini 2.5 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.5-flash:generateContent',      model:'gemini-2.5-flash'      },
             { provider:'gemini', providerName:'Gemini 2.5 Flash-Lite', tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.5-flash-lite:generateContent', model:'gemini-2.5-flash-lite' },
-            { provider:'gemini', providerName:'Gemini 2.0 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-2.0-flash:generateContent',      model:'gemini-2.0-flash'      },
-            { provider:'gemini', providerName:'Gemini 1.5 Pro',        tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-1.5-pro:generateContent',        model:'gemini-1.5-pro'        },
-            { provider:'gemini', providerName:'Gemini 1.5 Flash',      tag:'FREE', tagColor:'#10b981', url: GEM+'gemini-1.5-flash:generateContent',      model:'gemini-1.5-flash'      },
         ];
 
         if (/^gsk_[A-Za-z0-9]{20,}/.test(key)) return [
@@ -4324,7 +4321,6 @@
             { provider:'openrouter', providerName:'GLM 4.5 Air (Free)',          tag:'FREE', tagColor:'#10b981', url: OR, model:'z-ai/glm-4.5-air:free'                         },
             { provider:'openrouter', providerName:'Nemotron 3 Super 120B',       tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-3-super-120b-a12b:free'         },
             { provider:'openrouter', providerName:'Nemotron 3 Nano 30B',         tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-3-nano-30b-a3b:free'            },
-            { provider:'openrouter', providerName:'Nemotron Nano 12B VL',        tag:'FREE', tagColor:'#76b900', url: OR, model:'nvidia/nemotron-nano-12b-2-vl:free'             },
             // THINK
             { provider:'openrouter', providerName:'Nemotron Nano 9B V2',         tag:'THINK',tagColor:'#76b900', url: OR, model:'nvidia/nemotron-nano-9b-v2:free'                },
             { provider:'openrouter', providerName:'Liquid LFM Thinking',         tag:'THINK',tagColor:'#8b5cf6', url: OR, model:'liquid/lfm-2.5-1.2b-thinking:free'             },
