@@ -4315,21 +4315,14 @@
 
         if (/^nvapi-[A-Za-z0-9_-]{20,}/.test(key)) return [
             // NVIDIA FREE MODELS
-            { provider:'nvidia', providerName:'DeepSeek V3',            tag:'FREE', tagColor:'#76b900', url: NIM, model:'deepseek-ai/deepseek-v3-0324'              },
-            { provider:'nvidia', providerName:'DeepSeek R1 (671B)',     tag:'THINK',tagColor:'#76b900', url: NIM, model:'deepseek-ai/deepseek-r1'                   },
+            { provider:'nvidia', providerName:'Llama 3.1 Nemotron 70B', tag:'FREE', tagColor:'#76b900', url: NIM, model:'nvidia/llama-3.1-nemotron-70b-instruct' },
+            { provider:'nvidia', providerName:'Mistral NeMo 12B',        tag:'FREE', tagColor:'#76b900', url: NIM, model:'mistralai/mistral-nemo-12b-instruct'      },
             { provider:'nvidia', providerName:'Kimi K2 Instruct',       tag:'FREE', tagColor:'#76b900', url: NIM, model:'moonshotai/kimi-k2-instruct'               },
             { provider:'nvidia', providerName:'Kimi K2 Thinking',       tag:'THINK',tagColor:'#76b900', url: NIM, model:'moonshotai/kimi-k2-thinking'               },
             { provider:'nvidia', providerName:'GLM-4.7',                tag:'FREE', tagColor:'#76b900', url: NIM, model:'z-ai/glm4.7'                               },
-            { provider:'nvidia', providerName:'GLM-4.7 Flash',          tag:'FAST', tagColor:'#76b900', url: NIM, model:'z-ai/glm-4.7-flash'                        },
-            { provider:'nvidia', providerName:'MiniMax M2.5',           tag:'FREE', tagColor:'#76b900', url: NIM, model:'minimax/minimax-m2.5'                      },
             { provider:'nvidia', providerName:'Llama 4 Maverick',       tag:'FREE', tagColor:'#76b900', url: NIM, model:'meta/llama-4-maverick-17b-128e-instruct'   },
-            { provider:'nvidia', providerName:'Llama 4 Scout',          tag:'FREE', tagColor:'#76b900', url: NIM, model:'meta/llama-4-scout-17b-16e-instruct'       },
             { provider:'nvidia', providerName:'Llama 3.3 70B',          tag:'FREE', tagColor:'#76b900', url: NIM, model:'meta/llama-3.3-70b-instruct'               },
             { provider:'nvidia', providerName:'Llama Nemotron Super',   tag:'FREE', tagColor:'#76b900', url: NIM, model:'nvidia/llama-3.3-nemotron-super-49b-v1'    },
-            { provider:'nvidia', providerName:'Llama Nemotron Ultra',   tag:'BEST', tagColor:'#76b900', url: NIM, model:'nvidia/llama-3.1-nemotron-ultra-253b-v1'   },
-            { provider:'nvidia', providerName:'Qwen3 235B',             tag:'FREE', tagColor:'#76b900', url: NIM, model:'qwen/qwen3-235b-a22b'                      },
-            { provider:'nvidia', providerName:'Qwen3 30B (Thinking)',   tag:'THINK',tagColor:'#76b900', url: NIM, model:'qwen/qwen3-30b-a3b'                        },
-            { provider:'nvidia', providerName:'Mistral Small 3.1',      tag:'FREE', tagColor:'#76b900', url: NIM, model:'mistralai/mistral-small-3.1-24b-instruct'  },
             { provider:'nvidia', providerName:'Phi-4 Mini',             tag:'FAST', tagColor:'#76b900', url: NIM, model:'microsoft/phi-4-mini-instruct'              },
             { provider:'nvidia', providerName:'Gemma 3 27B',            tag:'FREE', tagColor:'#76b900', url: NIM, model:'google/gemma-3-27b-it'                     },
         ];
