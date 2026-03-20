@@ -440,7 +440,15 @@ select{display:none !important;}
     </div>
 
     <!-- Hidden legacy selects for compat -->
-    <select id="providerSelect" style="display:none !important"><option value="openrouter">OpenRouter</option><option value="groq">Groq</option></select>
+    <select id="providerSelect" style="display:none !important">
+      <option value="openrouter">OpenRouter</option>
+      <option value="groq">Groq</option>
+      <option value="nvidia">NVIDIA</option>
+      <option value="gemini">Gemini</option>
+      <option value="deepseek">DeepSeek</option>
+      <option value="openai">OpenAI</option>
+      <option value="anthropic">Anthropic</option>
+    </select>
     <input type="hidden" id="apiKey" />
   </div>
 
@@ -805,6 +813,7 @@ function renderAgentList(){
     list.innerHTML='<div class="agent-list-empty">No agents yet — add one above</div>';
     return;
   }
+  const badges = {openrouter:'OR',groq:'Groq',nvidia:'NIM',gemini:'Gemini',deepseek:'DS',openai:'OpenAI',anthropic:'Claude'};
   list.innerHTML = agents.map(a=>`
     <div class="agent-item ${a.id===activeAgentId?'active':''}" onclick="setActiveAgent('${a.id}');renderAgentList();">
       <div class="ai-dot"></div>
@@ -813,7 +822,7 @@ function renderAgentList(){
         <div style="font-size:10px;color:var(--muted);">${getProviderLabel(a.provider)}</div>
       </div>
       ${a.id===activeAgentId?'<span class="ai-status">Active</span>':''}
-      <span class="ai-badge">${a.provider==='groq'?'Groq':'OR'}</span>
+      <span class="ai-badge">${badges[a.provider]||a.provider}</span>
       <button class="ai-del" onclick="deleteAgent(event,'${a.id}')" title="Remove">×</button>
     </div>`).join('');
 }
